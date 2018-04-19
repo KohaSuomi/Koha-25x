@@ -13,6 +13,12 @@ Logging:
                   0: "Don't log"
             - changes to patron records and patron restrictions.
         -
+            - pref: BorrowersViewLog
+              choices:
+                  1: Log
+                  0: "Don't log"
+            - when patron data is viewed.
+        -
             - pref: CardnumberLog
               choices:
                   1: Log
