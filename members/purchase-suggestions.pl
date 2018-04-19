@@ -61,4 +61,6 @@ my $suggestions = [
 
 $template->param( suggestions => $suggestions );
 
+C4::Log::logaction("MEMBERS", "VIEW", $borrowernumber, "Purchase suggestions page") if C4::Context->preference("BorrowersViewLog");
+
 output_html_with_http_headers $input, $cookie, $template->output;
