@@ -58,7 +58,7 @@ if ( $op eq 'cud-update' ) {
                 $m->approve() if $m;
             } elsif ( $action eq 'deny' ) {
                 my $m = Koha::Patron::Modifications->find( { borrowernumber => $borrowernumber } );
-                $m->delete() if $m;
+                $m->deny() if $m;
             }
 
             # elsif ( $action eq 'ignore' ) { }
