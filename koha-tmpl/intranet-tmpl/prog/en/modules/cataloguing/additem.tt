@@ -34,6 +34,7 @@
 [% INCLUDE 'select2.inc' %]
 [% Asset.js("js/cataloging.js") | $raw %]
 [% Asset.js("js/browser.js") | $raw %]
+[% Asset.js("js/marceditlib.js") | $raw %]
 [% INCLUDE 'calendar.inc' %]
 [% INCLUDE 'str/cataloging_additem.inc' %]
 [% Asset.js("js/cataloging_additem.js") | $raw %]
