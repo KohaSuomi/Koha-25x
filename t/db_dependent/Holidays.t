@@ -18,7 +18,7 @@
 use Modern::Perl;
 
 use Test::NoWarnings;
-use Test::More tests => 15;
+use Test::More tests => 19;
 use Test::Exception;
 
 use DateTime;
@@ -111,6 +111,22 @@ C4::Calendar->new( branchcode => $branch_1 )->insert_day_month_holiday(
     title       => '',
     description => 'Christmas',
 );
+$holiday2add = dt_from_string("2020-03-19");
+C4::Calendar->new( branchcode => $branch_1 )->insert_single_holiday(
+    day         => $holiday2add->day(),
+    month       => $holiday2add->month(),
+    year        => $holiday2add->year(),
+    title       => '',
+    description => 'Some random holiday',
+);
+$holiday2add = dt_from_string("2020-03-20");
+C4::Calendar->new( branchcode => $branch_1 )->insert_exception_holiday(
+    day         => $holiday2add->day(),
+    month       => $holiday2add->month(),
+    year        => $holiday2add->year(),
+    title       => '',
+    description => 'Some random exception',
+);
 
 my $koha_calendar = Koha::Calendar->new( branchcode => $branch_1 );
 my $c4_calendar   = C4::Calendar->new( branchcode => $branch_1 );
@@ -138,11 +154,27 @@ my $newyear = DateTime->new(
     month => 1,
     day   => 1,
 );
+my $single = DateTime->new(
+    year  => 2020,
+    month => 3,
+    day   => 19,
+);
+my $exception = DateTime->new(
+    year  => 2020,
+    month => 3,
+    day   => 20,
+);
 
 is( $koha_calendar->is_holiday($sunday),    1, 'Sunday is a closed day' );
 is( $koha_calendar->is_holiday($monday),    0, 'Monday is not a closed day' );
 is( $koha_calendar->is_holiday($christmas), 1, 'Christmas is a closed day' );
 is( $koha_calendar->is_holiday($newyear),   1, 'New Years day is a closed day' );
+
+#tests for get_holidaytype
+is( C4::Calendar->new( branchcode => $branch_1 )->get_holidaytype( $sunday ), 'weekday', "Sunday is a weekday holiday" );
+is( C4::Calendar->new( branchcode => $branch_1 )->get_holidaytype( $newyear ), 'daymonth', "New Years is a daymonth holiday" );
+is( C4::Calendar->new( branchcode => $branch_1 )->get_holidaytype( $single ), 'ymd', "2020-03-19 is a single holiday" );
+is( C4::Calendar->new( branchcode => $branch_1 )->get_holidaytype( $exception ), 'exception', "2020-03-20 is a exception holiday" );
 
 $dbh->do("DELETE FROM repeatable_holidays");
 $dbh->do("DELETE FROM special_holidays");
