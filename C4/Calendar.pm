@@ -20,7 +20,7 @@ use warnings;
 use vars qw(@EXPORT);
 
 use Carp       qw( croak );
-use Date::Calc qw( Today );
+use Date::Calc qw( Today Day_of_Week );
 
 use C4::Context;
 use Koha::Caches;
@@ -775,6 +775,42 @@ sub copy_to_branch {
     }
 
     return 1;
+}
+
+=head2 get_holidaytype
+
+    $holidaytype = $calendar->get_holidaytype()
+
+    Return type of the holiday.
+
+=cut
+
+sub get_holidaytype {
+    my ($self, $date) = @_;
+
+    my $day = $date->day();
+    my $month = $date->month();
+    my $year = $date->year();
+    my $weekday = Day_of_Week($year, $month, $day) % 7;
+
+    my $single_holidays = $self->get_single_holidays();
+    my $exception_holidays = $self->get_exception_holidays();
+    my $weekday_holidays = $self->get_week_days_holidays();
+    my $daymonth_holidays = $self->get_day_month_holidays();
+
+    my $holidaytype;
+
+    if (exists( $exception_holidays->{"$year/$month/$day"} )) {
+        $holidaytype = "exception";
+    } elsif (exists( $single_holidays->{"$year/$month/$day"} )){
+        $holidaytype = "ymd";
+    } elsif (exists( $weekday_holidays->{$weekday} )) {
+        $holidaytype = "weekday";
+    } elsif (exists($daymonth_holidays->{"$month/$day"} )) {
+        $holidaytype = "daymonth";
+    }
+
+    return $holidaytype;
 }
 
 1;
