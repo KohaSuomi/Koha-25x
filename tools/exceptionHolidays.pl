@@ -163,6 +163,45 @@ sub edit_holiday {
                 );
             }
         }
+    } elsif ( $showoperation eq 'editOnRange' ) {
+        if (@holiday_list) {
+            foreach my $date (@holiday_list){
+                my $get_holidaytype = $calendar->get_holidaytype($date);
+                if(defined $get_holidaytype && $get_holidaytype eq $holidaytype){
+                    if($get_holidaytype eq 'ymd') {
+                        $calendar->ModSingleholiday(
+                            day => $date->{local_c}->{day},
+                            month => $date->{local_c}->{month},
+                            year => $date->{local_c}->{year},
+                            title => $title,
+                            description => $description
+                        )
+                    } elsif ($get_holidaytype eq 'exception') {
+                        $calendar->ModExceptionholiday(
+                            day => $date->{local_c}->{day},
+                            month => $date->{local_c}->{month},
+                            year => $date->{local_c}->{year},
+                            title => $title,
+                            description => $description
+                        )
+                    } elsif ($get_holidaytype eq 'weekday') {
+                        my $weekday = $date->day_of_week();
+                        $calendar->ModWeekdayholiday(
+                            weekday => $weekday,
+                            title => $title,
+                            description => $description
+                        )
+                    } elsif ($get_holidaytype eq 'daymonth') {
+                        $calendar->ModDaymonthholiday(
+                            day => $date->{local_c}->{day},
+                            month => $date->{local_c}->{month},
+                            title => $title,
+                            description => $description
+                        )
+                    }
+                }
+            }
+        }
     } elsif ( $showoperation eq 'cud-delete' ) {
         $calendar->delete_holiday(
             weekday => $weekday,
