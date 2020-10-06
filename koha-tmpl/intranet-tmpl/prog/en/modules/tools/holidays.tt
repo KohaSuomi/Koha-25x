@@ -132,6 +132,13 @@
                                         >This will save changes to the holiday's title and description. If the information for a repeatable holiday is modified, it affects all of the dates on which the holiday is repeated.</div
                                     ></li
                                 >
+                                <li class="radio">
+                                    <input type="radio" name="showOperation" id="showOperationEditOnRange" value="editOnRange" /> <label for="showOperationEditOnRange">Edit holidays on a range</label>
+                                    <a href="#" class="helptext">[?]</a>
+                                    <div class="hint"
+                                        >This will save changes to title and description of the holidays with same type on a range.</div
+                                    ></li
+                                >
                                 <li class="checkbox">
                                     <input type="checkbox" name="allBranches" id="allBranches" />
                                     <label for="allBranches">Copy changes to all libraries</label>.
