@@ -425,8 +425,14 @@ if ( $op eq "cud-additem" ) {
                 if ($barcodevalue) {
 
                     # Getting a new barcode (if it is not the first iteration or the barcode we tried already exists)
-                    $barcodevalue = $barcodeobj->next_value($oldbarcode)
+                    if ( C4::Context->preference("autoBarcode") eq 'preyymmddts' ) {
+                        my $barcodeobj2 = C4::Barcodes->new('preyymmddts');
+                        $barcodevalue = $barcodeobj2->value()
                         if ( $i > 0 || $exist_itemnumber );
+                    } else {
+                        $barcodevalue = $barcodeobj->next_value($oldbarcode)
+                            if ( $i > 0 || $exist_itemnumber );
+                    }
 
                     # Putting it into the record
                     if ($barcodevalue) {
