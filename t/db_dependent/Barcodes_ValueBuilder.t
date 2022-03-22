@@ -23,6 +23,8 @@ use t::lib::TestBuilder;
 
 use Koha::Database;
 
+use t::lib::Mocks;
+
 BEGIN {
     use_ok( 'C4::Barcodes::ValueBuilder', qw( get_barcode ) );
 }
@@ -65,5 +67,31 @@ my $item_5 = $builder->build_sample_item( { barcode => '978e0143019375' } );
 ( $nextnum, $scr ) = C4::Barcodes::ValueBuilder::incremental::get_barcode( \%args );
 is( $nextnum, '979', 'incremental barcode' );
 is( $scr,     undef, 'incremental javascript' );
+
+$dbh->do(q|DELETE FROM items|);
+my $library_1 = $builder->build_object( { class => 'Koha::Libraries' } );
+
+my $prefix_yaml = 'Default: DEF
+'.$library_1->branchcode.': TEST';
+t::lib::Mocks::mock_preference( 'BarcodePrefix', $prefix_yaml );
+
+my $item_6 = $builder->build_sample_item(
+    {
+        barcode => 'TEST20120700001',
+        homebranch   => $library_1->branchcode
+    }
+);
+
+($args{branchcode}) = $library_1->branchcode;
+($nextnum, $scr) = C4::Barcodes::ValueBuilder::preyymmddts::get_barcode(\%args);
+is($nextnum, 'TEST20120700002', 'preyymmddts barcode test branch specific prefix');
+ok(length($scr) > 0, 'preyymmddtsr javascript');
+
+$dbh->do(q|DELETE FROM items|);
+my $library_2 = $builder->build_object( { class => 'Koha::Libraries' } );
+
+($args{branchcode}) = $library_2->branchcode;
+($nextnum, $scr) = C4::Barcodes::ValueBuilder::preyymmddts::get_barcode(\%args);
+is($nextnum, 'DEF20120700001', 'preyymmddts barcode test default prefix');
 
 $schema->storage->txn_rollback;
