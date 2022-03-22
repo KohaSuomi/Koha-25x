@@ -27,6 +27,7 @@ use C4::Barcodes::hbyymmincr;
 use C4::Barcodes::annual;
 use C4::Barcodes::incremental;
 use C4::Barcodes::EAN13;
+use C4::Barcodes::preyymmddts;
 
 use vars qw($max $prefformat);
 
@@ -169,11 +170,12 @@ sub default_self {
 }
 
 our $types = {
-    annual      => sub { C4::Barcodes::annual->new_object(@_); },
-    incremental => sub { C4::Barcodes::incremental->new_object(@_); },
-    hbyymmincr  => sub { C4::Barcodes::hbyymmincr->new_object(@_); },
-    OFF         => sub { C4::Barcodes::OFF->new_object(@_); },
-    EAN13       => sub { C4::Barcodes::EAN13->new_object(@_); },
+    annual      => sub {C4::Barcodes::annual->new_object(@_);       },
+    incremental => sub {C4::Barcodes::incremental->new_object(@_);  },
+    hbyymmincr  => sub {C4::Barcodes::hbyymmincr->new_object(@_);   },
+    OFF         => sub {C4::Barcodes::OFF->new_object(@_);          },
+    EAN13       => sub {C4::Barcodes::EAN13->new_object(@_);        },
+    preyymmddts => sub {C4::Barcodes::preyymmddts->new_object(@_);},
 };
 
 sub new {
