@@ -92,6 +92,60 @@ sub get_barcode {
     return $nextnum;
 }
 
+package C4::Barcodes::ValueBuilder::preyymmddts;
+use C4::Context;
+use YAML::XS;
+use Time::HiRes qw(time);
+use POSIX qw(strftime);
+my $DEBUG = 0;
+
+sub get_barcode {
+    my ($args) = @_;
+    my $nextnum;
+    my $barcode;
+    my $branchcode = $args->{branchcode};
+    my $query;
+    my $sth;
+
+    # Getting the barcodePrefixes
+    my $branchPrefixes = C4::Context->preference("BarcodePrefix");
+    my $yaml = YAML::XS::Load(
+                    Encode::encode(
+                        'UTF-8',
+                        $branchPrefixes,
+                        Encode::FB_CROAK
+                    )
+                );
+
+    my $prefix = $yaml->{$branchcode} || $yaml->{'Default'};
+    my $date = strftime "%H%M%S", localtime;
+    my $year = substr($args->{year}, -2); 
+    $query = "SELECT MAX(CAST(SUBSTRING(barcode,-1) AS signed)) from items where barcode REGEXP ?";
+    $sth=C4::Context->dbh->prepare($query);
+    $sth->execute("^$prefix$year$args->{mon}$args->{day}$date");
+
+    while (my ($count)= $sth->fetchrow_array) {
+        $nextnum = $count if $count;
+        $nextnum = 0 if $nextnum && $nextnum == 9;
+    }
+
+    $nextnum++;
+    $barcode = $prefix.$year.$args->{mon}.$args->{day}.$date.$nextnum;
+
+    my $scr = qq~
+        let elt = \$("#"+id);
+        let branchcode = elt.parents('fieldset.rows:first')
+                            .find('input[name="kohafield"][value="items.homebranch"]')
+                            .siblings("select")
+                            .val();
+        if ( \$(elt).val() == '' ) {
+            \$(elt).val('$barcode');
+        }
+    ~;
+
+    return $barcode, $scr;
+}
+
 1;
 
 =head1 Barcodes::ValueBuilder
