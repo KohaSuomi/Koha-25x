@@ -48,6 +48,7 @@ my $builder = sub {
     # find today's date
     ( $args{year}, $args{mon}, $args{day} ) = split( '-', dt_from_string()->ymd() );
     ( $args{tag}, $args{subfield} ) = GetMarcFromKohaField("items.barcode");
+    ( $args{branchcode} ) = C4::Context->userenv->{'branch'};
 
     my $nextnum;
     my $scr;
@@ -64,6 +65,9 @@ my $builder = sub {
     } elsif ( $autoBarcodeType eq 'hbyymmincr' )
     { # Generates a barcode where hb = home branch Code, yymm = year/month catalogued, incr = incremental number, reset yearly -fbcit
         ( $nextnum, $scr ) = C4::Barcodes::ValueBuilder::hbyymmincr::get_barcode( \%args );
+    }
+    elsif ($autoBarcodeType eq 'preyymmddts') {      # Generates a barcode where pre = branch specific prefix set on systempreference BarcodePrefix, yyyymm = year/month catalogued, incr = incremental number
+        ($nextnum, $scr) = C4::Barcodes::ValueBuilder::preyymmddts::get_barcode(\%args);
     }
 
     # default js body (if not filled by hbyymmincr)
