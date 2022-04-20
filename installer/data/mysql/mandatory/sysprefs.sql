@@ -289,6 +289,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('FinesIncludeGracePeriod','1',NULL,'If enabled, fines calculations will include the grace period.','YesNo'),
 ('FinesLog','1',NULL,'If ON, log fines','YesNo'),
 ('finesMode','off','off|production','Choose the fines mode, \'off\' (no charges), \'production\' (accrue overdue fines).  Requires accruefines cronjob.','Choice'),
+('FloatRules','','','Define float rules by items table columns and biblioitems table itemtype column','textarea'),
 ('ForceLibrarySelection','0',NULL,'Force staff to select a library when logging into the staff interface.','YesNo'),
 ('ForcePasswordResetWhenSetByStaff','0',NULL,'Force a staff created patron account to reset its password after its first OPAC login.','YesNo'),
 ('FRBRizeEditions','0','','If ON, Koha will query one or more ISBN web services for associated ISBNs and display an Editions tab on the details pages','YesNo'),
