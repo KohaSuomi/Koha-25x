@@ -341,4 +341,4 @@ properties:
       - array
       - "null"
     description: The status of the item
-additionalProperties: false
+additionalProperties: true
