@@ -3,7 +3,17 @@
 
 KOHA.Preferences = {
     Save: function (form) {
-        if (!$(form).valid()) {
+
+        var forbidden_tag = 0;
+        $(form).find(":input").each(function(){
+            var input_val = $(this).val();
+            var pattern = /<\/?(?:style|script|link|iframe|applet)\b[^>]*>/gi;
+            if(pattern.test(input_val)){
+                forbidden_tag = 1;
+            }
+        });
+
+        if (!$(form).valid() || forbidden_tag ) {
             humanMsg.displayAlert(
                 __(
                     "Error: presence of invalid data prevent saving. Please make the corrections and try again."
