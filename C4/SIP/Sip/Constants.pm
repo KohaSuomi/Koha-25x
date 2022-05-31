@@ -46,8 +46,7 @@ BEGIN {
         formats       => [qw(SIP_DATETIME)],
         constant_msgs => [qw(REQUEST_ACS_RESEND_CKSUM REQUEST_SC_RESEND_CKSUM)],
 
-        field_ids => [
-            qw(
+    field_ids     => [qw(
                 FID_PATRON_ID        FID_ITEM_ID
                 FID_TERMINAL_PWD     FID_PATRON_PWD
                 FID_PERSONAL_NAME    FID_DUE_DATE
@@ -84,6 +83,7 @@ BEGIN {
                 FID_LOGIN_UID        FID_LOGIN_PWD
                 FID_LOCATION_CODE
                 FID_VALID_PATRON_PWD
+                FID_PAC_ACCESS_TYPE
                 FID_PATRON_BIRTHDATE
                 FID_PATRON_CLASS
                 FID_INET_PROFILE
@@ -224,18 +224,21 @@ use constant {
     FID_UNAVAILABLE_HOLD_ITEMS => 'CD',
 
     # UNUSED CE
-    FID_HOLD_QUEUE_LEN   => 'CF',
-    FID_FEE_ID           => 'CG',
-    FID_ITEM_PROPS       => 'CH',
-    FID_SECURITY_INHIBIT => 'CI',
-    FID_RECALL_DATE      => 'CJ',
-    FID_MEDIA_TYPE       => 'CK',
-    FID_SORT_BIN         => 'CL',
-    FID_HOLD_PICKUP_DATE => 'CM',
-    FID_LOGIN_UID        => 'CN',
-    FID_LOGIN_PWD        => 'CO',
-    FID_LOCATION_CODE    => 'CP',
-    FID_VALID_PATRON_PWD => 'CQ',
+    FID_HOLD_QUEUE_LEN         => 'CF',
+    FID_FEE_ID                 => 'CG',
+    FID_ITEM_PROPS             => 'CH',
+    FID_SECURITY_INHIBIT       => 'CI',
+    FID_RECALL_DATE            => 'CJ',
+    FID_MEDIA_TYPE             => 'CK',
+    FID_SORT_BIN               => 'CL',
+    FID_HOLD_PICKUP_DATE       => 'CM',
+    FID_LOGIN_UID              => 'CN',
+    FID_LOGIN_PWD              => 'CO',
+    FID_LOCATION_CODE          => 'CP',
+    FID_VALID_PATRON_PWD       => 'CQ',
+
+    # Sip2.0 Extensions v1.00, used by 63/64 to denote self-service branch-specific access blocks
+    FID_PAC_ACCESS_TYPE        => 'PA',
 
     # SIP Extensions used by Envisionware Terminals
     FID_PATRON_BIRTHDATE => 'PB',
