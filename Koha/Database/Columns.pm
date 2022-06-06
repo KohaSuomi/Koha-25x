@@ -243,6 +243,7 @@ sub columns {
             "notforloan"                        => __("Not for loan"),
             "onloan"                            => __("Due date"),
             "permanent_location"                => __("Permanent shelving location"),
+            "sub_location"                      => __("Sublocation"),
             "price"                             => __("Price"),
             "renewals"                          => __("Total renewals"),
             "replacementprice"                  => __("Replacement price"),
