@@ -226,6 +226,7 @@
         const can_edit_items_from = [% To.json(can_edit_items_from || []) | $raw %];
         const item_type_image_locations = [% To.json(item_type_image_locations) | $raw %];
         const av_loc = new Map([% To.json(AuthorisedValues.Get('LOC')) | $raw %].map( av => [av.authorised_value, av.lib]));
+        const av_subloc = new Map([% To.json(AuthorisedValues.GetDescriptionsByKohaField({ kohafield => 'items.sub_location' })) | $raw %].map( av => [av.authorised_value, av.lib]));
         const av_lost = new Map([% To.json(AuthorisedValues.GetDescriptionsByKohaField({ kohafield => 'items.itemlost' })) | $raw %].map( av => [av.authorised_value, av.lib]));
         const av_withdrawn = new Map([% To.json(AuthorisedValues.GetDescriptionsByKohaField({ kohafield => 'items.withdrawn' })) | $raw %].map( av => [av.authorised_value, av.lib]));
         const av_damaged = new Map([% To.json(AuthorisedValues.GetDescriptionsByKohaField({ kohafield => 'items.damaged' })) | $raw %].map( av => [av.authorised_value, av.lib]));
@@ -439,6 +440,12 @@
                             nodes += '%s (%s)'.format(escape_str(permanent_loc_str), escape_str(loc_str));
                         } else {
                             nodes += escape_str(loc_str);
+                        }
+                        if ( row.sub_location ) {
+                            nodes += '<span class="sub_location">';
+                            let sub_location_str = av_subloc.get(row.sub_location.toString());
+                            nodes += ' (%s)'.format(escape_str(sub_location_str));
+                            nodes += '</span>';
                         }
                         nodes += '</span>';
                         return nodes;
