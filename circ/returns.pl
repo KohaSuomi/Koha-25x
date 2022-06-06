@@ -768,6 +768,11 @@ my $shelflocations = {
         { frameworkcode => '', kohafield => 'items.location' }
     )
 };
+my $sublocation = {
+    map { $_->{authorised_value} => $_->{lib} } Koha::AuthorisedValues->get_descriptions_by_koha_field(
+        { frameworkcode => '', kohafield => 'items.sub_location' }
+    )
+};
 for my $checkin (@checkins) {
     my $item = Koha::Items->find( { barcode => $checkin->{barcode} } );
     next unless $item;    # FIXME The item has been deleted in the meantime,
@@ -796,6 +801,10 @@ for my $checkin (@checkins) {
     my $shelfcode = $checkin->{item_location};
     $checkin->{item_location} = $shelflocations->{$shelfcode}
         if ( defined($shelfcode) && defined($shelflocations) && exists( $shelflocations->{$shelfcode} ) );
+    $checkin->{sub_location} = $sublocation->{ $item->sub_location }
+        if ( defined( $item->sub_location )
+        && defined($sublocation)
+        && exists( $sublocation->{ $item->sub_location } ) );
 }
 
 $template->param(
