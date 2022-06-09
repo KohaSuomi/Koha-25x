@@ -189,6 +189,11 @@ sub do_checkin {
     }
 
     # ignoring messages: NotIssued, WasTransfered
+    
+        # We will send alert 53 whenever notforloan status gets changed
+    if ($messages->{NotForLoanStatusUpdated}) {
+        $self->alert_type('53'); #Alert type 53 is arbitrary and might conflict with other alert_types! Be aware!
+    }
 
     if ($cv_triggers_alert) {
         $self->alert( defined $self->alert_type )
