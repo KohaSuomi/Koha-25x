@@ -796,6 +796,10 @@ for my $checkin (@checkins) {
     my $biblio = $item->biblio;
     $checkin->{biblio} = $item->biblio;
 
+    my $biblioitem = $item->biblioitem;
+    my $authorised_value_mtype = Koha::AuthorisedValues->get_description_by_koha_field({ kohafield => 'biblioitems.itemtype', authorised_value => $biblioitem->itemtype });
+    $checkin->{recordtype} = $authorised_value_mtype->{lib};
+
     # TODO Move this logic somewhere else
     $checkin->{item_location} = $item->location;
     my $shelfcode = $checkin->{item_location};
