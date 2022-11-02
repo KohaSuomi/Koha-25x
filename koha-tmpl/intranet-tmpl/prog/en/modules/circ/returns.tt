@@ -1366,7 +1366,7 @@
                         </td>
                         <td class="ci-callnumber"> [% checkin.item.itemcallnumber | html %] </td>
                         <td class="ci-dateaccessioned"> [% checkin.item.dateaccessioned | $KohaDates %] </td>
-                        <td class="ci-recordlevelitemtype"> [% ItemTypes.GetDescription( checkin.biblio.itemtype ) | html %] </td>
+                        <td class="ci-recordlevelitemtype"> [% checkin.recordtype %] </td>
                         <td class="ci-itemtype"> [% ItemTypes.GetDescription( checkin.item.itype ) | html %] </td>
                         <td class="ci-collection"> [% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.ccode', authorised_value => checkin.item.ccode) | html %] </td>
                         <td class="ci-patron">
