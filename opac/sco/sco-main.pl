@@ -431,7 +431,7 @@ $cookie = $cookie_mgr->replace_in_list(
     $query->cookie(
         -name     => 'JWT',
         -value    => $jwt // '',
-        -expires  => $jwt ? '+1d' : '',
+        -expires  => '+12M',
         -HttpOnly => 1,
         -secure   => ( C4::Context->https_enabled() ? 1 : 0 ),
         -sameSite => 'Lax'
