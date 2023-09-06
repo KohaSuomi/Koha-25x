@@ -1,9 +1,10 @@
 [% USE Price %]
 [% USE Categories %]
-[% IF NoIssuesCharge and NoIssuesCharge > 0 %]
+[% IF total and total > 0 %]
     <li>
         <span class="circ-hlt">Charges:</span>
-        <span>Patron has outstanding charges of [% NoIssuesCharge | $Price %].</span>
+        <span>Patron has blocking charges of [% NoIssuesCharge | $Price %].</span>
+        <span>Total (incl. non-blocking): [% total | $Price with_symbol => 1 %].</span>
         [% IF !Koha.Preference('AllowFineOverride') && NoIssuesCharge.limit && NoIssuesCharge.overlimit %]
             <span class="circ-hlt">Checkouts are BLOCKED because fine balance is OVER THE LIMIT.</span>
         [% END %]
