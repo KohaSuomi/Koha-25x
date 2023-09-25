@@ -158,6 +158,11 @@ function select_user(borrowernumber, borrower, relationship) {
         $("#guarantor_relationships").append(fieldset);
         fieldset.show();
 
+        //Add attribute required so visible new_guarantor_relationship is validated
+        if($(".new_guarantor_relationship").is(":visible")){
+            $(".new_guarantor_relationship").prop('required',true);
+        }
+
         if (relationship) {
             fieldset.find(".new_guarantor_relationship").val(relationship);
         }
