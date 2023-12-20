@@ -17,6 +17,8 @@ package C4::Installer;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
+# Modified for Koha-Suomi build 2023-12-20/KK
+
 use Modern::Perl;
 
 use Try::Tiny;
@@ -136,8 +138,12 @@ sub marc_framework_sql_list {
     my $defaulted_to_en = 0;
 
     undef $/;
-    my $dir =
-        C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}/$lang/marcflavour/" . lc($marcflavour);
+    my $dir;
+    if ( $ENV{'BUILD_DIR'} ) {
+        $dir = $ENV{'BUILD_DIR'} . "/installer/data/$self->{dbms}/$lang/marcflavour/".lc($marcflavour);
+    } else {
+        $dir = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}/$lang/marcflavour/".lc($marcflavour);
+    }
     my $dir_h;
     unless ( opendir( $dir_h, $dir ) ) {
         if ( $lang eq 'en' ) {
@@ -146,9 +152,12 @@ sub marc_framework_sql_list {
 
             # if no translated MARC framework is available,
             # default to English
-            $dir =
-                C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}/en/marcflavour/" . lc($marcflavour);
-            opendir( $dir_h, $dir ) or warn "cannot open English MARC frameworks directory $dir";
+            if ( $ENV{'BUILD_DIR'} ) {
+                $dir = $ENV{'BUILD_DIR'} . "/installer/data/$self->{dbms}/en/marcflavour/".lc($marcflavour);
+            } else {
+                $dir = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}/en/marcflavour/".lc($marcflavour);
+            }
+            opendir($dir_h, $dir) or warn "cannot open English MARC frameworks directory $dir";
             $defaulted_to_en = 1;
         }
     }
@@ -224,7 +233,12 @@ sub sample_data_sql_list {
     my $defaulted_to_en = 0;
 
     undef $/;
-    my $dir = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}/$lang";
+    my $dir;
+    if ( $ENV{'BUILD_DIR'} ) {
+        $dir = $ENV{'BUILD_DIR'} . "/installer/data/$self->{dbms}/$lang";
+    } else {
+        $dir = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}/$lang";
+    }
     my $dir_h;
     unless ( opendir( $dir_h, $dir ) ) {
         if ( $lang eq 'en' ) {
@@ -233,8 +247,12 @@ sub sample_data_sql_list {
 
             # if no sample data is available,
             # default to English
-            $dir = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}/en";
-            opendir( $dir_h, $dir ) or warn "cannot open English sample data directory $dir";
+            if ( $ENV{'BUILD_DIR'} ) {
+                $dir = $ENV{'BUILD_DIR'} . "/installer/data/$self->{dbms}/en";
+            } else {
+                $dir = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}/en";
+            }
+            opendir($dir_h, $dir) or warn "cannot open English sample data directory $dir";
             $defaulted_to_en = 1;
         }
     }
@@ -303,8 +321,12 @@ load.
 
 sub load_db_schema {
     my $self = shift;
-
-    my $datadir = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}";
+    my $datadir;
+    if ( $ENV{'BUILD_DIR'} ) {
+        $datadir = $ENV{'BUILD_DIR'} . "/installer/data/$self->{dbms}";
+    } else {
+        $datadir = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}";
+    }
 
     # Disable checks before load
     # NOTE: These lines are found in kohastructure itself, but DBIx::RunSQL ignores them!
@@ -371,7 +393,12 @@ sub load_sql_in_order {
     my ($systempreference) = $request->fetchrow;
     $systempreference = '' unless defined $systempreference;    # avoid warning
 
-    my $global_mandatory_dir = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}/mandatory";
+    my $global_mandatory_dir;
+    if ( $ENV{'BUILD_DIR'} ) {
+        $global_mandatory_dir = $ENV{'BUILD_DIR'} . "/installer/data/$self->{dbms}/mandatory";
+    } else {
+        $global_mandatory_dir = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}/mandatory";
+    }
 
     # Make sure some stuffs are loaded first
     unshift(
@@ -386,11 +413,17 @@ sub load_sql_in_order {
     );
 
     push @fnames, "$global_mandatory_dir/userflags.sql",
-        "$global_mandatory_dir/userpermissions.sql",
-        "$global_mandatory_dir/audio_alerts.sql",
-        ;
-    my $localization_file =
-        C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}/localization/$langchoice/custom.sql";
+                  "$global_mandatory_dir/userpermissions.sql",
+                  "$global_mandatory_dir/audio_alerts.sql",
+                  ;
+    my $localization_file;
+    if ( $ENV{'BUILD_DIR'} ) {
+        $localization_file = $ENV{'BUILD_DIR'} .
+                             "/installer/data/$self->{dbms}/localization/$langchoice/custom.sql";
+    } else {
+        $localization_file = C4::Context->config('intranetdir') .
+                             "/installer/data/$self->{dbms}/localization/$langchoice/custom.sql";
+    }
     if ( -f $localization_file ) {
         push @fnames, $localization_file;
     }
@@ -783,7 +816,12 @@ Missing POD for get_db_entries.
 =cut
 
 sub get_db_entries {
-    my $db_revs_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/db_revs';
+    my $db_revs_dir;
+    if ( $ENV{'BUILD_DIR'} ) {
+       $db_revs_dir = $ENV{'BUILD_DIR'} . '/installer/data/mysql/db_revs';
+    } else {
+       $db_revs_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/db_revs';
+    }
     opendir my $dh, $db_revs_dir or die "Cannot open $db_revs_dir dir ($!)";
     my @files = sort grep { m|\.pl$| && !m|skeleton\.pl$| } readdir $dh;
     my @need_update;
@@ -932,8 +970,22 @@ Missing POD for get_atomic_updates.
 =cut
 
 sub get_atomic_updates {
-    my $atomic_updates = Koha::Installer::get_atomic_updates();
-    return $atomic_updates;
+    my @atomic_upate_files;
+    # if there is anything in the atomicupdate, read and execute it.
+    my $update_dir;
+    if ( $ENV{'BUILD_DIR'} ) {
+       $update_dir = $ENV{'BUILD_DIR'} . '/installer/data/mysql/atomicupdate/';
+    } else {
+       $update_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/atomicupdate/';
+    }
+    opendir( my $dirh, $update_dir );
+    foreach my $file ( sort readdir $dirh ) {
+        next if $file !~ /\.(perl|pl)$/;  #skip other files
+        next if $file eq 'skeleton.perl' || $file eq 'skeleton.pl'; # skip the skeleton files
+
+        push @atomic_upate_files, $file;
+    }
+    return \@atomic_upate_files;
 }
 
 =head2 run_atomic_updates
@@ -943,9 +995,13 @@ Missing POD for run_atomic_updates.
 =cut
 
 sub run_atomic_updates {
-    my ($files) = @_;
-
-    my $update_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/atomicupdate/';
+    my ( $files ) = @_;
+    my $update_dir;
+    if ( $ENV{'BUILD_DIR'} ) {
+       $update_dir = $ENV{'BUILD_DIR'} . '/installer/data/mysql/atomicupdate/';
+    } else {
+       $update_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/atomicupdate/';
+    }
     my ( @done, @errors );
     for my $file (@$files) {
         my $filepath = $update_dir . $file;
