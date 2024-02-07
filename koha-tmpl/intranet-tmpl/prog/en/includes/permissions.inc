@@ -278,6 +278,8 @@
     [%- CASE 'fast_cataloging' -%]
         <span class="sub_permission fast_cataloging_subpermission"> Fast cataloging </span>
         <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'delete_any_record' -%]
+        <span class="sub_permission delete_any_record_subpermission"> Delete any existing record </span>
     [%- CASE 'manage_item_groups' -%]
         <span class="sub_permission manage_item_groups_subpermission"> Create, update and delete item groups, add or remove items from an item group </span>
         <span class="permissioncode">([% name | html %])</span>
