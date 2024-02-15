@@ -57,6 +57,11 @@
 <script>
     actTotal = "";
 
+    var itemtypes = {};
+    [% FOREACH it IN ItemTypes.Get() %]
+        itemtypes['[% it.itemtype %]']='[% it.description %]';
+    [% END %]
+
     function Check(ff) {
         [% IF (AcqCreateItemOrdering) %]
             // Remove last itemblock if it is not in items_list

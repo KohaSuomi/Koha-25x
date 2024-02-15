@@ -743,7 +743,16 @@ function initializeSortable(selector) {
     });
 }
 
-$(document).ready(function () {
+function checkItemtypeSubfield(itemtype_field, itemtypes){
+    var itemtype = itemtype_field.val();
+    if(itemtype in itemtypes){
+        return true;
+    } else {
+        return false;
+    }
+}
+
+$(document).ready(function() {
     $("input.input_marceditor, input.indicator").addClass("noEnterSubmit");
     $(document).ajaxSuccess(function () {
         $("input.input_marceditor, input.indicator").addClass("noEnterSubmit");
