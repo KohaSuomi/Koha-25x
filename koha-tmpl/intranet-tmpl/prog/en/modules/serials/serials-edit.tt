@@ -2,6 +2,7 @@
 [% USE Koha %]
 [% USE Asset %]
 [% USE AuthorisedValues %]
+[% USE ItemTypes %]
 [% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title
@@ -76,6 +77,22 @@
                 alert(mes);
                 return false;
             }
+
+            var itemtypes = {};
+            [% FOREACH it IN ItemTypes.Get() %]
+                itemtypes['[% it.itemtype %]']='[% it.description %]';
+            [% END %]
+            var itemtype_field = $(f).find("input[id^='tag_952_subfield_y']");
+            var valid_itemtypes = checkItemtypeSubfield(itemtype_field, itemtypes);
+            if(itemtype_field.length && !valid_itemtypes){
+                var mes = _("Itemtype is not valid. Use one of the following itemtypes:");
+                jQuery.each(itemtypes, function(itemtype, description){
+                    mes += "\n- "+description+": "+itemtype;
+                });
+              alert(mes);
+              return false;
+            }
+
             return true;
         });
 

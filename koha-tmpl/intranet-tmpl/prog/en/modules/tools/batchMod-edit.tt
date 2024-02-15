@@ -3,6 +3,7 @@
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE Branches %]
+[% USE ItemTypes %]
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
@@ -337,6 +338,25 @@
                     $(disable_input).prop('disabled', false);
                 }
                 return false;
+            });
+
+            $('#mainformsubmit').click(function() {
+                var itemtype_field = $(f).find("input[id^='tag_952_subfield_y']");
+                if(itemtype_field.val()){
+                    var itemtypes = {};
+                    [% FOREACH it IN ItemTypes.Get() %]
+                        itemtypes['[% it.itemtype %]']='[% it.description %]';
+                    [% END %]
+                    var valid_itemtypes = checkItemtypeSubfield(itemtype_field, itemtypes);
+                    if(itemtype_field.length && !valid_itemtypes){
+                        var alertString = _("Itemtype is not valid. Use one of the following itemtypes:");
+                        jQuery.each(itemtypes, function(itemtype, description){
+                            alertString += "\n- "+description+": "+itemtype;
+                        });
+                        alert(alertString);
+                        return false;
+                    }
+                }
             });
         });
     </script>
