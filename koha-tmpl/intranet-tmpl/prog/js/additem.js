@@ -19,6 +19,17 @@ function addItem(node, unique_item_fields) {
         return false;
     }
 
+    var itemtype_field = $(item_form).find("input[id^='tag_952_subfield_y']");
+    var valid_itemtypes = checkItemtypeSubfield(itemtype_field, itemtypes);
+    if(itemtype_field.length && !valid_itemtypes){
+        var mes = _("Itemtype is not valid. Use one of the following itemtypes:");
+        jQuery.each(itemtypes, function(itemtype, description){
+            mes += "\n- "+description+": "+itemtype;
+        });
+        alert(mes);
+        return false;
+    }
+
     var current_qty = parseInt($("#quantity").val());
     var max_qty;
     if ($("#quantity_to_receive").length != 0) {
