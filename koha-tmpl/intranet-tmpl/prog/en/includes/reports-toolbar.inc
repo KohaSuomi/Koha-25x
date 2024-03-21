@@ -142,6 +142,7 @@
                             ></li
                         >
                     [% END %]
+                    <li><a class="dropdown-item" id="finna" href="/cgi-bin/koha/reports/guided_reports.pl?op=export&amp;format=finna&amp;id=[% id | html %]&amp;reportname=[% name |uri %][% PROCESS params %]">Finna JSON</a></li>
                     [% IF processed_notice_title %]
                         <li
                             ><a
