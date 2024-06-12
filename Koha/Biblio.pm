@@ -1922,194 +1922,218 @@ sub generate_marc_host_field {
     my $marcflavour = C4::Context->preference('marcflavour');
     my $marc_host   = $self->metadata->record;
 
+    my $prepared_host_field = C4::Context->yaml_preference('PrepareHostField') || q{};
+
     my @sfd;
     my $host_field;
     my $link_field;
 
-    if ( $marcflavour eq 'MARC21' ) {
-
-        # Attempt to clone the main entry (100, 110, or 111)
-        my $main_entry = $marc_host->field('100') || $marc_host->field('110') || $marc_host->field('111');
-        $main_entry = $main_entry ? $main_entry->clone : undef;
-
-        # Clean unwanted subfields based on tag type
-        if ($main_entry) {
-            if ( $main_entry->tag eq '111' ) {
-                $main_entry->delete_subfield( code => qr/[94j]/ );
-            } else {
-                $main_entry->delete_subfield( code => qr/[94e]/ );
+    if ( $prepared_host_field ) {
+        foreach my $key (keys %$prepared_host_field) {
+            my ($tag, $subfields) = split(/\$/, $key);
+            my ($part_field, $part_subfield) = split(/\$/, $prepared_host_field->{$key});
+            my $field = $marc_host->field($tag);
+            if ( $field ) {
+                if ($field->is_control_field) {
+                    push @sfd, ( $part_subfield => $field->data() );
+                } else {
+                    my $s = $field->as_string($subfields);
+                    if ($s) {
+                        push @sfd, ( $part_subfield => $s );
+                    }
+                }
+            }
+            if (@sfd) {
+                $link_field = MARC::Field->new( $part_field, '0', ' ', @sfd );
             }
         }
+    } else {
 
-        # Construct subfield 7 from leader and main entry tag
-        my $s7 = "nn" . substr( $marc_host->leader, 6, 2 );
-        if ($main_entry) {
-            my $c1 = 'n';
-            if ( $main_entry->tag =~ /^1[01]/ ) {
-                $c1 = $main_entry->indicator('1');
-                $c1 = $main_entry->tag eq '100' ? 1 : 2 unless $c1 =~ /\d/;
+        if ( $marcflavour eq 'MARC21' ) {
+
+            # Attempt to clone the main entry (100, 110, or 111)
+            my $main_entry = $marc_host->field('100') || $marc_host->field('110') || $marc_host->field('111');
+            $main_entry = $main_entry ? $main_entry->clone : undef;
+
+            # Clean unwanted subfields based on tag type
+            if ($main_entry) {
+                if ( $main_entry->tag eq '111' ) {
+                    $main_entry->delete_subfield( code => qr/[94j]/ );
+                } else {
+                    $main_entry->delete_subfield( code => qr/[94e]/ );
+                }
             }
-            my $c0 =
-                  ( $main_entry->tag eq '100' ) ? 'p'
-                : ( $main_entry->tag eq '110' ) ? 'c'
-                : ( $main_entry->tag eq '111' ) ? 'm'
-                :                                 'u';
-            substr( $s7, 0, 2, $c0 . $c1 );
-        }
-        push @sfd, ( '7' => $s7 );
 
-        # Subfield a - cleaned main entry string
-        if ($main_entry) {
-            my $a = $main_entry->as_string;
-            $a =~ s/\.$// unless $a =~ /\b[a-z]{1,2}\.$/i;
-            push @sfd, ( 'a' => $a );
-        }
-
-        # Subfield t - title from 245, cleaned
-        if ( my $f245 = $marc_host->field('245') ) {
-            my $f245c = $f245->clone;
-            $f245c->delete_subfield( code => 'c' );
-            my $t = $f245c->as_string;
-            $t =~ s/[\s\/\\.]+$//;
-            my $nonfiling = $f245c->indicator('2') // 0;
-            $nonfiling = 0 unless $nonfiling =~ /^\d+$/;
-            $t         = ucfirst substr( $t, $nonfiling );
-            push @sfd, ( 't' => $t );
-        }
-
-        # Subfield b - edition from 250
-        if ( my $f250 = $marc_host->field('250') ) {
-            my $b = $f250->as_string;
-            $b =~ s/\.$//;
-            if ($b) {
-                push @sfd, ( 'b' => $b );
+            # Construct subfield 7 from leader and main entry tag
+            my $s7 = "nn" . substr( $marc_host->leader, 6, 2 );
+            if ($main_entry) {
+                my $c1 = 'n';
+                if ( $main_entry->tag =~ /^1[01]/ ) {
+                    $c1 = $main_entry->indicator('1');
+                    $c1 = $main_entry->tag eq '100' ? 1 : 2 unless $c1 =~ /\d/;
+                }
+                my $c0 =
+                      ( $main_entry->tag eq '100' ) ? 'p'
+                    : ( $main_entry->tag eq '110' ) ? 'c'
+                    : ( $main_entry->tag eq '111' ) ? 'm'
+                    :                                 'u';
+                substr( $s7, 0, 2, $c0 . $c1 );
             }
-        }
+            push @sfd, ( '7' => $s7 );
 
-        # Subfield s - uniform title from 240
-        if ( my $f240 = $marc_host->field('240') ) {
-            my $s = $f240->as_string('a');
-            if ($s) {
-                push @sfd, ( 's' => $s );
+            # Subfield a - cleaned main entry string
+            if ($main_entry) {
+                my $a = $main_entry->as_string;
+                $a =~ s/\.$// unless $a =~ /\b[a-z]{1,2}\.$/i;
+                push @sfd, ( 'a' => $a );
             }
-        }
 
-        # Subfield d - publication info from 264/260
-        my $d;
-        my @publication_fields = $marc_host->field('264');
-        @publication_fields = $marc_host->field('260') unless (@publication_fields);
-        my $index = 0;
-        for my $publication_field (@publication_fields) {
+            # Subfield t - title from 245, cleaned
+            if ( my $f245 = $marc_host->field('245') ) {
+                my $f245c = $f245->clone;
+                $f245c->delete_subfield( code => 'c' );
+                my $t = $f245c->as_string;
+                $t =~ s/[\s\/\\.]+$//;
+                my $nonfiling = $f245c->indicator('2') // 0;
+                $nonfiling = 0 unless $nonfiling =~ /^\d+$/;
+                $t         = ucfirst substr( $t, $nonfiling );
+                push @sfd, ( 't' => $t );
+            }
 
-            # Use first entry unless we find a preferred indicator1 = 3
-            if ( $index == 0 ) {
-                my $s = $publication_field->as_string('abc');
-                $s =~ s/\.$//;
+            # Subfield b - edition from 250
+            if ( my $f250 = $marc_host->field('250') ) {
+                my $b = $f250->as_string;
+                $b =~ s/\.$//;
+                if ($b) {
+                    push @sfd, ( 'b' => $b );
+                }
+            }
+
+            # Subfield s - uniform title from 240
+            if ( my $f240 = $marc_host->field('240') ) {
+                my $s = $f240->as_string('a');
                 if ($s) {
-                    $d = $s;
+                    push @sfd, ( 's' => $s );
                 }
-                $index++;
             }
-            if ( $publication_field->indicator(1) && ( $publication_field->indicator(1) eq '3' ) ) {
-                my $s = $publication_field->as_string('abc');
-                $s =~ s/\.$//;
-                if ($s) {
-                    $d = $s;
+
+            # Subfield d - publication info from 264/260
+            my $d;
+            my @publication_fields = $marc_host->field('264');
+            @publication_fields = $marc_host->field('260') unless (@publication_fields);
+            my $index = 0;
+            for my $publication_field (@publication_fields) {
+
+                # Use first entry unless we find a preferred indicator1 = 3
+                if ( $index == 0 ) {
+                    my $s = $publication_field->as_string('abc');
+                    $s =~ s/\.$//;
+                    if ($s) {
+                        $d = $s;
+                    }
+                    $index++;
                 }
-                last;
-            }
-        }
-        push @sfd, ( d => $d ) if $d;
-
-        # Subfield k - host info from 800-830 fields
-        for my $f ( $marc_host->field('8[013][01]') ) {
-            my $k = $f->as_string('abcdnjltnp');
-            $k .= ', ISSN ' . $f->subfield('x') if $f->subfield('x');
-            $k .= ' ; ' . $f->subfield('v')     if $f->subfield('v');
-            push @sfd, ( 'k' => $k );
-        }
-
-        # Subfield x - ISSN from 022
-        for my $f ( $marc_host->field('022') ) {
-            push @sfd, ( 'x' => $f->subfield('a') ) if $f->subfield('a');
-        }
-
-        # Subfield z - ISBN from 020
-        for my $f ( $marc_host->field('020') ) {
-            push @sfd, ( 'z' => $f->subfield('a') ) if $f->subfield('a');
-        }
-
-        # Subfield w - control number (001 and optionally 003)
-        if ( C4::Context->preference('UseControlNumber') ) {
-            if ( my $f001 = $marc_host->field('001') ) {
-                my $w = $f001->data;
-                if ( my $f003 = $marc_host->field('003') ) {
-                    $w = '(' . $f003->data . ')' . $w;
+                if ( $publication_field->indicator(1) && ( $publication_field->indicator(1) eq '3' ) ) {
+                    my $s = $publication_field->as_string('abc');
+                    $s =~ s/\.$//;
+                    if ($s) {
+                        $d = $s;
+                    }
+                    last;
                 }
-                push @sfd, ( 'w' => $w );
             }
+            push @sfd, ( d => $d ) if $d;
+
+            # Subfield k - host info from 800-830 fields
+            for my $f ( $marc_host->field('8[013][01]') ) {
+                my $k = $f->as_string('abcdnjltnp');
+                $k .= ', ISSN ' . $f->subfield('x') if $f->subfield('x');
+                $k .= ' ; ' . $f->subfield('v')     if $f->subfield('v');
+                push @sfd, ( 'k' => $k );
+            }
+
+            # Subfield x - ISSN from 022
+            for my $f ( $marc_host->field('022') ) {
+                push @sfd, ( 'x' => $f->subfield('a') ) if $f->subfield('a');
+            }
+
+            # Subfield z - ISBN from 020
+            for my $f ( $marc_host->field('020') ) {
+                push @sfd, ( 'z' => $f->subfield('a') ) if $f->subfield('a');
+            }
+
+            # Subfield w - control number (001 and optionally 003)
+            if ( C4::Context->preference('UseControlNumber') ) {
+                if ( my $f001 = $marc_host->field('001') ) {
+                    my $w = $f001->data;
+                    if ( my $f003 = $marc_host->field('003') ) {
+                        $w = '(' . $f003->data . ')' . $w;
+                    }
+                    push @sfd, ( 'w' => $w );
+                }
+            }
+
+            # Construct 773 link field
+            $link_field = MARC::Field->new( 773, '0', ' ', @sfd );
+
+        } elsif ( $marcflavour eq 'UNIMARC' ) {
+
+            # Author (700/710/720)
+            if ( $host_field = $marc_host->field('700') || $marc_host->field('710') || $marc_host->field('720') ) {
+                my $s = $host_field->as_string('ab');
+                push @sfd, ( 'a' => $s ) if $s;
+            }
+
+            # Title (200)
+            if ( $host_field = $marc_host->field('200') ) {
+                my $s = $host_field->as_string('a');
+                push @sfd, ( 't' => $s ) if $s;
+            }
+
+            # Place of publication (210$a)
+            if ( $host_field = $marc_host->field('210') ) {
+                my $s = $host_field->as_string('a');
+                push @sfd, ( 'c' => $s ) if $s;
+            }
+
+            # Date of publication (210$d)
+            if ( $host_field = $marc_host->field('210') ) {
+                my $s = $host_field->as_string('d');
+                push @sfd, ( 'd' => $s ) if $s;
+            }
+
+            # Edition statement (205)
+            if ( $host_field = $marc_host->field('205') ) {
+                my $s = $host_field->as_string;
+                push @sfd, ( 'e' => $s ) if $s;
+            }
+
+            # URL (856$u)
+            if ( $host_field = $marc_host->field('856') ) {
+                my $s = $host_field->as_string('u');
+                push @sfd, ( u => $s ) if ($s);
+            }
+
+            # ISSN (011$a)
+            if ( $host_field = $marc_host->field('011') ) {
+                my $s = $host_field->as_string('a');
+                push @sfd, ( x => $s ) if ($s);
+            }
+
+            # ISBN (010$a)
+            if ( $host_field = $marc_host->field('010') ) {
+                my $s = $host_field->as_string('a');
+                push @sfd, ( y => $s ) if ($s);
+            }
+
+            # Control number (001)
+            if ( $host_field = $marc_host->field('001') ) {
+                push @sfd, ( 0 => $host_field->data() );
+            }
+
+            # Construct 461 link field
+            $link_field = MARC::Field->new( 461, '0', ' ', @sfd );
         }
-
-        # Construct 773 link field
-        $link_field = MARC::Field->new( 773, '0', ' ', @sfd );
-
-    } elsif ( $marcflavour eq 'UNIMARC' ) {
-
-        # Author (700/710/720)
-        if ( $host_field = $marc_host->field('700') || $marc_host->field('710') || $marc_host->field('720') ) {
-            my $s = $host_field->as_string('ab');
-            push @sfd, ( 'a' => $s ) if $s;
-        }
-
-        # Title (200)
-        if ( $host_field = $marc_host->field('200') ) {
-            my $s = $host_field->as_string('a');
-            push @sfd, ( 't' => $s ) if $s;
-        }
-
-        # Place of publication (210$a)
-        if ( $host_field = $marc_host->field('210') ) {
-            my $s = $host_field->as_string('a');
-            push @sfd, ( 'c' => $s ) if $s;
-        }
-
-        # Date of publication (210$d)
-        if ( $host_field = $marc_host->field('210') ) {
-            my $s = $host_field->as_string('d');
-            push @sfd, ( 'd' => $s ) if $s;
-        }
-
-        # Edition statement (205)
-        if ( $host_field = $marc_host->field('205') ) {
-            my $s = $host_field->as_string;
-            push @sfd, ( 'e' => $s ) if $s;
-        }
-
-        # URL (856$u)
-        if ( $host_field = $marc_host->field('856') ) {
-            my $s = $host_field->as_string('u');
-            push @sfd, ( u => $s ) if ($s);
-        }
-
-        # ISSN (011$a)
-        if ( $host_field = $marc_host->field('011') ) {
-            my $s = $host_field->as_string('a');
-            push @sfd, ( x => $s ) if ($s);
-        }
-
-        # ISBN (010$a)
-        if ( $host_field = $marc_host->field('010') ) {
-            my $s = $host_field->as_string('a');
-            push @sfd, ( y => $s ) if ($s);
-        }
-
-        # Control number (001)
-        if ( $host_field = $marc_host->field('001') ) {
-            push @sfd, ( 0 => $host_field->data() );
-        }
-
-        # Construct 461 link field
-        $link_field = MARC::Field->new( 461, '0', ' ', @sfd );
     }
 
     return $link_field;
