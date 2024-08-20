@@ -73,8 +73,9 @@ sub new {
     my $debarred = $patron->is_debarred;
     siplog( "LOG_DEBUG", "Debarred = %s : ", ( $debarred || 'undef' ) );    # Do we need more debug info here?
     my $expired = 0;
+    my $locked   = $patron->account_locked;
     if ( $kp->{'dateexpiry'} ) {
-        my ( $today_year, $today_month, $today_day ) = Today();
+        my ( $today_year,   $today_month,  $today_day ) = Today();
         my ( $warning_year, $warning_month, $warning_day ) = split /-/, $kp->{'dateexpiry'};
         my $days_to_expiry = Date_to_Days( $warning_year, $warning_month, $warning_day ) -
             Date_to_Days( $today_year, $today_month, $today_day );
@@ -97,6 +98,13 @@ sub new {
             }
             $kp->{opacnote} .= "Your card will expire on $dateexpiry";
         }
+    }
+    elsif ($locked) {
+        if ($kp->{opacnote} ) {
+            $kp->{opacnote} .= q{ };
+        }
+        $kp->{opacnote} .= 'ACCOUNT LOCKED';
+        $expired = 1;
     }
     my %ilspatron;
     my $adr = _get_address($kp);
