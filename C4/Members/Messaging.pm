@@ -20,6 +20,8 @@ package C4::Members::Messaging;
 use strict;
 use warnings;
 use C4::Context;
+use JSON qw( to_json );
+use C4::Log qw( logaction );
 
 =head1 NAME
 
@@ -101,7 +103,7 @@ ROW: while ( my $row = $sth->fetchrow_hashref() ) {
 
 =head2 SetMessagingPreference
 
-This method defines how a user (or a default for a patron category) wants to get a certain 
+This method defines how a user (or a default for a patron category) wants to get a certain
 message delivered.  The list of valid message types can be delivered can be found in the
 C<message_attributes> table, and the list of valid message transports can be
 found in the C<message_transport_types> table.
@@ -129,8 +131,10 @@ sub SetMessagingPreference {
             return;
         }
     }
-    $params->{'days_in_advance'} = undef unless exists( $params->{'days_in_advance'} );
-    $params->{'wants_digest'}    = 0     unless exists( $params->{'wants_digest'} );
+    my $preferences_json = to_json(GetPatronMessagingPreferences($params->{borrowernumber}, $params->{message_attribute_id}),{ utf8 => 1, canonical => 1 });
+
+    $params->{'days_in_advance'} = undef unless exists ( $params->{'days_in_advance'} );
+    $params->{'wants_digest'}    = 0     unless exists ( $params->{'wants_digest'} );
 
     my $dbh = C4::Context->dbh();
 
@@ -182,6 +186,22 @@ END_SQL
         $sth = C4::Context->dbh()->prepare($insert_bmtp);
         foreach my $transport ( @{ $params->{'message_transport_types'} } ) {
             my $success = $sth->execute( $borrower_message_preference_id, $transport );
+        }
+
+        my $new_preferences_json = to_json(GetPatronMessagingPreferences($params->{borrowernumber}, $params->{message_attribute_id}),{ utf8 => 1, canonical => 1 });
+
+        if ( $preferences_json ne $new_preferences_json ) {
+            my $info;
+            $preferences_json =~ s/,/, /g;
+            $new_preferences_json =~ s/,/, /g;
+            $preferences_json =~ s/\[\]/null/g;
+            $new_preferences_json =~ s/\[\]/null/g;
+
+            $info = {
+                before => $preferences_json,
+                after  => $new_preferences_json
+            };
+            logaction("MEMBERS","MODIFY",$params->{borrowernumber}, "Messaging preference: after: ". $new_preferences_json . " before: " . $preferences_json);
         }
     }
     return;
@@ -282,6 +302,26 @@ OPTION: foreach my $option (@$messaging_options) {
         $default_pref->{borrowernumber}          = $params->{borrowernumber};
         SetMessagingPreference($default_pref);
     }
+}
+
+sub GetPatronMessagingPreferences {
+    my ($borrowernumber, $message_attribute_id) = @_;
+    my $sql = <<'END_SQL';
+SELECT message_name, days_in_advance, wants_digest,
+borrower_message_transport_preferences.message_transport_type
+FROM borrower_message_preferences
+INNER JOIN borrower_message_transport_preferences
+ON     borrower_message_transport_preferences.borrower_message_preference_id = borrower_message_preferences.borrower_message_preference_id
+INNER JOIN message_attributes
+ON     borrower_message_preferences.message_attribute_id = message_attributes.message_attribute_id
+ AND borrowernumber = ?
+ AND borrower_message_preferences.message_attribute_id = ?
+END_SQL
+
+    my $sth = C4::Context->dbh->prepare($sql);
+    $sth->execute($borrowernumber, $message_attribute_id);
+    my $rows = $sth->fetchall_arrayref({});
+    return $rows;
 }
 
 =head1 TABLES
