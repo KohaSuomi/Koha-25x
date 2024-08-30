@@ -99,7 +99,7 @@ sub new {
             $kp->{opacnote} .= "Your card will expire on $dateexpiry";
         }
     }
-    elsif ($locked) {
+    if ($locked) {
         if ($kp->{opacnote} ) {
             $kp->{opacnote} .= q{ };
         }
