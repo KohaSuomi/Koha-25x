@@ -19,6 +19,7 @@ package Koha::Util::Navigation;
 
 use Modern::Perl;
 use C4::Context;
+use URI;
 
 =head1 NAME
 
@@ -75,6 +76,28 @@ sub local_referer {
     }
     $rv =~ s/(?<=[?&])language=[\w-]+(&|$)// if $rv and $params->{remove_language};
     return $rv // $fallback;
+}
+
+=head2 validate_referer
+
+    my $referer = Koha::Util::Navigation::validate_referer( $referer, { staff => 1, fallback => '/' } );
+
+    Validate referer and return referer if it is a valid URL with the same host as the base URL or a relative path.
+    Otherwise return fallback.
+
+=cut
+
+sub validate_referer {
+    my ( $referer, $params ) = @_;
+    my $uri      = URI->new($referer);
+    my $base_url = C4::Context->preference( $params->{staff} ? 'staffClientBaseURL' : 'OPACBaseURL' );
+    my $base     = URI->new($base_url);
+
+    # Check if the referer is a valid URL with the same host as the base URL or a relative path
+    return $referer
+        if ( ( defined $uri->scheme && $uri->scheme =~ /^https?$/ && $uri->host eq $base->host )
+        || ( $uri->path =~ m{^/} && !defined $uri->scheme ) );
+    return $params->{fallback} // '/';
 }
 
 1;
