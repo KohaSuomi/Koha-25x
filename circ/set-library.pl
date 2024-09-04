@@ -27,6 +27,7 @@ use Koha::BiblioFrameworks;
 use Koha::Cash::Registers;
 use Koha::Libraries;
 use Koha::Desks;
+use Koha::Util::Navigation;
 
 my $query = CGI->new();
 
@@ -99,6 +100,8 @@ if ( defined($register_id)
 $session->flush();
 
 my $referer = $query->param('oldreferer') || $ENV{HTTP_REFERER} || '';
+$referer =
+    Koha::Util::Navigation::validate_referer( $referer, { staff => 1, fallback => '/cgi-bin/koha/mainpage.pl' } );
 if ($updated) {
     print $query->redirect( $referer || '/cgi-bin/koha/mainpage.pl' );
 }
