@@ -1,7 +1,7 @@
 use Modern::Perl;
 
 use Test::NoWarnings;
-use Test::More tests => 2;
+use Test::More tests => 3;
 use Test::MockObject;
 
 use t::lib::Mocks;
@@ -72,3 +72,57 @@ subtest 'Tests for local_referer' => sub {
     $base = 'http://koha.nl';
     is( Koha::Util::Navigation::local_referer($cgi), '/', 'no opacbaseurl, custom url, protocol diff' );
 };
+
+subtest 'Tests for validate_referer' => sub {
+    plan tests => 10;
+
+    # test staff
+    t::lib::Mocks::mock_preference( 'staffClientBaseURL', 'https://staff.example.com' );
+    my $referer = 'https://staff.example.com/cgi-bin/koha/somepage.pl';
+    is(
+        Koha::Util::Navigation::validate_referer( $referer, { staff => 1, fallback => '/cgi-bin/koha/mainpage.pl' } ),
+        $referer, 'valid referer'
+    );
+
+    $referer = 'http://malicious.com';
+    is( Koha::Util::Navigation::validate_referer( $referer, { staff => 1 } ), '/', 'invalid referer' );
+
+    $referer = 'http://staff.example.com/cgi-bin/koha/somepage.pl';
+    is( Koha::Util::Navigation::validate_referer( $referer, { staff => 1 } ), $referer, 'valid referer' );
+
+    $referer = 'https://malicious.com';
+    is( Koha::Util::Navigation::validate_referer( $referer, { staff => 1 } ), '/', 'invalid referer' );
+
+    # test fallback
+    $referer = 'http://malicious.com';
+    is(
+        Koha::Util::Navigation::validate_referer( $referer, { staff => 1, fallback => '/cgi-bin/koha/mainpage.pl' } ),
+        '/cgi-bin/koha/mainpage.pl', 'invalid referer, fallback url'
+    );
+
+    # test opac
+    t::lib::Mocks::mock_preference( 'OPACBaseURL', 'https://opac.example.com' );
+    $referer = 'https://opac.example.com/cgi-bin/koha/somepage.pl';
+    is( Koha::Util::Navigation::validate_referer($referer), $referer, 'valid referer, opac url' );
+    $referer = 'http://staff.example.com/cgi-bin/koha/somepage.pl';
+    is( Koha::Util::Navigation::validate_referer($referer), '/', 'invalid referer, opac url' );
+    $referer = 'http://malicious.com';
+    is(
+        Koha::Util::Navigation::validate_referer( $referer, { fallback => '/cgi-bin/koha/mainpage.pl' } ),
+        '/cgi-bin/koha/mainpage.pl', 'invalid referer, opac url'
+    );
+
+    # test empty referer
+    is(
+        Koha::Util::Navigation::validate_referer( undef, { fallback => '/cgi-bin/koha/mainpage.pl' } ),
+        '/cgi-bin/koha/mainpage.pl', 'empty referer'
+    );
+
+    #test relative path
+    $referer = '/cgi-bin/koha/somepage.pl';
+    is(
+        Koha::Util::Navigation::validate_referer( $referer, { staff => 1, fallback => '/cgi-bin/koha/mainpage.pl' } ),
+        $referer, 'relative path'
+    );
+};
+
