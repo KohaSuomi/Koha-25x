@@ -44,6 +44,7 @@ use Koha::DateUtils qw( output_pref );
 use Koha::Misc::Files;
 use Koha::Acquisition::Invoice::Adjustments;
 use Koha::Acquisition::Invoices;
+use Koha::Util::Navigation;
 
 my $input = CGI->new;
 my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
@@ -80,6 +81,8 @@ if ( $op && $op eq 'cud-close' ) {
     }
     my $referer = $input->param('referer');
     if ($referer) {
+        $referer = Koha::Util::Navigation::validate_referer( $referer, { staff => 1, fallback => 'invoices.pl' } );
+
         print $input->redirect($referer);
         exit 0;
     }
@@ -92,6 +95,8 @@ if ( $op && $op eq 'cud-close' ) {
     }
     my $referer = $input->param('referer');
     if ($referer) {
+        $referer = Koha::Util::Navigation::validate_referer( $referer, { staff => 1, fallback => 'invoices.pl' } );
+
         print $input->redirect($referer);
         exit 0;
     }
@@ -138,7 +143,9 @@ if ( $op && $op eq 'cud-close' ) {
 
     DelInvoice($invoiceid);
     defined($invoice_files) && $invoice_files->DelAllFiles();
-    my $referer = $input->param('referer') || 'invoices.pl';
+    my $referer = $input->param('referer');
+    $referer = Koha::Util::Navigation::validate_referer( $referer, { staff => 1, fallback => 'invoices.pl' } );
+
     if ($referer) {
         print $input->redirect($referer);
         exit 0;
