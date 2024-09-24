@@ -75,7 +75,7 @@
         <div class="btn-group">
             <button class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown">More <span class="caret"></span></button>
             <ul class="dropdown-menu dropdown-menu-end">
-                [% IF CAN_user_borrowers_edit_borrowers %]
+                [% IF ( CAN_user_borrowers_edit_borrowers && CAN_user_staffaccess && patron.category.category_type == 'S') || ( CAN_user_borrowers_edit_borrowers && patron.category.category_type != 'S' ) %]
                     <li>
                         <a class="dropdown-item" id="renewpatron" href="/cgi-bin/koha/members/setstatus.pl?borrowernumber=[% patron.borrowernumber | html %]&amp;destination=[% destination | html %]&amp;reregistration=y">Renew patron</a>
                     </li>
