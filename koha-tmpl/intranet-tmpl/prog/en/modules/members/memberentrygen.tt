@@ -1110,6 +1110,7 @@
                                         [% END # /UNLESS nodateenrolled %]
 
                                         <li [% IF nodateexpiry %]style="display:none"[% END %]>
+                                        [% IF ( op == 'add_form' ) || ( CAN_user_staffaccess ) || ( patron.category.category_type != 'S' ) %]
                                             <label for="to" [% IF mandatorydateexpiry %]class="required"[% END %]> Expiry date (leave blank for auto calc): </label>
                                             [% UNLESS ( op == 'add_form' ) %]
                                                 <input type="text" id="to" name="dateexpiry" maxlength="10" size="10" value="[% borrower_data.dateexpiry | html UNLESS op == 'duplicate' %]" class="flatpickr" />
@@ -1117,13 +1118,14 @@
                                                 <input type="text" id="to" name="dateexpiry" maxlength="10" size="10" value="[% borrower_data.dateexpiry | html %]" class="flatpickr" />
                                             [% END %]
                                             [% IF ( mandatorydateexpiry ) %]
-                                                <span class="required">Required</span>
-                                            [% END %]
-                                            [% IF ( ERROR_dateexpiry ) %]
-                                                <span class="required">(Error)</span>
-                                            [% END %]
-                                            <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
-                                        </li>
+                                                    <span class="required">Required</span>
+                                                [% END %]
+                                                [% IF ( ERROR_dateexpiry ) %]
+                                                    <span class="required">(Error)</span>
+                                                [% END %]
+                                                <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
+                                            </li>
+                                        [% END %]
 
                                         [% UNLESS noopacnote %]
                                             <li>
