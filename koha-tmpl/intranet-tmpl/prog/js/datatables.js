@@ -1413,6 +1413,9 @@ function update_search_description(
                     emptyTable: options.emptyTable
                         ? options.emptyTable
                         : __("No data available in table"),
+                    infoFiltered: options.infoFiltered
+                        ? options.infoFiltered
+                        : __("(filtered from _MAX_ total entries)"),
                 },
             },
             options
