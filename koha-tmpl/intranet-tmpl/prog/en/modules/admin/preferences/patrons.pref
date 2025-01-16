@@ -103,6 +103,7 @@ Patrons:
          - pref: TrackLastPatronActivityTriggers
            multiple:
                creation: "Creating a patron"
+               modification: "Modifying a patron"
                login: "Logging in"
                connection: "Connecting to Koha via SIP or ILSDI"
                check_out: "Checking out an item"
