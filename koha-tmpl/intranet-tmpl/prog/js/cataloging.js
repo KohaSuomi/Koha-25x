@@ -706,6 +706,16 @@ function CheckMandatorySubfields(p) {
                     .find(".input_marceditor");
             }
             if (!editor.val()) {
+                if (
+                    editor.hasClass("select2") ||
+                    editor.closest(".select2-container").length
+                ) {
+                    editor
+                        .siblings(".select2")
+                        .children(".selection")
+                        .children(".select2-selection")
+                        .css("background-color", "#FFFFCC");
+                }
                 editor.addClass("missing");
                 total++;
             }
