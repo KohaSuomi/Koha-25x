@@ -1141,6 +1141,15 @@ Circulation:
             - renewing of items from the staff interface and via the <code>misc/cronjobs/automatic_renewals.pl</code> cronjob.
     Fines policy:
         -
+            - pref: OverdueFineBranch
+              type: choice
+              choices:
+                  NoBranch: Don't include branchcodes
+                  PatronLibrary: include borrower's home library as branchcode
+                  ItemHomeLibrary: include the item's home library as branchcode
+                  IssuingLibrary: include the branch the item was issued from as branchcode
+            - when generating OVERDUE fines.
+        -
             - pref: finesCalendar
               type: choice
               choices:
