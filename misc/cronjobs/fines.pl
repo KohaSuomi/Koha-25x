@@ -96,14 +96,18 @@ try {
     exit;
 };
 
-my @borrower_fields = qw(cardnumber categorycode surname firstname email phone address citystate);
-my @item_fields     = qw(itemnumber barcode date_due);
-my @other_fields    = qw(days_overdue fine);
-my $libname         = C4::Context->preference('LibraryName');
-my $control         = C4::Context->preference('CircControl');
-my $branch_type     = C4::Context->preference('HomeOrHoldingBranch') || 'homebranch';
-my $mode            = C4::Context->preference('finesMode');
-my $delim           = "\t";    # ?  C4::Context->preference('CSVDelimiter') || "\t";
+cronlogaction({ info => $command_line_options });
+
+my @borrower_fields =
+  qw(cardnumber categorycode surname firstname email phone address citystate);
+my @item_fields         = qw(itemnumber barcode date_due);
+my @other_fields        = qw(days_overdue fine);
+my $libname             = C4::Context->preference('LibraryName');
+my $control             = C4::Context->preference('CircControl');
+my $branch_type         = C4::Context->preference('HomeOrHoldingBranch') || 'homebranch';
+my $mode                = C4::Context->preference('finesMode');
+my $overdue_branch_rule = C4::Context->preference('OverdueFineBranch');
+my $delim = "\t";    # ?  C4::Context->preference('CSVDelimiter') || "\t";
 
 my %is_holiday;
 my $today = dt_from_string();
@@ -131,6 +135,13 @@ for my $overdue ( @{$overdues} ) {
         next;
     }
     my $patron = Koha::Patrons->find( $overdue->{borrowernumber} );
+
+    my $overdue_branch =
+        ( $overdue_branch_rule eq 'ItemHomeLibrary' ) ? $overdue->{homebranch}
+      : ( $overdue_branch_rule eq 'PatronLibrary' )   ? $patron->branchcode
+      : ( $overdue_branch_rule eq 'IssuingLibrary' )  ? $overdue->{branchcode}
+      :                                                 '';
+
     my $branchcode =
           ( $control eq 'ItemHomeLibrary' ) ? $overdue->{$branch_type}
         : ( $control eq 'PatronLibrary' )   ? $patron->branchcode
@@ -177,6 +188,7 @@ for my $overdue ( @{$overdues} ) {
                 borrowernumber => $overdue->{borrowernumber},
                 amount         => $amount,
                 due            => $datedue,
+                branchcode     => $overdue_branch,
             }
         );
         $updated++;
