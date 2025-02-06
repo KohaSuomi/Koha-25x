@@ -1144,10 +1144,10 @@ Circulation:
             - pref: OverdueFineBranch
               type: choice
               choices:
-                  NoBranch: Don't include branchcodes
-                  PatronLibrary: include borrower's home library as branchcode
-                  ItemHomeLibrary: include the item's home library as branchcode
-                  IssuingLibrary: include the branch the item was issued from as branchcode
+                  NoLibrary: Don't include branchcodes
+                  PatronLibrary: Include patron's home library as branchcode
+                  ItemHomeLibrary: Include the item's home library as branchcode
+                  IssuingLibrary: Include the library the item was checked out from as branchcode
             - when generating OVERDUE fines.
         -
             - pref: finesCalendar
