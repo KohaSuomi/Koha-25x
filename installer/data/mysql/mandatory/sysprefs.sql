@@ -611,6 +611,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('OverDrivePasswordRequired','0','','Does the library require passwords for OverDrive SIP authentication','YesNo'),
 ('OverDriveUsername','cardnumber','cardnumber|userid','Which patron information should be passed as OverDrive username','Choice'),
 ('OverDriveWebsiteID','', NULL, 'WebsiteID provided by OverDrive', 'Free'),
+('OverdueFineBranch', 'NoLibrary','NoLibrary|PatronLibrary|ItemHomeLibrary|IssuingLibrary', "Configure OVERDUE fine's recorded branchcode", 'Choice')
 ('OverdueNoticeCalendar',0,NULL,'Take the calendar into consideration when generating overdue notices','YesNo'),
 ('OverdueNoticeFrom', 'cron', 'cron|item-issuebranch|item-homebranch', 'Organize and send overdue notices by item home library or checkout library', 'Choice'),
 ('OverduesBlockCirc','noblock','noblock|confirmation|block','When checking out an item should overdues block checkout, generate a confirmation dialogue, or allow checkout','Choice'),
