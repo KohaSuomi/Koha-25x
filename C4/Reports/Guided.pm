@@ -189,7 +189,7 @@ This will return a list of all tables in the database
 =cut
 
 sub get_all_tables {
-    my $dbh   = C4::Context->dbh();
+    my $dbh = C4::Context->dbh();
     my $query = "SHOW TABLES";
     my $sth   = $dbh->prepare($query);
     $sth->execute();
@@ -223,7 +223,7 @@ sub get_columns {
 
 sub _get_columns {
     my ($table_name) = @_;
-    my $dbh          = C4::Context->dbh();
+    my $dbh          = C4::KohaSuomi::Tweaks->dbh();
     my $all_columns  = Koha::Database::Columns->columns;
 
     # Sanitize input, just in case
@@ -293,7 +293,7 @@ sub _build_query {
     my ( $tables, $columns, $criteria, $keys, $orderby, $totals, $definition ) = @_;
 ### $orderby
     # $keys is an array of joining constraints
-    my $dbh           = C4::Context->dbh();
+    my $dbh           = C4::KohaSuomi::Tweaks->dbh();
     my $joinedtables  = join( ',', @$tables );
     my $joinedcolumns = join( ',', @$columns );
     my $query         = "SELECT $totals $joinedcolumns FROM $tables->[0] ";
@@ -347,7 +347,7 @@ Returns an arraref to hashrefs suitable for using in a tmpl_loop. With the crite
 
 sub get_criteria {
     my ( $area, $cgi ) = @_;
-    my $dbh = C4::Context->dbh();
+    my $dbh = C4::KohaSuomi::Tweaks->dbh();
 
     # have to do something here to know if its dropdown, free text, date etc
     my %criteria = (
@@ -462,7 +462,7 @@ sub nb_rows {
         $derived_name .= 'x';
     }
 
-    my $dbh = C4::Context->dbh;
+    my $dbh = C4::KohaSuomi::Tweaks->dbh();
     my $sth;
     my $n = 0;
 
@@ -846,7 +846,7 @@ sub get_saved_reports {
     $filter = { keyword => $filter } if $filter && !ref($filter);
     my ( $group, $subgroup ) = @_;
 
-    my $dbh   = C4::Context->dbh();
+    my $dbh   = C4::KohaSuomi::Tweaks->dbh();
     my $query = get_saved_reports_base_query;
     my ( @cond, @args );
     if ($filter) {
@@ -900,7 +900,7 @@ This takes a column name of the format table.column and will return what type it
 sub get_column_type {
     my ($tablecolumn) = @_;
     my ( $table, $column ) = split( /\./, $tablecolumn );
-    my $dbh = C4::Context->dbh();
+    my $dbh = C4::KohaSuomi::Tweaks->dbh();
     my $catalog;
     my $schema;
 
@@ -929,7 +929,7 @@ with the distinct values of the column
 sub get_distinct_values {
     my ($tablecolumn) = @_;
     my ( $table, $column ) = split( /\./, $tablecolumn );
-    my $dbh   = C4::Context->dbh();
+    my $dbh   = C4::KohaSuomi::Tweaks->dbh();
     my $query = "SELECT distinct($column) as availablevalues FROM $table";
     my $sth   = $dbh->prepare($query);
     $sth->execute();
@@ -960,7 +960,7 @@ Missing POD for get_from_dictionary.
 
 sub get_from_dictionary {
     my ( $area, $id ) = @_;
-    my $dbh                   = C4::Context->dbh();
+    my $dbh                   = C4::KohaSuomi::Tweaks->dbh();
     my $area_name_sql_snippet = get_area_name_sql_snippet;
     my $query                 = <<EOQ;
 SELECT d.*, $area_name_sql_snippet
@@ -1010,7 +1010,7 @@ Otherwise, it just returns.
 
 sub get_sql {
     my ($id)  = @_ or return;
-    my $dbh   = C4::Context->dbh();
+    my $dbh   = C4::KohaSuomi::Tweaks->dbh();
     my $query = "SELECT * FROM saved_sql WHERE id = ?";
     my $sth   = $dbh->prepare($query);
     $sth->execute($id);
@@ -1026,7 +1026,7 @@ Missing POD for get_results.
 
 sub get_results {
     my ($report_id) = @_;
-    my $dbh = C4::Context->dbh;
+    my $dbh = C4::Context->dbh();
     return $dbh->selectall_arrayref(
         q|
         SELECT id, report, date_run
