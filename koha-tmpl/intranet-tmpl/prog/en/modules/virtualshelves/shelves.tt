@@ -386,25 +386,53 @@
                                 <td> [% itemsloo.dateadded | $KohaDates %] </td>
                                 <td>
                                     <ul>
-                                        [% FOREACH item IN itemsloo.ITEM_RESULTS %]
-                                            <li>
-                                                [% Branches.GetName(item.holdingbranch) | html %]
-                                                [% IF ( item.location ) %]
-                                                    <span class="shelvingloc"> [% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => item.location ) | html %] </span>
+                                                [% FOREACH item IN itemsloo.ITEM_RESULTS %]
+                                                    [% IF ( loop.index() < 4 ) %]
+                                                        <li>
+                                                            [% Branches.GetName(item.holdingbranch) | html %]
+                                                            [% IF ( item.location ) %]
+                                                                <span class="shelvingloc">
+                                                                    [% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => item.location ) | html %]
+                                                                </span>
+                                                            [% END %]
+
+                                                            [% IF ( item.itemcallnumber ) %]
+                                                                [<a href="/cgi-bin/koha/catalogue/search.pl?idx=callnum&amp;q=%22[% item.itemcallnumber | uri %]%22">[% item.itemcallnumber | html %]</a>]
+                                                            [% END %]
+
+                                                        </li>
+                                                    [% ELSE %]
+                                                        <span class="shelvingloc collapsible-callnumber" style="display:none">
+                                                        <li >
+                                                            [% Branches.GetName(item.holdingbranch) | html %]
+                                                            <br>
+                                                            [% IF ( item.location ) %]
+                                                                [% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => item.location ) | html %]
+                                                            <br>
+                                                            [% END %]
+                                                            [% IF ( item.itemcallnumber ) %]
+                                                                [<a href="/cgi-bin/koha/catalogue/search.pl?idx=callnum&amp;q=%22[% item.itemcallnumber | uri %]%22">[% item.itemcallnumber | html %]</a>]
+                                                            [% END %]
+
+                                                        </li>
+                                                        </span>
+                                                    [% END %]
+
+                                                [% END # /FOREACH item %]
+                                                [% IF itemsloo.ITEM_RESULTS.max > 3 %]
+                                                    <li class="moretogglelist">
+                                                        <a href="#"><strong>Show more</strong></a>
+                                                    </li>
+                                                    <li class="moretogglelist" style="display:none">
+                                                        <a href="#"><strong>Show less</strong></a>
+                                                    </li>
                                                 [% END %]
-                                                [% IF ( item.itemcallnumber ) %]
-                                                    [<a href="/cgi-bin/koha/catalogue/search.pl?idx=callnum&amp;q=%22[% item.itemcallnumber | uri %]%22">[% item.itemcallnumber | html %]</a>]
-                                                [% END %]
-                                            </li>
-                                        [% END # /FOREACH item %]
-                                    </ul>
-                                </td>
-                            </tr>
-                        [% END #/FOREACH itemsloo %]
-                    </table>
-                    <!-- /#searchresults -->
-                </div>
-                <!-- /.page-section -->
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                [% END #/FOREACH itemsloo %]
+                            </table> <!-- /#searchresults -->
+                        </div> <!-- /.page-section -->
 
                 <nav class="pages" id="pagination_bottom"> [% pagination_bar | $raw %] </nav>
             </form>
@@ -978,5 +1006,6 @@
              });
         [% END %]
     </script>
+    [% Asset.js("js/pages/shelves.js") | $raw %]
 [% END %]
 [% INCLUDE 'intranet-bottom.inc' %]
