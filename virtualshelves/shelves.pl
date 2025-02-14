@@ -364,10 +364,28 @@ if ( $op eq 'view' ) {
                     $this_item->{size} = q||;
                 }
 
+                my $logged_in_user = Koha::Patrons->find($loggedinuser);
+                my $logged_in_branchcode = $logged_in_user->branchcode;
+
                 # Getting items infos for location display
                 my $items = $biblio->items;
-                $this_item->{'ITEM_RESULTS'} = $items;
-                $this_item->{biblionumber}   = $biblionumber;
+                my $holdingbranchitems;
+                my $otheritems;
+
+                #show logged in holdingbranch items first
+                while (my $item = $items->next) {
+
+                    if ($item->holdingbranch eq $logged_in_branchcode) {
+                        push (@{$holdingbranchitems}, $item);
+                    }
+                    else {
+                        push(@{$otheritems}, $item);
+                    }
+                }
+
+                push (@{$holdingbranchitems}, @{$otheritems});
+                $this_item->{'ITEM_RESULTS'} = $holdingbranchitems;
+                $this_item->{biblionumber} = $biblionumber;
                 push @items, $this_item;
             }
 
