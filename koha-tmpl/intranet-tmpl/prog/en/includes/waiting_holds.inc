@@ -19,6 +19,9 @@
             <th>Call number</th>
             <th>Copy number</th>
             <th>Enumeration</th>
+            [% IF Koha.Preference('HoldPickupShelves')%]
+                <th>Pickup shelf</th>
+            [% END %]
             <th class="no-sort no-export">Actions</th>
         </tr>
     </thead>
@@ -87,6 +90,9 @@
                 <td>[% reserveloo.item.itemcallnumber | html %]</td>
                 <td>[% reserveloo.item.copynumber | html %]</td>
                 <td>[% reserveloo.item.enumchron | html %]</td>
+                [% IF Koha.Preference('HoldPickupShelves')%]
+                    <td>[% IF (reserveloo.hold_pickup_shelf_id  ) %][% reserveloo.hold_pickup_shelf.shelf_name | html %] [% END %]</td>
+                [% END %]
                 <td>
                     <form name="cancelReserve" action="waitingreserves.pl" method="post">
                         [% INCLUDE 'csrf-token.inc' %]

@@ -98,6 +98,8 @@ definitions:
     $ref: ./definitions/hold.yaml
   holds:
     $ref: ./definitions/holds.yaml
+  hold_pickup_shelf:
+    $ref: ./definitions/hold_pickup_shelf.yaml
   ill_backend:
     $ref: ./definitions/ill_backend.yaml
   ill_backends:
@@ -415,6 +417,16 @@ paths:
     $ref: "./paths/holds.yaml#/~1holds~1{hold_id}~1suspension"
   "/holds/{hold_id}/lowest_priority":
     $ref: "./paths/holds.yaml#/~1holds~1{hold_id}~1lowest_priority"
+  "/holds/pickup_shelves":
+    $ref: ./paths/hold_pickup_shelves.yaml#/~1holds~1pickup_shelves
+  "/holds/pickup_shelves/{hold_pickup_shelf_id}":
+    $ref: "./paths/hold_pickup_shelves.yaml#/~1holds~1pickup_shelves~1{hold_pickup_shelf_id}"
+  "/holds/pickup_shelves/available":
+    $ref: "./paths/hold_pickup_shelves.yaml#/~1holds~1pickup_shelves~1available"
+  "/holds/pickup_shelves/biblio_level_itemtypes":
+    $ref: "./paths/hold_pickup_shelves.yaml#/~1holds~1pickup_shelves~1biblio_level_itemtypes"
+  "/holds/pickup_shelves/priority":
+    $ref: "./paths/hold_pickup_shelves.yaml#/~1holds~1pickup_shelves~1priority"
   /ill/backends:
     $ref: ./paths/ill_backends.yaml#/~1ill~1backends
   "/ill/backends/{ill_backend_id}":
@@ -765,6 +777,12 @@ parameters:
     description: Internal hold identifier
     in: path
     name: hold_id
+    required: true
+    type: integer
+  hold_pickup_shelf_id_pp:
+    description: Hold pickup shelf internal identifier
+    in: path
+    name: hold_pickup_shelf_id
     required: true
     type: integer
   ill_batch_id_pp:
