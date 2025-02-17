@@ -105,6 +105,7 @@
             - cancellation_requested
             - biblio
             - deleted_biblio
+            - hold_pickup_shelf
             - pickup_library
             - patron
             - item

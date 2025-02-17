@@ -117,6 +117,10 @@
                         <dt><a href="/cgi-bin/koha/admin/desks.pl">Desks</a></dt>
                         <dd>Define circulation desks</dd>
                     [% END %]
+                    [% IF ( Koha.Preference('HoldPickupShelves') && CAN_user_parameters_manage_libraries ) %]
+                        <dt><a href="/cgi-bin/koha/admin/hold_pickup_shelves">Hold pickup shelves</a></dt>
+                        <dd>Define hold pickup shelves</dd>
+                    [% END %]
                     [% IF ( CAN_user_parameters_manage_cities ) %]
                         <dt><a href="/cgi-bin/koha/admin/cities.pl">Cities and towns</a></dt>
                         <dd>Define cities and towns that your patrons live in</dd>
