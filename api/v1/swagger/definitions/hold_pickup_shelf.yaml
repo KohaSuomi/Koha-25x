@@ -1,0 +1,74 @@
+---
+type: object
+properties:
+  hold_pickup_shelf_id:
+    type: integer
+    description: Internally assigned record source identifier
+    readOnly: true
+  priority:
+    description: Priority of the shelf
+    type: integer
+  shelf_name:
+    description: Shelf name
+    type: string
+  library_id:
+    description: Library identifier
+    type: string
+  patron_id:
+    description: Patron identifier
+    type: 
+      - integer
+      - 'null'
+  max_items:
+    description: How many items can be placed on this shelf
+    type: integer
+  biblio_itemtype:
+    description: Biblio item type string
+    type: 
+      - string
+      - 'null'
+  patron_category_id:
+    description: Patron category identifier
+    type: 
+      - string
+      - 'null'
+  overflow_shelf:
+    description: Overflow shelf boolean
+    type: 
+      - boolean
+      - 'null'
+  locked:
+    description: Locked boolean
+    type: 
+      - boolean
+      - 'null'
+  locked_date:
+    description: Date the shelf was locked
+    format: date-time
+    type: 
+      - string
+      - 'null'
+  weekday:
+    description: Weekday the shelf is open
+    type: 
+      - string
+      - 'null'
+  library: 
+    description: Library object
+    type: object
+  patron_category:
+    description: Patron category object
+    type: 
+      - object
+      - 'null'
+  holds_count:
+    description: Number of holds currently on this shelf
+    type:
+      - integer
+      - "null"
+    readOnly: true
+additionalProperties: false
+required:
+  - shelf_name
+  - library_id
+  - max_items
