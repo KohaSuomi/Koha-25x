@@ -299,7 +299,7 @@ $(document).ready(function () {
                                     branchSelect += "</select>";
                                     return branchSelect;
                                 } else {
-                                    return oObj.branchcode.escapeHtml() || "";
+                                    return oObj.branchcode.escapeHtml()+(oObj.hold_pickup_shelf_name ? "<br/> on pickup shelf " + oObj.hold_pickup_shelf_name.escapeHtml() : "") || "";
                                 }
                             },
                         },
