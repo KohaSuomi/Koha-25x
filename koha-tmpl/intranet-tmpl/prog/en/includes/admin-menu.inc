@@ -46,6 +46,9 @@
             [% IF ( Koha.Preference('UseCirculationDesks') && CAN_user_parameters_manage_libraries ) %]
                 <li><a href="/cgi-bin/koha/admin/desks.pl">Desks</a></li>
             [% END %]
+            [% IF ( Koha.Preference('HoldPickupShelves') && CAN_user_parameters_manage_libraries ) %]
+                <li><a href="/cgi-bin/koha/admin/hold_pickup_shelves">Hold pickup shelves</a></li>
+            [% END %]
             [% IF ( CAN_user_parameters_manage_cities ) %]
                 <li><a href="/cgi-bin/koha/admin/cities.pl">Cities and towns</a></li>
             [% END %]
