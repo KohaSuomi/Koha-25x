@@ -773,6 +773,14 @@ Circulation:
                   branch_itemtype: "pickup library and item type"
             - .
         -
+            - pref: HoldPickupShelves
+              choices:
+                  1: Enable
+                  0: Don't enable
+            - "the ability to define hold pickup shelves for libraries."
+            - "Define 'itemtypes' or authorised value."
+            - pref: HoldPickupShelvesBiblioLevelItemTypeParameter
+        -
             - pref: EnableItemGroupHolds
               choices:
                   1: Enable
