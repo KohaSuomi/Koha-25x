@@ -50,6 +50,7 @@ sub do_checkout {
     my $overridden_duedate;    # usually passed as undef to AddIssue
     my $prevcheckout_block_checkout         = $account->{prevcheckout_block_checkout};
     my $allow_additional_materials_checkout = $account->{allow_additional_materials_checkout};
+    my $no_block_prevreserve_status         = $account->{no_block_prevreserve_status};
     my ( $issuingimpossible, $needsconfirmation, $messages ) = _can_we_issue( $patron, $barcode, 0 );
 
     if ($no_block_due_date) {
@@ -156,15 +157,14 @@ sub do_checkout {
 
     if ($no_block_due_date) {
         $overridden_duedate = $no_block_due_date;
-        my ( $msg, $checkout ) = ProcessOfflineIssue(
-            {
-                cardnumber => $patron->cardnumber,
-                barcode    => $barcode,
-                due_date   => $no_block_due_date,
-                timestamp  => dt_from_string,
-            }
-        );
-        $self->{due} = $self->duedatefromissue( $checkout, $itemnumber );
+        my ( $msg, $checkout ) = ProcessOfflineIssue({
+            cardnumber => $patron->cardnumber,
+            barcode    => $barcode,
+            due_date   => $no_block_due_date,
+            timestamp  => dt_from_string,
+            no_block_prevreserve_status => $no_block_prevreserve_status || undef,
+        });
+        $self->{due} = $self->duedatefromissue($checkout, $itemnumber);
     } else {
 
         # can issue
