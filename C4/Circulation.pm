@@ -4541,6 +4541,8 @@ sub ProcessOfflineIssue {
 
     my $patron = Koha::Patrons->find( { cardnumber => $operation->{cardnumber} } );
     $patron ||= Koha::Patrons->find( { userid => $operation->{cardnumber} } );
+    
+    my $no_block_prevreserve_status = $operation->{no_block_prevreserve_status};
 
     if ($patron) {
         my $item = Koha::Items->find( { barcode => $operation->{barcode} } );
@@ -4562,7 +4564,7 @@ sub ProcessOfflineIssue {
             $patron,
             $operation->{barcode},
             $operation->{due_date},
-            undef,
+            $no_block_prevreserve_status,
             $operation->{timestamp},
             undef,
         );
