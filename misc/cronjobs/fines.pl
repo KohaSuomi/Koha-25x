@@ -181,16 +181,15 @@ for my $overdue ( @{$overdues} ) {
                 next;
             }
         }
-        UpdateFine(
-            {
-                issue_id       => $overdue->{issue_id},
-                itemnumber     => $overdue->{itemnumber},
-                borrowernumber => $overdue->{borrowernumber},
-                amount         => $amount,
-                due            => $datedue,
-                branchcode     => $overdue_branch,
-            }
+        my %update_params = (
+            issue_id       => $overdue->{issue_id},
+            itemnumber     => $overdue->{itemnumber},
+            borrowernumber => $overdue->{borrowernumber},
+            amount         => $amount,
+            due            => $datedue,
         );
+        $update_params{branchcode} = $overdue_branch if $overdue_branch ne '';
+        UpdateFine(\%update_params);
         $updated++;
     }
     my $borrower = $patron->unblessed;
