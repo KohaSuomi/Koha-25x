@@ -84,6 +84,7 @@
              inhouse_patron_categories=""
              lost_status_for_missing="4"
              blocked_item_types="VM|MU"
+             no_block_prevreserve_status="revert"> <!-- could be "revert", revert waiting reserve to priority 1 or "cancel" cancel waiting reserve on this item -->
              seen_on_item_information="mark_found"> <!-- could be "keep_lost", empty to disable -->
              <!-- convert_nonprinting_characters: Convert control and non-space separator characters into the given string -->
              <!-- show_checkin_message: If enabled, successful checking responses will contain an AF screen message -->
