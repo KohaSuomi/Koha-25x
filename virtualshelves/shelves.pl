@@ -364,8 +364,8 @@ if ( $op eq 'view' ) {
                     $this_item->{size} = q||;
                 }
 
-                my $logged_in_user = Koha::Patrons->find($loggedinuser);
-                my $logged_in_branchcode = $logged_in_user->branchcode;
+                my $userenv = C4::Context->userenv;
+                my $userenv_branch = $userenv->{'branch'} // '';
 
                 # Getting items infos for location display
                 my $items = $biblio->items;
@@ -375,7 +375,7 @@ if ( $op eq 'view' ) {
                 #show logged in holdingbranch items first
                 while (my $item = $items->next) {
 
-                    if ($item->holdingbranch eq $logged_in_branchcode) {
+                    if ($item->holdingbranch eq $userenv_branch) {
                         push (@{$holdingbranchitems}, $item);
                     }
                     else {
