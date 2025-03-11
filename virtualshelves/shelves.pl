@@ -369,8 +369,8 @@ if ( $op eq 'view' ) {
 
                 # Getting items infos for location display
                 my $items = $biblio->items;
-                my $holdingbranchitems;
-                my $otheritems;
+                my $holdingbranchitems = [];
+                my $otheritems = [];
 
                 #show logged in holdingbranch items first
                 while (my $item = $items->next) {
