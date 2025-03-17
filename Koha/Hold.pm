@@ -715,6 +715,7 @@ sub cancel {
     $self->_result->result_source->schema->txn_do(
         sub {
             my $patron = $self->patron;
+            my $reserve_branchcode = $self->branchcode;
 
             $self->cancellationdate( dt_from_string->strftime('%Y-%m-%d %H:%M:%S') );
             $self->priority(0);
@@ -799,7 +800,7 @@ sub cancel {
                         amount     => $charge,
                         user_id    => C4::Context->userenv ? C4::Context->userenv->{'number'} : undef,
                         interface  => C4::Context->interface,
-                        library_id => C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef,
+                        library_id => C4::Context->userenv ? C4::Context->userenv->{'branch'} // $reserve_branchcode : undef,
                         type       => 'RESERVE_EXPIRED',
                         item_id    => $self->itemnumber
                     }
