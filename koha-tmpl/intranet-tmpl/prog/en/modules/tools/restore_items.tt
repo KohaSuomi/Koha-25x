@@ -1,0 +1,254 @@
+[% USE raw %]
+[% USE Asset %]
+[% PROCESS 'i18n.inc' %]
+[% SET footerjs = 1 %]
+[% USE Branches %]
+[% USE Categories %]
+[% USE KohaDates %]
+[% USE ItemTypes %]
+[% PROCESS 'html_helpers.inc' %]
+
+[% INCLUDE 'doc-head-open.inc' %]
+<title>Restore items tool</title>
+[% INCLUDE 'doc-head-close.inc' %]
+</head>
+
+<body id="tools_restore_items" class="tools">
+  [% INCLUDE 'header.inc' %]
+  [% INCLUDE 'cat-search.inc' %]
+
+  [% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+      [% WRAPPER breadcrumb_item %]
+        <a href="/cgi-bin/koha/cataloguing/cataloging-home.pl">Cataloging</a>
+      [% END %]
+      [% IF ( view == 'form' || view == 'report' ) %]
+        [% WRAPPER breadcrumb_item %]
+          <a href="/cgi-bin/koha/cataloguing/restore_items.pl">Restore items tool</a>
+        [% END %]
+      [% ELSE %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+          <span>Restore deleted items tool</span>
+        [% END %]
+      [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+  [% END #/ WRAPPER sub-header.inc %]
+
+  <div class="main container-fluid">
+    <div class="row">
+      <div class="col-sm-10 col-sm-push-1">
+        <main>
+          [% INCLUDE 'messages.inc' %]
+
+          <h1>Restore deleted items tool</h1>
+          [% IF ( no_itemnumber ) %]
+          <div class="dialog alert">
+            <h1> No itemnumber passed for restore operation.</h1>
+            <p>
+              <a href="/cgi-bin/koha/tools/restore_items.pl" class="btn btn-primary">Back to restore items</a>
+            </p>
+          </div>
+          [% END %]
+
+          [% IF ( restored_records ) %]
+            <div class="dialog message">
+              [% FOREACH record IN restored_records %]
+              <h1>Item <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% record.biblionumber | uri %]#item[% record.itemnumber | uri %]" target="_blank">[% record.itemnumber | html %]</a> restored successfully</h1>
+              [% END %]
+            </div>
+          [% END %]
+
+          [% IF ( errors ) %]
+            <div class="dialog alert">
+              <h1> Some items could not be restored:</h1>
+              [% FOREACH record IN errors %]
+                <h1>An error occurred while restoring item [% record.itemnumber | html %]</h1>
+              [% END %]
+            </div>
+          [% END %]
+          [% IF ( restored_records || errors ) %]
+            <p>
+              <a href="/cgi-bin/koha/tools/restore_items.pl" class="btn btn-primary">Back to restore items</a>
+            </p>
+          [% END %]
+
+          [% IF op == 'form' %]
+          <form method="post" action="/cgi-bin/koha/tools/restore_items.pl">
+            [% INCLUDE 'csrf-token.inc' %]
+            <input type="hidden" name="op" value="cud-list" />
+            <div class="row">
+              <div class="col-sm-4 col-md-4">
+                <h4 id="deleted_from">Show item records deleted between:</h4>
+                <div>
+                  <input size="10" id="deleted_from" name="deleted_from" data-default-date='today' type="text" class="flatpickr"  data-flatpickr-pastinclusive="false" required="required" />
+                  <span class="required">Required</span>
+                  <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
+                </div>
+              </div>
+              <div class="col-sm-4 col-md-4">
+                <h4 id="deleted_to">And:</h4>
+                <div>
+                  <input size="10" id="deleted_to" name="deleted_to" data-default-date='today' type="text" class="flatpickr" data-flatpickr-pastinclusive="false" required="required" />
+                  <span class="required">Required</span>
+                  <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
+                </div>
+              </div>
+            </div>
+            <br>
+            <div class="btn-group">
+              <button type="submit" class="btn btn-primary">Show</button>
+            </div>
+          </form>
+          [% END %]
+
+          [% IF op == 'cud-list' %]
+            [% IF records.size %]
+            <form action="/cgi-bin/koha/tools/restore_items.pl" method="post" id="process">
+              <table id='deleteditems_table' class="records">
+                <thead>
+                  <tr>
+                    <th>&nbsp;</th>
+                    <th>Biblionumber</th>
+                    <th>Itemnumber</th>
+                    <th>Deleted on</th>
+                    <th>Title</th>
+                    <th>Author</th>
+                    <th>Barcode</th>
+                    <th>Itemnotes</th>
+                    <th>Itemtype</th>
+                    <th>Holdingbranch</th>
+                    <th>Homebranch</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <div class="btn-toolbar selections-toolbar">
+                    <a id="selectall" href="#"><i class="fa fa-check"></i> Select all</a>
+                    <a id="clearall" href="#"><i class="fa fa-times"></i> Clear all</a>
+                  </div>
+                  [% FOREACH record IN records %]
+                  <tr>
+                    <td><input type="checkbox" name="record_id" id="record_id_[% record.itemnumber | html %]"
+                        value="[% record.biblionumber | html %],[% record.itemnumber | html %]" /></td>
+                    <td>[% record.biblionumber | html %]</td>
+                    <td>[% record.itemnumber | html %]</td>
+                    <td>[% record.deleted_on | html %]</td>
+                    <td>[% record.title | html %] [% record.subtitle | html %] [% record.part_name | html %] [% record.part_number | html %]
+                      [% IF record.enumchron %]
+                      [% record.enumchron | html %]
+                      [% ELSIF record.copynumber %]
+                      [% record.copynumber | html %]
+                      [% END %]
+                    </td>
+                    <td>[% record.author | html %]</td>
+                    <td>[% record.barcode | html %]</td>
+                    <td>[% record.itemnotes | html %]</td>
+                    <td>[% record.itemtype | html %]</td>
+                    <td>[% record.holdingbranch | html %]</td>
+                    <td>[% record.homebranch | html %]</td>
+                  </tr>
+                  [% END %]
+                </tbody>
+              </table>
+
+              <fieldset class="action">
+                [% INCLUDE 'csrf-token.inc' %]
+                <input type="hidden" name="op" value="cud-restore" />
+                <input type="submit" id="restore_selected" class="btn btn-primary" value="Restore selected items" />
+                <a class="cancel" href="/cgi-bin/koha/tools/restore_items.pl">Cancel</a>
+              </fieldset>
+            </form> <!-- /#process -->
+            [% ELSE %]
+            <p>No records found.</p>
+            <p>
+              <a href="/cgi-bin/koha/tools/restore_items.pl" class="btn btn-primary">Back to restore items</a>
+            </p>
+            [% END %]
+          [% END %]
+
+          [% MACRO jsinclude BLOCK %]
+          [% Asset.js("js/tools-menu.js") | $raw %]
+          [% INCLUDE 'calendar.inc' %]
+          [% INCLUDE 'datatables.inc' %]
+          <script>
+            $(document).ready(function () {
+              var my_table = $("#deleteditems_table").dataTable($.extend(true, {}, dataTablesDefaults, {
+                // dataTablesDefaults contain default options and strings defined in datables-strings.inc
+                // You can put your specific datatables options here
+                "columnDefs": [
+                  { "targets": [0], "orderable": false, "searchable": false },
+                  { "targets": [1], "type": "num-fmt" },
+                  { "targets": [2], "type": "num-fmt" },
+                  { "targets": [3], "type": "datetime" },
+                  { "targets": [4], "type": "string" },
+                  { "targets": [5], "type": "string" },
+                  { "targets": [6], "type": "string" },
+                  { "targets": [7], "type": "string" },
+                  { "targets": [8], "type": "string" },
+                  { "targets": [9], "type": "string" }
+                ],
+                order: [[3, "desc"]],
+              }));
+
+              var $restoreButton = $("#restore_selected");
+
+              // Function to toggle the button state
+              function toggleRestoreButton() {
+                var hasChecked = $("#deleteditems_table").find("input[type='checkbox'][name*='record_id']:checked").length > 0;
+                $restoreButton.prop("disabled", !hasChecked);
+              }
+
+              // Initial state of the restore button
+              toggleRestoreButton();
+
+              $("#deleteditems_table").on("change", "input[type='checkbox'][name*='record_id']", function () {
+                toggleRestoreButton();
+              });
+
+              // Select all checkboxes
+              $("#selectall").click(function (e) {
+                e.preventDefault();
+                $(".records input[type='checkbox']").each(function () {
+                  $(this).prop("checked", true);
+                });
+                toggleRestoreButton();
+              });
+
+              // Clear all checkboxes
+              $("#clearall").click(function (e) {
+                e.preventDefault();
+                $(".records input[type='checkbox']").each(function () {
+                  $(this).prop("checked", false);
+                });
+                toggleRestoreButton();
+              });
+
+              // Uncheck all checkboxes and disable the restore button on pagination
+              $("#deleteditems_table").on("page.dt", function () {
+                $(".records input[type='checkbox']").each(function () {
+                  $(this).prop("checked", false);
+                });
+                toggleRestoreButton();
+              });
+            });
+
+            $("#restore_selected").on("click", function () {
+              var nb_checked = $("#deleteditems_table").find("input[type='checkbox'][name*='record_id']:checked").size();
+              if (nb_checked == 0) {
+                alert(_("No records have been selected."));
+                return false;
+              }
+            });
+
+            function toggleDeletedItems(button, itemnumber) {
+              const div = document.getElementById(`deleted_items_${itemnumber}`);
+              if (div.style.display === 'none' || div.style.display === '') {
+                div.style.display = 'block';
+              } else {
+                div.style.display = 'none';
+              }
+            }
+
+          </script>
+
+          [% END %]
+          [% INCLUDE 'intranet-bottom.inc' %]
