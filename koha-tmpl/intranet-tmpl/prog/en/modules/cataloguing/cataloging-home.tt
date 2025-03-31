@@ -192,6 +192,18 @@
                             <a class="circ-button" href="/cgi-bin/koha/tools/upload-cover-image.pl"><i class="fa fa-upload"></i> Upload local cover image</a>
                         </li>
                     [% END %]
+
+                    [% IF ( CAN_user_superlibrarian ) %]
+                    <li>
+                        <a class="circ-button" href="/cgi-bin/koha/tools/restore_records.pl"><i class="fa fa-download"></i> Restore bibliographic records</a>
+                    </li>
+                    [% END %]
+
+                    [% IF ( CAN_user_superlibrarian ) %]
+                    <li>
+                        <a class="circ-button" href="/cgi-bin/koha/tools/restore_items.pl"><i class="fa fa-download"></i> Restore items</a>
+                    </li>
+                    [% END %]
                 </ul>
             [% END %]
 
