@@ -757,6 +757,13 @@ Circulation:
                   1: Store
                   0: "Don't store"
             - 'the last patron to return an item. This setting is independent of the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=opacreadinghistory">opacreadinghistory</a> and <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=AnonymousPatron">AnonymousPatron</a> system preferences.'
+        -
+            - pref: CancelTransitWhenItemFloats
+              default: 0
+              choices:
+                  1: Do
+                  0: "Don't"
+            - 'cancel transit automatically when item arrives to branch where it can float.'
     Holds policy:
         -
             - Default the holds ratio report to
