@@ -141,6 +141,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('CalculateFundValuesIncludingTax', '1', NULL, 'Include tax in the calculated fund values (spent, ordered) for all supplier configurations', 'YesNo'),
 ('CalendarFirstDayOfWeek','0','0|1|2|3|4|5|6','Select the first day of week to use in the calendar.','Choice'),
 ('CancelOrdersInClosedBaskets', '0', NULL, 'Allow/Do not allow cancelling order lines in closed baskets.', 'YesNo'),
+('CancelTransitWhenItemFloats','0',NULL,'Cancels items transit automatically if it arrives to a branch where it can float','YesNo'),
 ('CanMarkHoldsToPullAsLost','do_not_allow','do_not_allow|allow|allow_and_notify','Add a button to the "Holds to pull" screen to mark an item as lost and notify the patron.','Choice'),
 ('canreservefromotherbranches','1','','With Independent branches on, can a user from one library place a hold on an item from another library','YesNo'),
 ('CardnumberLength', '', '', 'Set a length for card numbers with a maximum of 32 characters.', 'Free'),
