@@ -2471,7 +2471,11 @@ sub AddReturn {
     # if we have a transfer to complete, we update the line of transfers with the datearrived
     if ($transfer) {
         $validTransfer = 0;
-        if ( $transfer->in_transit ) {
+        # cancel transfer if item can float but it wasn't checked in homebranch
+        if ( C4::Context->preference('CancelTransitWhenItemFloats') && $validate_float && $branch ne $item->homebranch )
+        {
+            $transfer->cancel( { reason => 'ItemArrivedToFloatBranch', force => 1 } );
+        } elsif ( $transfer->in_transit ) {
             if ( $transfer->tobranch eq $branch ) {
                 $transfer->receive;
                 $messages->{'TransferArrived'} = $transfer->frombranch;
