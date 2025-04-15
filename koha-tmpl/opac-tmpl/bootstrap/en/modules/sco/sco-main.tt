@@ -318,60 +318,94 @@
                                 </div>
                             [% END %]
 
-                            <div class="sco_entry">
-                                <form id="mainform" action="/cgi-bin/koha/sco/sco-main.pl" name="mainform" method="post">
-                                    [% INCLUDE 'csrf-token.inc' %]
-                                    <fieldset>
-                                        <legend>Log in to your account</legend>
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                [% IF ( Koha.Preference('SelfCheckoutByLogin') ) %]
+                            <div class="row">
+                                <div id="sco_entry_checkout" class="sco_entry col" >
+                                    <h4>Check out</h4>
+                                    <form id="mainform" action="/cgi-bin/koha/sco/sco-main.pl" name="mainform" method="post">
+                                        [% INCLUDE 'csrf-token.inc' %]
+                                        <fieldset>
+                                            <legend>Log in to your account</legend>
+                                                <div class="col-md-6">
+                                                    [% IF ( Koha.Preference('SelfCheckoutByLogin') ) %]
+                                                        <div class="row">
+                                                            <div class="col-md-12"> [% PROCESS login_label for="patronlogin" %] </div>
+                                                            <div class="col-md-12">
+                                                                <input type="text" id="patronlogin" class="form-control focus noEnterSubmit" size="20" name="patronlogin" autocomplete="off" />
+                                                            </div>
+                                                            <div class="col-md-12">
+                                                                <label for="patronpw">Password:</label>
+                                                            </div>
+                                                            <div class="col-md-12">
+                                                                <input type="password" id="patronpw" class="form-control" size="20" name="patronpw" autocomplete="off" />
+                                                            </div>
+                                                            <div class="col-md-12">
+                                                                <button type="submit" class="btn btn-primary">Log in</button>
+                                                            </div>
+                                                        </div>
+                                                        <!-- /.row -->
+                                                    [% ELSE %]
+                                                        <div class="row">
+                                                            <div class="col-md-12">
+                                                                <label for="patronid">Please enter your card number:</label>
+                                                            </div>
+                                                            <div class="col-md-12">
+                                                                <input type="text" id="patronid" class="form-control focus" size="20" name="patronid" autocomplete="off" />
+                                                            </div>
+                                                            <div class="col-md-12">
+                                                                <button type="submit" class="btn btn-primary">Submit</button>
+                                                            </div>
+                                                        </div>
+                                                        <!-- /.row -->
+                                                    [% END %]
+                                                </div>
+                                                <!-- /.col-md-6 -->
+                                            [% FOREACH INPUT IN INPUTS %]
+                                                <input type="hidden" name="[% INPUT.name | html %]" value="[% INPUT.value | html %]" />
+                                            [% END %]
+                                            <input type="hidden" name="op" value="cud-login" />
+                                        </fieldset>
+                                    </form>
+                                    <!-- /#mainform -->
+                                </div>
+                                <!-- / #sco_entry_checkout -->
+                                <div id="sco_entry_checkin" class="sco_entry col" >
+                                    <h4>Check in</h4>
+                                    <form id="barcodeform" action="/cgi-bin/koha/sco/sco-main.pl" name="barcodeform" method="post">
+                                        [% INCLUDE 'csrf-token.inc' %]
+                                        <fieldset>
+                                                <div class="col-md-6">
                                                     <div class="row">
-                                                        <div class="col-md-12"> [% PROCESS login_label for="patronlogin" %] </div>
                                                         <div class="col-md-12">
-                                                            <input type="text" id="patronlogin" class="form-control focus noEnterSubmit" size="20" name="patronlogin" autocomplete="off" />
+                                                            <label for="sco_entry_barcode">Please enter barcode:</label>
                                                         </div>
                                                         <div class="col-md-12">
-                                                            <label for="patronpw">Password:</label>
-                                                        </div>
-                                                        <div class="col-md-12">
-                                                            <input type="password" id="patronpw" class="form-control" size="20" name="patronpw" autocomplete="off" />
-                                                        </div>
-                                                        <div class="col-md-12">
-                                                            <button type="submit" class="btn btn-primary">Log in</button>
-                                                        </div>
-                                                    </div>
-                                                    <!-- /.row -->
-                                                [% ELSE %]
-                                                    <div class="row">
-                                                        <div class="col-md-12">
-                                                            <label for="patronid">Please enter your card number:</label>
-                                                        </div>
-                                                        <div class="col-md-12">
-                                                            <input type="text" id="patronid" class="form-control focus" size="20" name="patronid" autocomplete="off" />
+                                                            [% IF ( returned == 1 || returned == 0 || empty_return ) %]
+                                                                <input type="text" id="sco_entry_barcode"  class="form-control focus" size="20" name="sco_entry_barcode" autocomplete="off" />
+                                                            [% ELSE %]
+                                                                <input type="text" id="sco_entry_barcode" class="form-control" size="20" name="sco_entry_barcode" autocomplete="off" />
+                                                            [% END %]
                                                         </div>
                                                         <div class="col-md-12">
                                                             <button type="submit" class="btn btn-primary">Submit</button>
                                                         </div>
                                                     </div>
                                                     <!-- /.row -->
-                                                [% END %]
-                                            </div>
-                                            <!-- /.col-md-6 -->
-                                        </div>
-                                        <!-- /.row -->
-                                        [% FOREACH INPUT IN INPUTS %]
-                                            <input type="hidden" name="[% INPUT.name | html %]" value="[% INPUT.value | html %]" />
-                                        [% END %]
-                                        <input type="hidden" name="op" value="cud-login" />
-                                    </fieldset>
-                                </form>
-                                <!-- /#mainform -->
+                                                    [% FOREACH INPUT IN INPUTS %]
+                                                    <input type="hidden" name="[% INPUT.name |html %]" value="[% INPUT.value |html %]">
+                                                    [% END %]
+                                                    <input type="hidden" name="op" value="cud-sco_entry_checkin" />
+                                                </div>
+                                                <!-- /.col-md-6 -->
+                                        </fieldset>
+                                    </form>
+                                    <!-- /#barcodeform -->
+                                </div>
+                                <!-- / #sco_entry_checkin -->
+                                [% IF ( SCOMainUserBlock ) %]
+                                    <div id="scomainuserblock"> [% PROCESS koha_news_block news => SCOMainUserBlock %] </div>
+                                [% END %]
                             </div>
-                            <!-- / .sco_entry -->
-                            [% IF ( SCOMainUserBlock ) %]
-                                <div id="scomainuserblock"> [% PROCESS koha_news_block news => SCOMainUserBlock %] </div>
-                            [% END %]
+                            <!-- / .row -->
                         </div>
                         <!-- / .span12 -->
                     </div>
@@ -468,7 +502,7 @@
 
                 $(document).ready(function() {
                     dofocus();
-                    [% IF ( patronid ) %]sco_init();[% END %]
+                    [% IF ( patronid || barcode ) %]sco_init();[% END %]
 
                     var dTables = $("#loanTable, #holdst, #finestable");
                     dTables.each(function(){
@@ -722,7 +756,12 @@
         [% ELSIF ( returned == 1 ) %]
             <span class="sco-alert-success return"></span>
             <div class="alert alert-info">
-                <p>Item checked in <i>([% barcode | html %])</i></p>
+                <p>Item checked in: [% title | html %] <i>([% barcode | html %])</i>[% IF library %], [% library | html %][% END %]</p>
+            </div>
+        [% ELSIF ( empty_return == 1 ) %]
+            <span class="sco-alert-success return"></span>
+            <div class="alert alert-info">
+                <p>Please enter barcode.</p>
             </div>
         [% END %]
     [% END %]
