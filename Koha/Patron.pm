@@ -361,9 +361,13 @@ sub store {
                     $self->add_enrolment_fee_if_needed(1)
                         if C4::Context->preference('FeeOnChangePatronCategory');
 
-                    # Clean up guarantors on category change if required
-                    $self->guarantor_relationships->delete
-                        unless ( $self->category->can_be_guarantee );
+                    # Clean up both patron and non-patron guarantors on category change if required
+                    unless ( $self->category->can_be_guarantee ) {
+                        $self->guarantor_relationships->delete;
+                        $self->contactname(undef);
+                        $self->contactfirstname(undef);
+                        $self->relationship(undef);
+                    }
 
                 }
 
