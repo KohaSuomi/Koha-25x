@@ -116,7 +116,7 @@ foreach my $b ( $patrons->as_list() ) {
 }
 
 subtest "Update patron categories" => sub {
-    plan tests => 29;
+    plan tests => 30;
     t::lib::Mocks::mock_preference( 'borrowerRelationship', 'test' );
     my $c_categorycode = $builder->build(
         {
@@ -317,6 +317,10 @@ subtest "Update patron categories" => sub {
     is(
         Koha::Patrons->find( $adult1->borrowernumber )->guarantee_relationships->guarantees->count, 1,
         'Guarantee was removed when made adult'
+    );
+    is(
+        Koha::Patrons->find( $child3->borrowernumber )->relationship, undef,
+        'Non-patron guarantor relationship dropped when child patron updated to adult'
     );
     is(
         Koha::Patrons->search_patrons_to_update_category( { from => $c_categorycode_2 } )
