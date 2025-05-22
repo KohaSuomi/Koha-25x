@@ -47,13 +47,13 @@ sub sftp_transfer {
         my $file_type = substr $file, -4;
         my ($library, $message_id) = split(/(\d+)/, $file) unless $file_type eq ".zip";
 
-        unless ( $sftp->put($tmppath.$file, $config->{filepath}.$file.'.part', copy_perms => 0, copy_time => 0)) {
+        unless ( $sftp->put($tmppath.$file, $config->{remotedir}.$file.'.part', copy_perms => 0, copy_time => 0)) {
             $success = 0;
             $error = $sftp->error;
             print "Transferring file to SFTP server failed with: ".$sftp->error."\n";
         }
 
-        unless ( $sftp->rename($config->{filepath}.$file.'.part', $config->{filepath}.$file)) {
+        unless ( $sftp->rename($config->{remotedir}.$file.'.part', $config->{remotedir}.$file)) {
             $success = 0;
             $error = $sftp->error;
             print "Renaming a file on SFTP server failed with: ".$sftp->error."\n";
