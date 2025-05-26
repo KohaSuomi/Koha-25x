@@ -2471,8 +2471,21 @@ sub AddReturn {
     # if we have a transfer to complete, we update the line of transfers with the datearrived
     if ($transfer) {
         $validTransfer = 0;
+
+        my $is_floating = 0;
+        # First check floatgroups and mark item as floating
+        if( $validate_float ){
+            $is_floating = 1;
+        }
+
+        # Next check if floatrules are present
+        # if yes, check if floatrules allow floating and do not care about if floatgroups allow it
+        if( $validate_floatrules && $validate_floatrules ne "nofloatrule" ) {
+            $is_floating = $validate_floatrules eq "float" ? 1 : 0;
+        }
+
         # cancel transfer if item can float but it wasn't checked in homebranch
-        if ( C4::Context->preference('CancelTransitWhenItemFloats') && $validate_float && $branch ne $item->homebranch )
+        if ( C4::Context->preference('CancelTransitWhenItemFloats') && $is_floating && $branch ne $item->homebranch)
         {
             $transfer->cancel( { reason => 'ItemArrivedToFloatBranch', force => 1 } );
         } elsif ( $transfer->in_transit ) {
