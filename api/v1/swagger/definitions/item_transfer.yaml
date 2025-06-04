@@ -1,0 +1,70 @@
+---
+type: object
+properties:
+  library_transfer_id:
+    type: integer
+    description: Internal transfer limit identifier
+  item_id:
+    type: integer
+    description: Internal item identifier
+  date_requested:
+    type: 
+      - string
+      - 'null'
+    format: date-time
+    description: Date when the transfer was requested
+  date_sent:
+    type: 
+      - string
+      - 'null'
+    format: date-time
+    description: Date when the transfer was sent
+  to_library_id:
+    type: string
+    description: Internal library id for which library the item is going to
+  date_arrived:
+    type: 
+      - string
+      - 'null'
+    format: date-time
+    description: Date when the transfer arrived at the destination library
+  date_cancelled:
+    type: 
+      - string
+      - 'null'
+    format: date-time
+    description: Date when the transfer was cancelled
+  from_library_id:
+    type: string
+    description: Internal library id for which library the item is coming from
+  comments:
+    type: 
+      - string
+      - 'null'
+    description: Comments associated with the transfer
+  reason:
+    type:
+      - string
+    description: Reason for the transfer
+    enum:
+      - 'Manual'
+      - 'StockrotationAdvance'
+      - 'StockrotationRepatriation'
+      - 'ReturnToHome'
+      - 'ReturnToHolding'
+      - 'RotatingCollection'
+      - 'Reserve'
+      - 'LostReserve'
+      - 'CancelReserve'
+      - 'TransferCancellation'
+      - 'Recall'
+      - 'RecallCancellation'
+  cancellation_reason:
+    type: 
+      - string
+      - 'null'
+    description: Reason for cancelling the transfer
+additionalProperties: false
+required:
+  - to_library_id
+  - reason
