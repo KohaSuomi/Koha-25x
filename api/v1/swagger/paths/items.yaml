@@ -473,6 +473,265 @@
     x-koha-authorization:
       permissions:
         reserveforothers: place_holds
+/items/transfers:
+  get:
+    x-mojo-to: Items::Transfers#list
+    operationId: listItemsTransfers
+    description: This resource returns a list of existing transfers.
+    summary: List transfers
+    tags:
+      - transfers
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+      - $ref: "../swagger.yaml#/parameters/request_id_header"
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: A list of transfers
+        schema:
+          type: array
+          items:
+            $ref: "../swagger.yaml#/definitions/item_transfer"
+      "400":
+        description: |
+          Bad request. Possible `error_code` attribute values:
+
+            * `invalid_query`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Resource not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        parameters: manage_transfers
+/items/{item_id}/transfers:
+  get: 
+    x-mojo-to: Items::Transfers#get
+    operationId: getItemTransfer
+    description: This resource returns the active transfer for an item.
+    summary: Get active item transfer
+    tags:
+      - transfers
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/item_id_pp"
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+      - $ref: "../swagger.yaml#/parameters/request_id_header"
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: An active transfer for the item
+        schema:
+          type: object
+          items:
+            $ref: "../swagger.yaml#/definitions/item_transfer"
+      "400":
+        description: |
+          Bad request. Possible `error_code` attribute values:
+
+            * `invalid_query`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Resource not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        parameters: manage_transfers
+  post:
+    x-mojo-to: Items::Transfers#add
+    operationId: addItemTransfer
+    description: This resource creates a new transfer for the specified item.
+    tags:
+      - transfers
+    summary: Add an item transfer
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/item_id_pp"
+      - name: ignore_limits
+        in: query
+        description: |
+          If set to true, the transfer will be created even if it exceeds the transfer limits.
+        required: false
+        type: boolean
+      - name: enqueue
+        in: query
+        description: |
+          Used to queue up the transfer when the existing transfer is found to be in transit.
+        required: false
+        type: boolean
+      - name: replace
+        in: query
+        description: |
+          Used to replace the existing transfer request with your own. Reason for the cancellation of the existing transfer must be provided here.
+        required: false
+        type: string
+        enum:
+          - Manual
+          - StockrotationAdvance
+          - StockrotationRepatriation
+          - ReturnToHome
+          - ReturnToHolding
+          - RotatingCollection
+          - Reserve
+          - LostReserve
+          - CancelReserve
+          - ItemLost
+          - WrongTransfer
+          - RecallCancellation    
+      - name: body
+        in: body
+        description: A JSON object containing information about a new transfer
+        required: true
+        schema:
+          $ref: "../swagger.yaml#/definitions/item_transfer"
+    produces:
+      - application/json
+    responses:
+      "201":
+        description: Transfer added
+        schema:
+          $ref: "../swagger.yaml#/definitions/item_transfer"
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Resource not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "409":
+        description: Conflict in creating resource
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        parameters: manage_transfers
+  delete:
+    x-mojo-to: Items::Transfers#cancel
+    operationId: cancelItemTransfer
+    description: This resource cancels the active transfer for the specified item.
+    tags:
+      - transfers
+    summary: Cancel an item transfer
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/item_id_pp"
+      - name: reason
+        in: query
+        description: |
+          Reason for cancelling the transfer. If not provided, the transfer will be cancelled with the default reason.
+        required: false
+        type: string
+        default: "Manual"
+    produces:
+      - application/json
+    responses:
+      "204":
+        description: Transfer cancelled
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Resource not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "409":
+        description: Conflict in creating resource
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        parameters: manage_transfers
 "/public/items":
   get:
     x-mojo-to: Items#list_public
