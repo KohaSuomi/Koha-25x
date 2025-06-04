@@ -126,6 +126,8 @@ definitions:
     $ref: ./definitions/invoice.yaml
   item:
     $ref: ./definitions/item.yaml
+  item_transfer:
+    $ref: ./definitions/item_transfer.yaml
   item_group:
     $ref: ./definitions/item_group.yaml
   item_type:
@@ -447,6 +449,10 @@ paths:
     $ref: ./paths/items.yaml#/~1items~1{item_id}~1bundled_items~1{bundled_item_id}
   "/items/{item_id}/pickup_locations":
     $ref: "./paths/items.yaml#/~1items~1{item_id}~1pickup_locations"
+  "/items/transfers":
+    $ref: "./paths/items.yaml#/~1items~1transfers"
+  "/items/{item_id}/transfers":
+    $ref: "./paths/items.yaml#/~1items~1{item_id}~1transfers"
   /jobs:
     $ref: ./paths/jobs.yaml#/~1jobs
   "/jobs/{job_id}":
