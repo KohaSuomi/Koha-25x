@@ -160,6 +160,8 @@ if ( $op eq 'cud-add' ) {
                     issue_id => $issue_id
                 }
             );
+            
+            $patron->update_lastseen('add_charges');
 
             my @additional_fields = $line->prepare_cgi_additional_field_values( $input, 'accountlines:debit' );
             if (@additional_fields) {
