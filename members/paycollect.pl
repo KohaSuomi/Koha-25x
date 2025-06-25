@@ -251,6 +251,8 @@ if ( $total_paid and $total_paid ne '0.00' ) {
             $url = "/cgi-bin/koha/members/boraccount.pl";
         }
 
+        $patron->update_lastseen('modify_charges');
+
         # It's possible renewals took place, parse any renew results
         # and pass on
         my @renew_result = ();
@@ -286,5 +288,7 @@ $template->param(
     available_additional_fields =>
         [ Koha::AdditionalFields->search( { tablename => 'accountlines:credit' } )->as_list ],
 );
+
+
 
 output_html_with_http_headers $input, $cookie, $template->output;
