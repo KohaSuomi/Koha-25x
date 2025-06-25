@@ -97,6 +97,8 @@ if ( $op eq 'cud-add' ) {
             cash_register => $cash_register_id
         }
     );
+    
+    $patron->update_lastseen('add_charges');
 
     my @additional_fields = $line->prepare_cgi_additional_field_values( $input, 'accountlines:credit' );
     if (@additional_fields) {
