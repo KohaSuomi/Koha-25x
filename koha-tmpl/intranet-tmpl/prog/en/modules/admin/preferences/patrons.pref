@@ -111,6 +111,8 @@ Patrons:
                check_in: "Checking in an item"
                hold: "Placing a hold on an item"
                article: "Placing an article request"
+               add_charges: "Adding patron a charge or credit"
+               modify_charges: "Modifying a patron's charge or credit"
      -
          - pref: AutoApprovePatronProfileSettings
            choices:
