@@ -1948,6 +1948,7 @@ sub check_cookie_auth {
 
         ###########KD-4564
         $timeout = C4::KohaSuomi::AuthExtra::get_timeout($userid,$timeout);
+        C4::Context->interface( $session->param('interface') );
 
         if ( !$lasttime || ( $lasttime < time() - $timeout ) ) {
 
@@ -1980,7 +1981,7 @@ sub check_cookie_auth {
             return ( "password_expired", undef ) if $patron->password_expired;
             my $flags = defined($flagsrequired) ? haspermission( $userid, $flagsrequired ) : 1;
             if ($flags) {
-                if ( !C4::Context->interface ) {
+                if ( !C4::Context->interface || C4::Context->interface ne $session->param('interface') ) {
 
                     # No need to override the interface, most often set by get_template_and_user
                     C4::Context->interface( $session->param('interface') );
