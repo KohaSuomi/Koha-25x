@@ -369,7 +369,7 @@ $(document).ready(function () {
                 var fieldset_id = fieldset.attr("id");
                 //Add error message only if it doesn't already exist
                 if(!$("#"+fieldset_id+"-error").length){
-                    fieldset.find("legend").after('<span id="'+fieldset_id+'-error" class="required">'+error_msg+'</span>');
+                    fieldset.find("legend").before('<span id="'+fieldset_id+'-error" class="required">'+error_msg+'</span>');
                 }
             });
         }
