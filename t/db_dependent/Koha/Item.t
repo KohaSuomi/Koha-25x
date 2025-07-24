@@ -1214,7 +1214,7 @@ subtest 'store check barcodes' => sub {
 };
 
 subtest 'deletion' => sub {
-    plan tests => 16;
+    plan tests => 18;
 
     $schema->storage->txn_begin;
 
@@ -1294,6 +1294,29 @@ subtest 'deletion' => sub {
         'not_same_branch',
         'IndependentBranches prevents deletion at another branch',
     );
+
+    # item_has_holds
+    my $item_level_hold = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => {
+                biblionumber => $item->biblionumber,
+                itemnumber   => $item->itemnumber,
+                found        => undef,
+            }
+        }
+    );
+
+    $item->discard_changes;
+    my $safe_to_delete = $item->safe_to_delete;
+    ok( !$safe_to_delete, 'Cannot delete item with item level holds' );
+    is(
+        @{ $safe_to_delete->messages }[0]->message,
+        'item_has_holds',
+        'Koha::Item->safe_to_delete reports item has item level holds',
+    );
+
+    $item_level_hold->delete;
 
     # linked_analytics
 
@@ -2802,7 +2825,7 @@ subtest 'store() tests' => sub {
             {
                 borrowernumber    => $patron->id,
                 date              => '1970-01-01 14:00:01',
-                amountoutstanding => 0,
+                amountoutstanding =>  0,
                 amount            => -5,
                 interface         => 'commandline',
                 credit_type_code  => 'PAYMENT'
