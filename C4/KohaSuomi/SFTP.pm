@@ -36,7 +36,7 @@ sub sftp_transfer {
     # Connect and send with SFTP
     my $sftp = Net::SFTP::Foreign->new('host' => $config->{host},
                                        'port' => $config->{port} || '22',
-                                       'user' => $config->{username},
+                                       'user' => $config->{user},
                                        'password' => $config->{password});
 
     if ( $sftp->error ) {
