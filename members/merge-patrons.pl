@@ -51,6 +51,23 @@ if ( $op eq 'show' ) {
 
     if ($keeper) {
         try {
+            # Find all guarantor relationships for the patrons to be merged
+            my $patrons_to_merge_rs = Koha::Patrons->search({ borrowernumber => { -in => \@ids } });
+
+            while (my $patron = $patrons_to_merge_rs->next) {
+                # Ensure $patron is a valid Koha::Patron object
+                if ($patron && $patron->isa('Koha::Patron')) {
+                    my $relationships = Koha::Patron::Relationships->search({ guarantor_id => $patron->id });
+
+                    while (my $relationship = $relationships->next) {
+                        $relationship->guarantor_id($keeper_id);
+                        $relationship->store;
+                    }
+                } else {
+                    # If the patron is not valid, we should handle it gracefully
+                    die "Invalid patron";
+                }
+            }
             $results = $keeper->merge_with( \@ids );
             $template->param(
                 keeper  => $keeper,
