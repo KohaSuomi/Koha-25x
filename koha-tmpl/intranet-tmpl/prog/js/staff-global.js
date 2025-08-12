@@ -955,16 +955,28 @@ function buildPatronSearchQuery(term, options) {
                 ? searched_attribute_fields
                 : options.extended_attribute_types;
         extended_attribute_subquery_and = [];
-        patterns.forEach(function (pattern, i) {
+        if (options.search_type === "contains") {
+            patterns.forEach(function (pattern, i) {
+                let extended_attribute_sub_or = [];
+                extended_attribute_sub_or.push({
+                    "extended_attributes.value": {
+                        like: leading_wildcard + pattern + "%",
+                    },
+                    "extended_attributes.code": extended_attribute_codes_to_search,
+                });
+                extended_attribute_subquery_and.push(extended_attribute_sub_or);
+            });
+        } else {
             let extended_attribute_sub_or = [];
+            let combined_pattern = patterns.join(" ");
             extended_attribute_sub_or.push({
                 "extended_attributes.value": {
-                    like: leading_wildcard + pattern + "%",
+                    like: leading_wildcard + combined_pattern + "%",
                 },
                 "extended_attributes.code": extended_attribute_codes_to_search,
             });
             extended_attribute_subquery_and.push(extended_attribute_sub_or);
-        });
+        }
         q.push({ "-and": extended_attribute_subquery_and });
     }
     return q;
