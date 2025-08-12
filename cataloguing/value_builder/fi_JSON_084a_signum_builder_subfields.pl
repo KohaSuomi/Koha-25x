@@ -52,6 +52,10 @@ my $launcher = sub {
     my $f110a = $marc->subfield('110', 'a') || '';
     my $f111a = $marc->subfield('111', 'a') || '';
     my $f245a = $marc->subfield('245', 'a') || '';
+    my $field_245 = $marc->field('245');
+    my $f245ind2 = $field_245 ? $field_245->indicator(2) : '';
+    my $field_130 = $marc->field('130');
+    my $f130ind1 = $field_130 ? $field_130->indicator(1) : '';
 
     my %ret = (
     'f942m' => $f942m,
@@ -60,6 +64,8 @@ my $launcher = sub {
 	'f110a' => $f110a,
     'f111a' => $f111a,
     'f245a' => $f245a,
+    'f245ind2' => $f245ind2,
+    'f130ind1' => $f130ind1,
 	);
 
     output_with_http_headers $input, undef, to_json(\%ret, { utf8 => 1}), 'json';
