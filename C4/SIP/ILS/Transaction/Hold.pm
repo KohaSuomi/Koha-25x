@@ -69,7 +69,8 @@ sub do_hold {
                 priority       => $priority,
                 branchcode     => $branch,
                 borrowernumber => $patron->borrowernumber,
-                biblionumber   => $item->biblionumber
+                biblionumber   => $item->biblionumber,
+                itemnumber     => $item->itemnumber
             }
         );
 
