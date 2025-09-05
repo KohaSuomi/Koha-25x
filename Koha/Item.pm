@@ -93,9 +93,16 @@ sub store {
         $self->biblioitemnumber( $self->biblio->biblioitem->biblioitemnumber );
     }
 
+    my $test_itype = Koha::ItemTypes->find( $self->itype );
+
     # See related changes from C4::Items::AddItem
-    unless ( $self->itype ) {
-        $self->itype( $self->biblio->biblioitem->itemtype );
+    # KOHA-1667: Test if itype is not set or it is invalid and stop Koha from saving the item
+    unless ( $test_itype ) {
+        use Data::Dumper;
+        local $Data::Dumper::Terse = 1;
+        my $item = Dumper($self->unblessed);
+        Koha::Exception->throw($item);
+        #$self->itype($self->biblio->biblioitem->itemtype);
     }
 
     # Ensure barcode is either defined or undef
