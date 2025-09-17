@@ -163,25 +163,6 @@ if ( $op eq 'cud-restore' ) {
                 # Restore the record
                 restore($record_id);
                 push @restored_records, $record_id;
-
-                # my $record_url = qq{<a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=$record_id" target="_blank">$record_id</a>};
-                # $success_message .= "Record $record_url has been restored successfully.<br>";
-
-                # $template->param(
-                #     success_message => $success_message,
-                #     biblionumbers => @records,
-                # );
-
-                # # Add a button to redirect to restore_items.pl with the biblionumber/s
-                # $template->param(
-                #     restore_items_button => qq{
-                #     <form action="/cgi-bin/koha/tools/restore_items.pl" method="get">
-                #         <input type="hidden" name="biblionumbers" value="@records" />
-                #         <button type="submit">Restore bibliographic records' deleted items</button>
-                #     </form>
-                # },
-                #);
-
             }
             catch {
                 warn "Failed to restore biblio $record_id: $_";
