@@ -254,6 +254,21 @@ if ( $op eq "cud-additem" ) {
     my $save_as_template_submit    = $input->param('save_as_template_submit');
     my $number_of_copies = min( scalar $input->param('number_of_copies') || 0, 1000 );  # TODO refine hardcoded maximum?
 
+    # KOHA-1667
+    my $itype_send = $input->param("items.itype");
+    $itype_send = Koha::ItemTypes->find( $itype_send );
+    unless( $itype_send ){
+        use Data::Dumper;
+        local $Data::Dumper::Terse = 1;
+        my %data_send = {};
+        for my $form_key ($input->param){
+            my $value = $input->param($form_key);
+            $data_send{$form_key} = $value;
+        };
+        my $data_as_string = Dumper(\%data_send);
+        Koha::Exception->throw("additem.pl, cud-additem: Itemtype lost after sending add form ".$data_as_string);
+    }
+
     my @columns = Koha::Items->columns;
     my $item    = Koha::Item->new;
     $item->biblionumber( $biblio->biblionumber );
@@ -288,6 +303,16 @@ if ( $op eq "cud-additem" ) {
 
             $item->$c( join ' | ', @v );
         }
+    }
+
+    # KOHA-1667
+    my $itype_added = $item->itype;
+    $itype_added = Koha::ItemTypes->find( $itype_added );
+    unless( $itype_added ){
+        use Data::Dumper;
+        local $Data::Dumper::Terse = 1;
+        my $item_as_string = Dumper($item->unblessed);
+        Koha::Exception->throw("additem.pl, cud-additem: Itemtype lost after handling columns ".$item_as_string);
     }
 
     # if autoBarcode is set to 'incremental', calculate barcode...
@@ -587,6 +612,22 @@ if ( $op eq "cud-additem" ) {
     my $olditemlost = $item->itemlost;
     my @columns     = Koha::Items->columns;
     my $new_values  = $item->unblessed;
+
+    # KOHA-1667
+    my $itype_send = $input->param("items.itype");
+    $itype_send = Koha::ItemTypes->find( $itype_send );
+    unless( $itype_send ){
+        use Data::Dumper;
+        local $Data::Dumper::Terse = 1;
+        my %data_send = {};
+        for my $form_key ($input->param){
+            my $value = $input->param($form_key);
+            $data_send{$form_key} = $value;
+        };
+        my $data_as_string = Dumper(\%data_send);
+        Koha::Exception->throw("additem.pl, cud-saveitem: Itemtype lost after sending mod form ".$data_as_string);
+    }
+
     for my $c (@columns) {
         if ( $c eq 'more_subfields_xml' ) {
             my @more_subfields_xml = $input->multi_param("items.more_subfields_xml");
@@ -622,6 +663,16 @@ if ( $op eq "cud-additem" ) {
         }
     }
     $item = $item->set_or_blank($new_values);
+
+    # KOHA-1667
+    my $itype_added = $item->itype;
+    $itype_added = Koha::ItemTypes->find( $itype_added );
+    unless( $itype_added ){
+        use Data::Dumper;
+        local $Data::Dumper::Terse = 1;
+        my $item_as_string = Dumper($item->unblessed);
+        Koha::Exception->throw("additem.pl, cud-additem: Itemtype lost after handling modded columns ".$item_as_string);
+    }
 
     # check that the barcode don't exist already
     if (
