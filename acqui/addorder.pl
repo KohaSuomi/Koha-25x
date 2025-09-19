@@ -408,6 +408,18 @@ if ( $op eq 'cud-order' ) {
                 unless ( $itemhash{ $itemid[$i] } ) {
                     $countdistinct++;
                 }
+
+                # KOHA-1667
+                if( $subfields[$i] eq "y"){
+                    my $test_itype = Koha::ItemTypes->find( $field_values[$i] );
+                    unless( $test_itype ){
+                        use Data::Dumper;
+                        local $Data::Dumper::Terse = 1;
+                        my $data_as_string = Dumper(\@field_values);
+                        Koha::Exception->throw("add-order.pl: Itemtype lost while receiving values from add form ".$data_as_string);
+                    }
+                }
+
                 push @{ $itemhash{ $itemid[$i] }->{'tags'} },         $tags[$i];
                 push @{ $itemhash{ $itemid[$i] }->{'subfields'} },    $subfields[$i];
                 push @{ $itemhash{ $itemid[$i] }->{'field_values'} }, $field_values[$i];
@@ -422,6 +434,16 @@ if ( $op eq 'cud-order' ) {
                     'ITEM'
                 );
                 my $record = MARC::Record::new_from_xml( $xml, 'UTF-8' );
+
+                # KOHA-1667
+                my ( $itypetagfield, $itypetagsubfield ) = GetMarcFromKohaField( 'items.itype' );
+                my $test_itype = $record->subfield( $itypetagfield, $itypetagsubfield );
+                $test_itype = Koha::ItemTypes->find( $test_itype );
+
+                if( !$test_itype ){
+                    Koha::Exception->throw("addorder.pl: Itemtype lost after transforming field values to xml ".$xml);
+                }
+
                 my ( $barcodefield, $barcodesubfield ) = GetMarcFromKohaField('items.barcode');
                 next unless ( defined $barcodefield && defined $barcodesubfield );
                 my $barcode = $record->subfield( $barcodefield, $barcodesubfield ) || '';
