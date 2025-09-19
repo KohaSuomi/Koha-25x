@@ -101,7 +101,7 @@ sub store {
         use Data::Dumper;
         local $Data::Dumper::Terse = 1;
         my $item = Dumper($self->unblessed);
-        Koha::Exception->throw($item);
+        Koha::Exception->throw("Item.pm, store: Itemtype lost when Item->store called".$item);
         #$self->itype($self->biblio->biblioitem->itemtype);
     }
 
