@@ -300,6 +300,20 @@ if ( $op and $op eq 'cud-serialchangestatus' ) {
                 $itemhash{ $itemid[$i] }->{'num_copies'} = $num_copies[$countdistinct];
                 $countdistinct++;
             }
+
+            # KOHA-1667
+            if( $subfields[$i] eq "y"){
+                unless ( $itemid[$i] eq "NEW" ){
+                    my $test_itype = Koha::ItemTypes->find( $field_values[$i] );
+                    unless( $test_itype ){
+                        use Data::Dumper;
+                        local $Data::Dumper::Terse = 1;
+                        my $data_as_string = Dumper(\@field_values);
+                        Koha::Exception->throw("serials-edit.pl: Itemtype lost while receiving values from add form ".$data_as_string);
+                    }
+                }
+            }
+
             push @{ $itemhash{ $itemid[$i] }->{'tags'} },      $tags[$i];
             push @{ $itemhash{ $itemid[$i] }->{'subfields'} }, $subfields[$i];
             push @{ $itemhash{ $itemid[$i] }->{'field_values'} },
@@ -330,6 +344,16 @@ if ( $op and $op eq 'cud-serialchangestatus' ) {
 
                 # warn $xml;
                 my $bib_record = MARC::Record::new_from_xml( $xml, 'UTF-8' );
+
+                # KOHA-1667
+                my ( $itypetagfield, $itypetagsubfield ) = GetMarcFromKohaField( 'items.itype' );
+                my $test_itype = $bib_record->subfield( $itypetagfield, $itypetagsubfield );
+                $test_itype = Koha::ItemTypes->find( $test_itype );
+
+                if( !$test_itype ){
+                    Koha::Exception->throw("serials-edit.pl: Itemtype lost after transforming field values to xml ".$xml);
+                }
+
                 if ( $item =~ /^N/ ) {
 
                     $itemhash{$item}->{'num_copies'} //= 1;
