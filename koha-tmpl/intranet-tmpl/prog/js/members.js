@@ -159,8 +159,8 @@ function select_user(borrowernumber, borrower, relationship) {
         fieldset.show();
 
         //Add attribute required so visible new_guarantor_relationship is validated
-        if($(".new_guarantor_relationship").is(":visible")){
-            $(".new_guarantor_relationship").prop('required',true);
+        if ($(".new_guarantor_relationship").is(":visible")) {
+            $(".new_guarantor_relationship").prop("required", true);
         }
 
         if (relationship) {
@@ -357,22 +357,30 @@ $(document).ready(function () {
             else form.beenSubmitted = true;
             form.submit();
         },
-        invalidHandler: function(form, validator) {
+        invalidHandler: function (form, validator) {
             var error_msg = jQuery.validator.messages.missing_fields;
             // First remove error messages so that it doesn't
             // show in fieldset without errors
-            $("fieldset").each(function(){
-                $("#"+$(this).attr("id")+"-error").remove();
+            $("fieldset").each(function () {
+                $("#" + $(this).attr("id") + "-error").remove();
             });
-            $(validator.errorList).each(function() {
+            $(validator.errorList).each(function () {
                 var fieldset = $(this.element).parents('[id*="memberentry_"]');
                 var fieldset_id = fieldset.attr("id");
                 //Add error message only if it doesn't already exist
-                if(!$("#"+fieldset_id+"-error").length){
-                    fieldset.find("legend").before('<span id="'+fieldset_id+'-error" class="required">'+error_msg+'</span>');
+                if (!$("#" + fieldset_id + "-error").length) {
+                    fieldset
+                        .find("legend")
+                        .before(
+                            '<span id="' +
+                                fieldset_id +
+                                '-error" class="required">' +
+                                error_msg +
+                                "</span>"
+                        );
                 }
             });
-        }
+        },
     });
 
     var mrform = $("#manual_restriction_form");
