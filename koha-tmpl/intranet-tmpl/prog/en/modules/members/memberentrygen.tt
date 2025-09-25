@@ -1521,21 +1521,17 @@
                                                         [% END %]
                                                         [% FOREACH patron_attribute IN pa_loo.items %]
                                                             <li data-category_code="[% patron_attribute.category_code | html %]" data-pa_code="[% patron_attribute.code | replace('[^a-zA-Z0-9_-]', '') %]">
-                                                                [% IF patron_attribute.mandatory && patron_attribute.category_code == patron_category.categorycode%]
+                                                                [% IF patron_attribute.mandatory && patron_attribute.category_code == patron_category.categorycode %]
                                                                     <label for="[% patron_attribute.form_id | html %]" class="required" required="required">[% patron_attribute.description | html %]: </label>
-                                                                [% ELSIF patron_attribute.mandatory && patron_attribute.category_code != patron_category.categorycode %]
-                                                                    <label for="[% patron_attribute.form_id | html %]">[% patron_attribute.description | html %]: </label>
                                                                 [% ELSE %]
                                                                     <label for="[% patron_attribute.form_id | html %]">[% patron_attribute.description | html %]: </label>
                                                                 [% END %]
                                                                 [% IF ( patron_attribute.use_dropdown ) %]
-                                                                    [% IF patron_attribute.mandatory && patron_attribute.category_code == patron_category.categorycode %]
-                                                                        <select id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]" required="required">
-                                                                    [% ELSIF patron_attribute.mandatory && patron_attribute.category_code != patron_category.categorycode %]
-                                                                        <select id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]">
-                                                                    [% ELSE %]
-                                                                        <select id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]">
-                                                                    [% END %]
+                                                                    <select
+                                                                        id="[% patron_attribute.form_id | html %]"
+                                                                        name="[% patron_attribute.form_id | html %]"
+                                                                        [% IF patron_attribute.mandatory && patron_attribute.category_code == patron_category.categorycode %]required="required"[% END %]
+                                                                    >
                                                                         <option value=""></option>
                                                                         [% FOREACH auth_val_loo IN patron_attribute.auth_val_loop %]
                                                                             [% IF auth_val_loo.authorised_value == patron_attribute.value %]
