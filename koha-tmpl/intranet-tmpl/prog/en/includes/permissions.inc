@@ -88,7 +88,7 @@
         <span class="main_permission preservation_permission">Manage the preservation module</span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'debug' -%]
-        <span class="main_permission debug_permission">Display the Debug UI</span>
+        <span class="main_permission debug_permission">Display the debug interface</span>
         <span class="permissioncode">([% name | html %])</span>
     [%- END -%]
 [%- END -%]
