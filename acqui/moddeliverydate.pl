@@ -31,7 +31,7 @@ its basket is closed.
 use Modern::Perl;
 
 use CGI             qw ( -utf8 );
-use C4::Auth        qw( get_template_and_user );
+use C4::Auth        qw( check_cookie_auth );
 use C4::Output      qw( output_html_with_http_headers );
 use C4::Acquisition qw( GetOrder GetBasket ModOrder );
 
@@ -39,14 +39,16 @@ use Koha::Acquisition::Booksellers;
 use Koha::DateUtils qw( dt_from_string );
 
 my $input = CGI->new;
-my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
-    {
-        template_name => 'acqui/moddeliverydate.tt',
-        query         => $input,
-        type          => 'intranet',
-        flagsrequired => { 'acquisition' => 'order_manage' },
-    }
+
+my ($auth_status) = check_cookie_auth(
+    $input->cookie('CGISESSID'),
+    { acquisition => 'order_manage' }
 );
+
+if ( $auth_status ne "ok" ) {
+    print $input->header( -type => 'text/plain', -status => '403 Forbidden' );
+    exit 0;
+}
 
 my $op          = $input->param('op');
 my $ordernumber = $input->param('ordernumber');
@@ -61,21 +63,4 @@ if ( $op and $op eq 'cud-save' ) {
     ModOrder($order);
     print $input->redirect($referrer);
     exit;
-} else {
-    $template->param( estimated_delivery_date => $order->{'estimated_delivery_date'} );
 }
-
-if ($op) {
-    $template->param( $op => 1 );
-}
-
-$template->param(
-    basketname     => $basket->{'basketname'},
-    basketno       => $order->{basketno},
-    booksellerid   => $bookseller->id,
-    booksellername => $bookseller->name,
-    ordernumber    => $ordernumber,
-    referrer       => $referrer,
-);
-
-output_html_with_http_headers $input, $cookie, $template->output;
