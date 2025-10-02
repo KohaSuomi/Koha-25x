@@ -18,6 +18,7 @@ my %FinnaMaterialLang = (
 
     'Article' => { 'fi_FI' => 'ARTIKKELI' },
     'Atlas' => { 'fi_FI' => 'ATLAS' },
+    'AudioBookDaisy' => { 'fi_FI' => 'CELIA' },
     'BluRay' => { 'fi_FI' => 'BLURAY' },
     'BoardGame' => { 'fi_FI' => 'LAUTAPELI' },
     'BookSection' => { 'fi_FI' => 'KIRJA' },
@@ -169,6 +170,8 @@ sub getFinnaMaterialType_core {
 
         return 'SensorImage' if ($format1 eq 'R');
 
+        return 'AudioBookDaisy' if isAudioBookDaisy($record);
+
         if ($formats eq 'SD') {
             my $size = uc(substr($contents, 6, 1));
             my $material = uc(substr($contents, 10, 1));
@@ -232,6 +235,50 @@ sub getFinnaMaterialType {
     my $fmt = getFinnaMaterialType_core($record);
     return $FinnaMaterialLang{$fmt}{$lang} if (defined($FinnaMaterialLang{$fmt}) && defined($FinnaMaterialLang{$fmt}{$lang}));
     return $fmt;
+}
+
+sub isAudioBookDaisy {
+    my ($record) = @_;
+
+    my $field008 = '';
+    $field008 = $record->field('008')->data() if $record->field('008');
+
+    # Rule 1: 008/22 == 'f' and 347$b == 'daisy'
+    if (substr($field008, 22, 1) eq 'f') {
+        foreach my $field ($record->field('347')) {
+            my $sub = $field->subfield('b') || '';
+            if (lc($sub) eq 'daisy') {
+                return 1;
+            }
+        }
+    }
+
+    # Rule 2: Other Daisy rules
+    my @daisyRules = (
+        ['020', 'q', 'daisy'],
+        ['028', 'b', 'celia'],
+        ['245', 'b', 'daisy-äänikirja'],
+        ['300', 'a', 'daisy'],
+    );
+    foreach my $rule (@daisyRules) {
+        my ($fieldTag, $subfieldCode, $search) = @$rule;
+        foreach my $field ($record->field($fieldTag)) {
+            my $sub = $field->subfield($subfieldCode) || '';
+            if ($sub =~ /\Q$search\E/i) {
+                return 1;
+            }
+        }
+    }
+
+    # Rule 3: Check local use 599$a for 'daisy'
+    foreach my $field ($record->field('599')) {
+        my $sub = $field->subfield('a') || '';
+        if ($sub =~ /daisy/i) {
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 1;
