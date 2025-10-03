@@ -302,17 +302,18 @@ if ( $op and $op eq 'cud-serialchangestatus' ) {
             }
 
             # KOHA-1667
-            if( $subfields[$i] eq "y"){
-                unless ( $itemid[$i] eq "NEW" ){
-                    my $test_itype = Koha::ItemTypes->find( $field_values[$i] );
-                    unless( $test_itype ){
-                        use Data::Dumper;
-                        local $Data::Dumper::Terse = 1;
-                        my $data_as_string = Dumper(\@field_values);
-                        Koha::Exception->throw("serials-edit.pl: Itemtype lost while receiving values from add form ".$data_as_string);
-                    }
-                }
-            }
+            # DO NOT USE!
+            #if( $subfields[$i] eq "y"){
+            #    unless ( $itemid[$i] eq "NEW" ){
+            #        my $test_itype = Koha::ItemTypes->find( $field_values[$i] );
+            #        unless( $test_itype ){
+            #            use Data::Dumper;
+            #            local $Data::Dumper::Terse = 1;
+            #            my $data_as_string = Dumper(\@field_values);
+            #            Koha::Exception->throw("serials-edit.pl: Itemtype lost while receiving values from add form ".$data_as_string);
+            #        }
+            #    }
+            #}
 
             push @{ $itemhash{ $itemid[$i] }->{'tags'} },      $tags[$i];
             push @{ $itemhash{ $itemid[$i] }->{'subfields'} }, $subfields[$i];
