@@ -1131,7 +1131,7 @@
                                                     <div class="subfieldcode">
                                                         <span class="handle">&#xf58e;</span>
                                                         <input type="text"
-                                                                title="[% subfield_loo.marc_lib | $raw %]"
+                                                                title="[% subfield_loo.marc_lib | html %]"
                                                                 style=" [% IF ( innerloo.fixedfield ) %]display:none; [% END %]border:0;"
                                                                 name="tag_[% subfield_loo.tag | html %]_code_[% subfield_loo.subfield | html %]_[% subfield_loo.index | html %]_[% subfield_loo.index_subfield | html %]"
                                                                 value="[% subfield_loo.subfield | html %]"
@@ -1153,7 +1153,7 @@
                                                             [% ELSE %]
                                                                 <label for="tag_[% subfield_loo.tag | html %]_subfield_[% subfield_loo.subfield | html %]_[% subfield_loo.index | html %]_[% subfield_loo.index_subfield | html %]" class="labelsubfield">
                                                             [% END %]
-                                                            [% subfield_loo.marc_lib | $raw %]
+                                                            [% subfield_loo.marc_lib | html %]
                                                             </label>
                                                         </div>
                                                     [% END %]
