@@ -95,6 +95,7 @@ export default {
             disable_lock_button: false,
             patron_selected_shelf: false,
             loading: true,
+            confirmed: false,
             error: false
         }
     },
@@ -189,12 +190,37 @@ export default {
             // Wait for DOM to be ready
             this.$nextTick(() => {
                 const Btn = document.getElementById("hold-found-modal-confirm");
+                const PrintBtn = document.getElementById("hold-pickup-shelf-print");
+                const form = document.getElementById("hold-found-modal-form");
+                // If the button exists, override its click event
                 if (Btn) {
                     // Add your custom click handler
                     Btn.addEventListener("click", (e) => {
                         e.preventDefault();
                         // Call your API here, then submit if needed
-                        this.handleCustomConfirm();
+                        this.handleCustomConfirm().then(() => {
+                            if (!this.confirmed) {
+                                return; // Do not submit if not confirmed
+                            }
+                            // Submit the form
+                            if (form) {
+                                form.submit();
+                            }
+                        });
+                    });
+                }
+                if (PrintBtn) {
+                    PrintBtn.addEventListener("click", (e) => {
+                        e.preventDefault();
+                        this.handleCustomConfirm().then(() => {
+                            if (!this.confirmed) {
+                                return; // Do not submit if not confirmed
+                            }
+                            if (form) {
+                                form.print_slip.value = 1;
+                                form.submit();
+                            }
+                        });
                     });
                 }
                 
@@ -210,10 +236,7 @@ export default {
                 if (this.selected_shelf_id !== "" && parseInt(this.selected_shelf_id) !== parseInt(this.hold_pickup_shelf_id)) {
                     this.notification = this.$__("Selected shelf is unavailable. Please choose another shelf.");
                 } else {
-                    const form = document.getElementById("hold-found-modal-form");
-                    if (form) {
-                        form.submit();
-                    }
+                    this.confirmed = true;
                 }
             }
         }
