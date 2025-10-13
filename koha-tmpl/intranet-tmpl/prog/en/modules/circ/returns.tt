@@ -864,7 +864,11 @@
                 [% print_button = '<button type="button" class="btn btn-default print" accesskey="p"> <i class="fa fa-print"></i> ' _ t('Print slip, transfer, and confirm') _ ' (P) </button>' %]
             [% ELSE %]
                 [% confirm_button_text = t('Confirm hold') %]
-                [% print_button = '<button type="button" class="btn btn-default print" accesskey="p"> <i class="fa fa-print"></i> ' _ t('Print slip and confirm') _ ' (P) </button>' %]
+                [% IF Koha.Preference('HoldPickupShelves') %]
+                    [% print_button = '<button id="hold-pickup-shelf-print" type="button" class="btn btn-default" accesskey="p"> <i class="fa fa-print"></i> ' _ t('Print slip and confirm') _ ' (P) </button>' %]
+                [% ELSE %]
+                    [% print_button = '<button type="button" class="btn btn-default print" accesskey="p"> <i class="fa fa-print"></i> ' _ t('Print slip and confirm') _ ' (P) </button>' %]
+                [% END %]
             [% END %]
 
             [% SET modal_print_url = reserve_id | uri %]
