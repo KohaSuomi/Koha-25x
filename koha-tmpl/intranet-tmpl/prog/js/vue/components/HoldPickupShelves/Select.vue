@@ -22,7 +22,7 @@
                     </select>
                 </div>
                 <div class="col-md-2 no-gutters">
-                    <button class="btn btn-success me-2" @click="selectShelf($event)" :disabled="!hold_pickup_shelf_id || patron_selected_shelf">
+                    <button class="btn btn-success me-2" @click="selectShelf($event)" :disabled="!hold_pickup_shelf_id || patron_selected_shelf || special_shelf">
                         <i class="fas fa-check"></i>
                     </button>
                     <button class="btn btn-primary" @click="lockShelf($event)" :disabled="disable_lock_button">
@@ -94,6 +94,7 @@ export default {
             notification: null,
             disable_lock_button: false,
             patron_selected_shelf: false,
+            special_shelf: false,
             loading: true,
             confirmed: false,
             error: false
@@ -139,7 +140,8 @@ export default {
                 this.loading = false;
                 if (this.hold_pickup_shelf.holds_count === 0) {
                     this.disable_lock_button = true;
-                } 
+                }
+                this.specialShelf();
             } catch (error) {
                 this.shelves = [];
                 this.error = true;
@@ -178,6 +180,13 @@ export default {
                     });
             }
         },
+        specialShelf() {
+            if (this.hold_pickup_shelf && this.hold_pickup_shelf.overflow_shelf) {
+                this.special_shelf = true;
+            } else {
+                this.special_shelf = false;
+            }
+        },
         changeShelf(e) {
             this.hold_pickup_shelf = this.shelves.find(shelf => shelf.hold_pickup_shelf_id === this.hold_pickup_shelf_id);
             if (!this.hold_pickup_shelf || this.hold_pickup_shelf.holds_count === 0) {
@@ -185,6 +194,7 @@ export default {
             } else {
                 this.disable_lock_button = false;
             }
+            this.specialShelf();
         },
         handleConfirmButton() {
             // Wait for DOM to be ready
@@ -229,15 +239,17 @@ export default {
         async handleCustomConfirm() {
             const hold_pickup_shelf_id = document.getElementsByName("hold_pickup_shelf_id")[0];
             this.notification = null;
-            if (hold_pickup_shelf_id) {
-                this.selected_shelf_id = hold_pickup_shelf_id.value;
+            this.selected_shelf_id = hold_pickup_shelf_id.value;
+            if (this.selected_shelf_id !== "") {
                 // Refresh shelves to ensure the selected shelf is still available
                 await this.getShelves();
-                if (this.selected_shelf_id !== "" && parseInt(this.selected_shelf_id) !== parseInt(this.hold_pickup_shelf_id)) {
+                if (parseInt(this.selected_shelf_id) !== parseInt(this.hold_pickup_shelf_id)) {
                     this.notification = this.$__("Selected shelf is unavailable. Please choose another shelf.");
                 } else {
                     this.confirmed = true;
                 }
+            } else {
+                this.confirmed = true;
             }
         }
     }
