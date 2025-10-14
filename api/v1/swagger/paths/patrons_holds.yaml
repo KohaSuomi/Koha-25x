@@ -35,6 +35,7 @@
             - item
             - pickup_library
             - pickup_library.branchname
+            - hold_pickup_shelf
         collectionFormat: csv
     produces:
       - application/json
