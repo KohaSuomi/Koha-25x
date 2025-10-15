@@ -742,7 +742,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
             ajax: {
                 url: url
             },
-            embed: ["patron", "item", "item_group", "item_level_holds"],
+            embed: ["patron", "item", "item_group", "item_level_holds", "hold_pickup_shelf"],
             columnDefs: [
                 {
                     targets: [2, 3],
@@ -1012,9 +1012,12 @@ async function load_patron_holds_table(biblio_id, split_data) {
                                 "Item being processed at <strong>%s</strong>"
                             ).format(libraryname);
                         } else if (row.status == "W") {
-                            return __(
-                                "Item waiting at <strong>%s</strong> since %s"
-                            ).format(libraryname, $date(row.waiting_date));
+                            let response = __("Item waiting at <strong>%s</strong>").format(libraryname);
+                            if (row.hold_pickup_shelf) {
+                                response += __(", on the pickup shelf <strong>%s</strong>").format(row.hold_pickup_shelf.shelf_name.escapeHtml());
+                            }
+                            response += __(" since %s").format($date(row.waiting_date));
+                            return response;
                         } else {
                             return branchSelect;
                         }
