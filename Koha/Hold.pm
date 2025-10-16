@@ -775,6 +775,8 @@ sub cancel {
                     }
                 );
 
+                my $description = $self->biblio ? $self->biblio->title : '';
+                $description .= ' - ' . $self->cancellation_reason if $self->cancellation_reason;
                 my $account = Koha::Account->new( { patron_id => $self->borrowernumber } );
                 $account->add_debit(
                     {
@@ -783,7 +785,8 @@ sub cancel {
                         interface  => C4::Context->interface,
                         library_id => C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef,
                         type       => 'RESERVE_EXPIRED',
-                        item_id    => $self->itemnumber
+                        item_id    => $self->itemnumber,
+                        description => $description,
                     }
                 ) if $charge;
             }
