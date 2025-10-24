@@ -1047,6 +1047,9 @@ Circulation:
                   homebranch: "home library"
                   holdingbranch: "holding library"
             - <br/><strong>Note:</strong> If a group option is selected, LocalHoldsPriorityPatronControl and LocalHoldsPriorityItemControl will use the <a href="/cgi-bin/koha/admin/library_groups.pl">library hold group</a> of the selected libraries.
+            - Maximum number of holds to consider when calculating LocalHoldsPriority. Set to 0 for no limit.
+            - pref: LocalHoldsPriorityMaxHolds
+              class: integer
         -
             - pref: OPACHoldsIfAvailableAtPickup
               choices:
