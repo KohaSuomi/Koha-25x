@@ -887,6 +887,8 @@ sub CheckReserves {
         my $LocalHoldsPriority              = C4::Context->preference('LocalHoldsPriority');
         my $LocalHoldsPriorityPatronControl = C4::Context->preference('LocalHoldsPriorityPatronControl');
         my $LocalHoldsPriorityItemControl   = C4::Context->preference('LocalHoldsPriorityItemControl');
+        my $LocalHoldsPriorityMaxHolds      = C4::Context->preference('LocalHoldsPriorityMaxHolds');
+        my $hold_counter                    = 0;
         my $priority                        = 10000000;
 
         foreach my $res (@reserves) {
@@ -901,6 +903,10 @@ sub CheckReserves {
                 my $local_hold_match;
                 my $local_hold_group_match;
                 if ( $LocalHoldsPriority ne 'None' ) {
+                    $hold_counter++;
+                    next if ( defined $LocalHoldsPriorityMaxHolds
+                        && $LocalHoldsPriorityMaxHolds != 0
+                        && $hold_counter >= $LocalHoldsPriorityMaxHolds );
                     $patron = Koha::Patrons->find( $res->{borrowernumber} );
 
                     unless ( $item->exclude_from_local_holds_priority
