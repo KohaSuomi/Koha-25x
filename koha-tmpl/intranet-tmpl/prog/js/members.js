@@ -327,7 +327,7 @@ $(document).ready(function () {
     );
 
     $("#entryform").validate({
-        ignore: "",
+        ignore: "#dateofbirth",
         rules: {
             email: {
                 email: true,
