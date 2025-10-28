@@ -283,8 +283,8 @@ if ($no_issues_charge_guarantors) {
     if ( $patron_charge_limits->{NoIssuesChargeGuarantorsWithGuarantees}->{overlimit} ) {
         $template->param(
             noissues                      => 1,
-            charges_guarantors_guarantees => $patron_charge_limits->{NoIssuesChargeGuarantorsWithGuarantees}->{charge}
-            charges_guarantors_guarantees_incl_non_blocking => $guarantors_total_charges
+            charges_guarantors_guarantees => $patron_charge_limits->{NoIssuesChargeGuarantorsWithGuarantees}->{charge},
+            charges_guarantors_guarantees_incl_non_blocking => $guarantors_total_charges,
         );
     }
 }
