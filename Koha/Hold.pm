@@ -775,8 +775,8 @@ sub cancel {
                     }
                 );
 
-                my $description = $self->biblio ? $self->biblio->title : '';
-                $description .= ' - ' . $self->cancellation_reason if $self->cancellation_reason;
+                my $description = $self->cancellation_reason ? $self->cancellation_reason : '';
+                $description .= $self->biblio ? $self->biblio->title : '';
                 my $account = Koha::Account->new( { patron_id => $self->borrowernumber } );
                 $account->add_debit(
                     {
