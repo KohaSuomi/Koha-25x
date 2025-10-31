@@ -168,6 +168,16 @@ sub holds_count {
     return Koha::Holds->search({ hold_pickup_shelf_id => $self->_result->hold_pickup_shelf_id })->count;
 }
 
+=head3 set_last_used_date
+
+Sets the last used date for this hold pickup shelf.
+
+=cut
+sub set_last_used_date {
+    my ($self) = @_;
+    $self->_result->update({ last_used_date => DateTime->now });
+}
+
 =head3 duplicate_record
 
 Checks if shelf already has a record in the database.
@@ -204,8 +214,7 @@ sub lock_full_shelf {
     my ($self) = @_;
     my $shelf = Koha::HoldPickupShelves->find($self->_result->hold_pickup_shelf_id);
     if ($shelf->holds_count >= $shelf->max_items) {
-        my $today = DateTime->today->ymd;
-        $shelf->update({ locked => 1, locked_date => $today });
+        $shelf->update({ locked => 1, locked_date => DateTime->now });
     }
 }
 
