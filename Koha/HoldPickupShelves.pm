@@ -38,6 +38,7 @@ Returns the list of shelves for a given library.
 sub available_shelves {
     my ($self, $library_id, $biblio_id, $patron_id) = @_;
 
+    $self->lock_previously_used_shelves($library_id);
     $self->open_locked_shelves($library_id);
 
     my $primary_shelves = $self->primary_shelves($library_id, $biblio_id, $patron_id);
@@ -93,6 +94,27 @@ sub overflow_shelves {
         }
     }
     return $response;
+}
+
+=head3 lock_previously_used_shelves
+Locks all shelves that are in use for a given library.
+This method is used to prevent shelves that have been used previously from being used again.
+=cut
+sub lock_previously_used_shelves {
+    my ($self, $library_id) = @_;
+    my $today = DateTime->now->ymd;
+    my $shelves = $self->search({
+        library_id    => $library_id,
+        locked        => 0,
+        last_used_date => { '<' => $today }
+    })->as_list;
+    for my $shelf (@$shelves) {
+        # Only lock if there are holds linked to this shelf
+        my $holds_count = $shelf->holds_count;
+        if ($holds_count > 0) {
+            $shelf->update({locked => 1, locked_date => DateTime->now, last_used_date => undef});
+        }
+    }
 }
 
 =head3 open_locked_shelves
