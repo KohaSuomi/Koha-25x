@@ -15,7 +15,6 @@
                 </div>
                 <div class="col-md-6">
                     <select id="hold_pickup_shelf_id" class="form-control me-2" v-model="hold_pickup_shelf_id" @change="changeShelf($event)" :disabled="patron_selected_shelf">
-                        <option value=""></option>
                         <option v-for="shelf in shelves" :key="shelf.hold_pickup_shelf_id" :value="shelf.hold_pickup_shelf_id">
                             {{ shelf.shelf_name }}
                         </option>
@@ -125,7 +124,7 @@ export default {
                     this.hold_pickup_shelf_id = userShelf.hold_pickup_shelf_id;
                     this.hold_pickup_shelf = userShelf;
                 } else {
-                    // Only show shelves without patron_id
+                    // If no user shelf is found, show all shelves without patron_id
                     this.patron_selected_shelf = false;
                     this.shelves = shelves.filter(shelf => !shelf.patron_id);
                     let found = this.shelves.find(shelf => shelf.hold_pickup_shelf_id === this.hold_pickup_shelf_id);
@@ -141,6 +140,7 @@ export default {
                 if (this.hold_pickup_shelf.holds_count === 0) {
                     this.disable_lock_button = true;
                 }
+
                 this.specialShelf();
             } catch (error) {
                 this.shelves = [];
@@ -240,7 +240,7 @@ export default {
             const hold_pickup_shelf_id = document.getElementsByName("hold_pickup_shelf_id")[0];
             this.notification = null;
             this.selected_shelf_id = hold_pickup_shelf_id.value;
-            if (this.selected_shelf_id !== "") {
+            if (this.selected_shelf_id !== "" || this.patron_selected_shelf === false) {
                 // Refresh shelves to ensure the selected shelf is still available
                 await this.getShelves();
                 if (parseInt(this.selected_shelf_id) !== parseInt(this.hold_pickup_shelf_id)) {
