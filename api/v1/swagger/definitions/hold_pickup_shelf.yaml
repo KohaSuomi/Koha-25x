@@ -67,6 +67,12 @@ properties:
       - integer
       - "null"
     readOnly: true
+  last_used_date:
+    description: The last date and time an item was placed on this shelf
+    format: date-time
+    type:
+      - string
+      - 'null'
 additionalProperties: false
 required:
   - shelf_name

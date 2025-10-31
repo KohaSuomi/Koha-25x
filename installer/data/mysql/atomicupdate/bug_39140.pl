@@ -37,6 +37,7 @@ return {
                 `patron_category_id` varchar(10) DEFAULT NULL,
                 `weekday` enum('Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday') DEFAULT NULL,
                 `priority` int(11) DEFAULT 0,
+                `last_used_date` datetime DEFAULT NULL,
                 PRIMARY KEY (`hold_pickup_shelf_id`),
                 UNIQUE KEY `hold_pickup_shelves_uniq_idx` (`library_id`,`shelf_name`,`biblio_itemtype`,`patron_category_id`,`weekday`),
                 KEY `patron_id` (`patron_id`),
