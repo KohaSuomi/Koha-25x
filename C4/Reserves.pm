@@ -1251,6 +1251,7 @@ sub ModReserveAffect {
         if ($hold_pickup_shelf_id) {
             $hold->set( { hold_pickup_shelf_id => $hold_pickup_shelf_id } )->store;
             my $hold_pickup_shelf = Koha::HoldPickupShelves->find($hold_pickup_shelf_id);
+            $hold_pickup_shelf->set_last_used_date;
             $hold_pickup_shelf->lock_full_shelf;
         }
         _koha_notify_reserve( $hold->reserve_id ) unless $already_on_shelf;

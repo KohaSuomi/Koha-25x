@@ -96,6 +96,12 @@ __PACKAGE__->table("hold_pickup_shelves");
   default_value: 0
   is_nullable: 1
 
+=head2 last_used_date
+
+  data_type: 'datetime'
+  datetime_undef_if_invalid: 1
+  is_nullable: 1
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -141,6 +147,12 @@ __PACKAGE__->add_columns(
   },
   "priority",
   { data_type => "integer", default_value => 0, is_nullable => 1 },
+  "last_used_date",
+  {
+    data_type => "datetime",
+    datetime_undef_if_invalid => 1,
+    is_nullable => 1,
+  },
 );
 
 =head1 PRIMARY KEY
@@ -274,8 +286,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07051 @ 2025-10-02 11:01:51
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:qOPEYk3GC9981gjWOlo+Pw
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2025-10-30 14:59:13
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:qOfQXogaJI6HGf/XuKuhvw
 
 sub koha_object_class {
     'Koha::HoldPickupShelf';
