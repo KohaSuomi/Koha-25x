@@ -217,7 +217,7 @@ export default {
                                 if (table) {
                                     const rows = Array.from(table.querySelectorAll("tbody tr"));
                                     // Collect all shelf ids and priorities
-                                    const priorities = rows.map(row => {
+                                    let priorities = rows.map(row => {
                                         const btn = row.querySelector('button[data-priority]');
                                         return {
                                             id: btn ? btn.getAttribute("data-id") : null,
@@ -228,14 +228,20 @@ export default {
                                     // Sort by priority ascending
                                     priorities.sort((a, b) => a.priority - b.priority);
                                     if (priorities.length < 2) return;
-                                    // Move last to first, shift others down
-                                    const last = priorities.pop();
-                                    priorities.unshift(last);
-                                    // Assign new priorities (1-based)
-                                    this.batchUpdatePriorities(priorities.map((p, idx) => ({
-                                        hold_pickup_shelf_id: p.id,
-                                        priority: idx + 1
-                                    })));
+                                    // Find the selected id
+                                    const selectedId = event.target.getAttribute("data-id");
+                                    // Remove selected from array
+                                    const selected = priorities.find(p => p.id === selectedId);
+                                    priorities = priorities.filter(p => p.id !== selectedId);
+                                    // Insert selected at the front if found
+                                    if (selected) {
+                                        priorities.unshift(selected);
+                                        // Assign new priorities (1-based)
+                                        this.batchUpdatePriorities(priorities.map((p, idx) => ({
+                                            hold_pickup_shelf_id: p.id,
+                                            priority: idx + 1
+                                        })));
+                                    }
                                 }
                             }
                         });
