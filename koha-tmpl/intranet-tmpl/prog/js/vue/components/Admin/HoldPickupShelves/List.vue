@@ -10,10 +10,20 @@
         </Toolbar>
         <h1>{{ title }}</h1>
         <div v-if="hold_pickup_shelves_any > 0" class="page-section">
+            <div class="mb-3">
+                <label for="libraryFilter" class="pe-1">{{ $__("Filter by library") }}:</label>
+                <select id="libraryFilter" v-model="library_id" @change="fetchLibraryHoldPickupShelves($event)">
+                    <option :value="null">{{ $__("All libraries") }}</option>
+                    <option v-for="library in libraries" :key="library.library_id" :value="library.library_id">
+                        {{ library.name }}
+                    </option>
+                </select>
+            </div>
             <KohaTable
                 ref="table"
                 v-bind="tableOptions"
                 @edit="doEdit"
+                @editTab="doEditTab"
                 @delete="doDelete"
             ></KohaTable>
         </div>
@@ -136,6 +146,12 @@ export default {
                     "-1": [
                         "edit",
                         {
+                            editTab: {
+                                text: this.$__("Edit in new tab"),
+                                icon: "fa fa-external-link-alt",
+                            },
+                        },
+                        {
                             delete: {
                                 text: this.$__("Delete"),
                                 icon: "fa fa-trash",
@@ -149,6 +165,7 @@ export default {
             },
             initialized: false,
             hold_pickup_shelves_any: 0,
+            library_id: null,
         };
     },
     setup() {
@@ -260,14 +277,25 @@ export default {
                 error => {}
             );
         },
+        fetchLibraryHoldPickupShelves(event) {
+            const queryParams = this.library_id ? `library_id=${this.library_id}` : '';
+            this.$refs.table.redraw("/api/v1/holds/pickup_shelves?" + queryParams);
+        },
         newHoldPickupShelf() {
             this.$router.push({ name: "HoldPickupShelvesFormAdd" });
         },
         doEdit: function ({ hold_pickup_shelf_id }, dt, event) {
             this.$router.push({
+            name: "HoldPickupShelvesFormAddEdit",
+            params: { hold_pickup_shelf_id },
+            });
+        },
+        doEditTab: function ({ hold_pickup_shelf_id }, dt, event) {
+            const url = this.$router.resolve({
                 name: "HoldPickupShelvesFormAddEdit",
                 params: { hold_pickup_shelf_id },
-            });
+            }).href;
+            window.open(url, '_blank');
         },
         doDelete: function (hold_pickup_shelf, dt, event) {
             this.setConfirmationDialog(
