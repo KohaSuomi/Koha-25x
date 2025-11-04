@@ -50,14 +50,14 @@
           </div>
           [% END %]
           [% IF ( restored_records ) %]
-          <div class="dialog message">
+          <div class="alert alert-info">
             [% FOREACH record IN restored_records %]
               <h1>Record <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% record | uri %]" target="_blank">[% record | html %]</a> restored successfully</h1>
             [% END %]
             [% SET biblionumbers = restored_records.join(', ') %]
             <form action="/cgi-bin/koha/tools/restore_items.pl" method="get">
                 <input type="hidden" name="biblionumbers" value="[% biblionumbers | html %]" />
-                <button type="submit">Restore items</button>
+                <button type="submit" class="btn btn-primary">Restore items</button>
             </form>
             <p>
               <a href="/cgi-bin/koha/tools/restore_records.pl" class="btn btn-primary">Back to restore bibliographic records</a>
@@ -65,15 +65,18 @@
             </div>
           [% END %]
           [% IF ( errors ) %]
-          <div class="dialog alert">
-            <h1> Some bibliographic records could not be restored:</h1>
-            [% FOREACH record IN errors %]
-              <h1>An error occurred while restoring bibliographic record [% record | html %]</h1>
-          </div>
+          <div class="col-md-12">
+            <div class="alert alert-warning">
+              <h3> Some bibliographic records could not be restored:</h3>
+              [% FOREACH record IN errors %]
+                <span>An error occurred while restoring bibliographic record [% record | html %]</span><br/>
           [% END %]
-          <p>
-            <a href="/cgi-bin/koha/tools/restore_records.pl" class="btn btn-primary">Back to restore bibliographic records</a>
-          </p>
+            </div>
+              <p>
+                <a href="/cgi-bin/koha/tools/restore_records.pl" class="btn btn-primary">Back to restore bibliographic records</a>
+              </p>
+          </div
+
         [% END %]
 
           [% IF op == 'form' %]
@@ -149,7 +152,7 @@
                     <td>[% record.datecreated | html %]</td>
                     <td>[% record.itemtype | html %]</td>
                     <td>
-                      <button type="button" onclick="toggleDeletedItems(this, '[% record.biblionumber | html %]')">
+                      <button type="button" class="btn btn-light border border-dark" onclick="toggleDeletedItems(this, '[% record.biblionumber | html %]')">
                         View/Hide deleted items
                       </button>
                       <div id="deleted_items_[% record.biblionumber | html %]" style="display: none; margin-top: 10px;">
@@ -201,8 +204,9 @@
                   { "targets": [1], "type": "num-fmt" },
                   { "targets": [2], "type": "string" },
                   { "targets": [3], "type": "string" },
-                  { "targets": [4], "type": "date" },
-                  { "targets": [5], "type": "datetime" }
+                  { "targets": [4], "type": "string" },
+                  { "targets": [5], "type": "datetime" },
+                  { "targets": [6], "type": "string" }
                 ],
                 order: [[5, "desc"]],
 
