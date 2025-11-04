@@ -38,9 +38,13 @@ sub list {
     my $c = shift->openapi->valid_input or return;
 
     return try {
+        my $library_id = $c->param('library_id');
+        my $results = $library_id
+            ? Koha::HoldPickupShelves->search( { library_id => $library_id } )
+            : Koha::HoldPickupShelves->new;
         return $c->render(
             status  => 200,
-            openapi => $c->objects->search( Koha::HoldPickupShelves->new )
+            openapi => $c->objects->search($results)
         );
     } catch {
         $c->unhandled_exception($_);
