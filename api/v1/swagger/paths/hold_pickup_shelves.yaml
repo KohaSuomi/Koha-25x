@@ -13,6 +13,11 @@
       - $ref: "../swagger.yaml#/parameters/q_param"
       - $ref: "../swagger.yaml#/parameters/q_body"
       - $ref: "../swagger.yaml#/parameters/request_id_header"
+      - name: library_id
+        in: query
+        required: false
+        description: The library id
+        type: string
       - name: x-koha-embed
         in: header
         required: false
