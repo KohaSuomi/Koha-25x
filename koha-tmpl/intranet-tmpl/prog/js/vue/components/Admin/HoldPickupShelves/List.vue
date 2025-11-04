@@ -12,7 +12,7 @@
         <div v-if="hold_pickup_shelves_any > 0" class="page-section">
             <div class="mb-3">
                 <label for="libraryFilter" class="pe-1">{{ $__("Filter by library") }}:</label>
-                <select id="libraryFilter" v-model="library_id" @change="fetchLibraryHoldPickupShelves($event)">
+                <select id="libraryFilter" v-model="library_id" @change="fetchHoldPickupShelves($event)">
                     <option :value="null">{{ $__("All libraries") }}</option>
                     <option v-for="library in libraries" :key="library.library_id" :value="library.library_id">
                         {{ library.name }}
@@ -159,7 +159,7 @@ export default {
                         },
                     ],
                 },
-                url: "/api/v1/holds/pickup_shelves",
+                url: this.url,
                 options: {embed: "library,patron_category,holds_count", 
                           order: [[1, "asc"]]},
             },
@@ -171,11 +171,13 @@ export default {
     setup() {
         const { setWarning, setMessage, setError, setConfirmationDialog } =
             inject("mainStore");
+        const url = "/api/v1/holds/pickup_shelves";
         return {
             setWarning,
             setMessage,
             setError,
             setConfirmationDialog,
+            url,
         };
     },
     beforeRouteEnter(to, from, next) {
@@ -277,9 +279,11 @@ export default {
                 error => {}
             );
         },
-        fetchLibraryHoldPickupShelves(event) {
-            const queryParams = this.library_id ? `library_id=${this.library_id}` : '';
-            this.$refs.table.redraw("/api/v1/holds/pickup_shelves?" + queryParams);
+        fetchHoldPickupShelves(event) {
+            this.url = this.library_id
+                ? `/api/v1/holds/pickup_shelves?library_id=${this.library_id}`
+                : "/api/v1/holds/pickup_shelves";
+            this.$refs.table.redraw(this.url);
         },
         newHoldPickupShelf() {
             this.$router.push({ name: "HoldPickupShelvesFormAdd" });
@@ -335,7 +339,7 @@ export default {
             client.hold_pickup_shelves.patch(hold_pickup_shelf_id, {priority: priority}).then(
                 success => {
                     this.setMessage(this.$__("Priority updated successfully"));
-                    this.$refs.table.redraw("/api/v1/holds/pickup_shelves");
+                    this.fetchHoldPickupShelves();
                 },
                 error => {
                     this.setError(this.$__("Failed to update priority"));
@@ -347,7 +351,7 @@ export default {
             client.batch_update_priority.update(priorities).then(
                 success => {
                     this.setMessage(this.$__("Priorities updated successfully"));
-                    this.$refs.table.redraw("/api/v1/holds/pickup_shelves");
+                    this.fetchHoldPickupShelves();
                 },
                 error => {
                     this.setError(this.$__("Failed to update priorities"));
