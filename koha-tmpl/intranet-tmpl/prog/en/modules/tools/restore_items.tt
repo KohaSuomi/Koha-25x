@@ -51,26 +51,31 @@
           [% END %]
 
           [% IF ( restored_records ) %]
-            <div class="dialog message">
-              [% FOREACH record IN restored_records %]
-              <h1>Item <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% record.biblionumber | uri %]#item[% record.itemnumber | uri %]" target="_blank">[% record.itemnumber | html %]</a> restored successfully</h1>
-              [% END %]
+          <div class="col-md-12">
+            <div class="alert alert-info">
+              <div class="dialog message">
+                [% FOREACH record IN restored_records %]
+                <h3>Item <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% record.biblionumber | uri %]#item[% record.itemnumber | uri %]" target="_blank">[% record.itemnumber | html %]</a> restored successfully</h3>
+                [% END %]
+              </div>
             </div>
+
           [% END %]
 
           [% IF ( errors ) %]
             <div class="dialog alert">
               <h1> Some items could not be restored:</h1>
               [% FOREACH record IN errors %]
-                <h1>An error occurred while restoring item [% record.itemnumber | html %]</h1>
+                <h3>An error occurred while restoring item [% record.itemnumber | html %]</h3>
               [% END %]
             </div>
           [% END %]
           [% IF ( restored_records || errors ) %]
             <p>
-              <a href="/cgi-bin/koha/tools/restore_items.pl" class="btn btn-primary">Back to restore items</a>
+              <a href="/cgi-bin/koha/tools/restore_items.pl" class="btn btn-default">Back to restore items</a>
             </p>
           [% END %]
+          </div>
 
           [% IF op == 'form' %]
           <form method="post" action="/cgi-bin/koha/tools/restore_items.pl">
