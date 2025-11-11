@@ -61,7 +61,7 @@ if ( $op eq 'cud-list' ) {
     $deleted_to = $input->param('deleted_to') . " 23:59:59" // '';
 
     my $dbh = C4::Context->dbh;
-    my $query = "SELECT b.biblionumber, di.itemnumber, b.title, b.subtitle, b.part_name, b.part_number, b.author, di.barcode, di.itemnotes, di.enumchron, di.copynumber, di.holdingbranch, di.homebranch, di.deleted_on FROM deleteditems di
+    my $query = "SELECT b.biblionumber, di.itemnumber, b.title, b.subtitle, b.part_name, b.part_number, b.author, di.barcode, di.itemnotes, di.itype, di.enumchron, di.copynumber, di.holdingbranch, di.homebranch, di.deleted_on FROM deleteditems di
 inner join biblio b on di.biblionumber = b.biblionumber
 inner join biblioitems bi on di.biblionumber = bi.biblionumber
 where di.biblionumber in (select biblionumber from biblio)
@@ -93,6 +93,7 @@ order by deleted_on desc";
             enumchron    => $item->{enumchron},
             copynumber    => $item->{copynumber},
             itemnotes    => $item->{itemnotes},
+            itemtype    => $item->{itype},
         };
     }
 
