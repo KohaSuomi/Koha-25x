@@ -1057,6 +1057,9 @@ Circulation:
             - Maximum number of holds to consider when calculating LocalHoldsPriority. Set to 0 for no limit.
             - pref: LocalHoldsPriorityMaxHolds
               class: integer
+            - Maximum number of times LocalHoldsPriority can skip a hold for fulfillment. Set to 0 for no limit.
+            - pref: LocalHoldsPriorityFulfillmentSkips
+            - class: integer
         -
             - pref: OPACHoldsIfAvailableAtPickup
               choices:
