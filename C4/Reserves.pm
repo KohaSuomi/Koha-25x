@@ -884,12 +884,14 @@ sub CheckReserves {
     my $highest;
 
     if ( scalar @reserves ) {
-        my $LocalHoldsPriority              = C4::Context->preference('LocalHoldsPriority');
-        my $LocalHoldsPriorityPatronControl = C4::Context->preference('LocalHoldsPriorityPatronControl');
-        my $LocalHoldsPriorityItemControl   = C4::Context->preference('LocalHoldsPriorityItemControl');
-        my $LocalHoldsPriorityMaxHolds      = C4::Context->preference('LocalHoldsPriorityMaxHolds');
-        my $hold_counter                    = 0;
-        my $priority                        = 10000000;
+        my $LocalHoldsPriority                  = C4::Context->preference('LocalHoldsPriority');
+        my $LocalHoldsPriorityPatronControl     = C4::Context->preference('LocalHoldsPriorityPatronControl');
+        my $LocalHoldsPriorityItemControl       = C4::Context->preference('LocalHoldsPriorityItemControl');
+        my $LocalHoldsPriorityMaxHolds          = C4::Context->preference('LocalHoldsPriorityMaxHolds');
+        my $LocalHoldsPriorityFulfillmentSkips  = C4::Context->preference('LocalHoldsPriorityFulfillmentSkips');
+        my $hold_counter                        = 0;
+        my $fulfillment_match                   = 0;
+        my $priority                            = 10000000;
 
         foreach my $res (@reserves) {
             if ( $res->{'found'} && $res->{'found'} eq 'W' ) {
@@ -903,6 +905,12 @@ sub CheckReserves {
                 my $local_hold_match;
                 my $local_hold_group_match;
                 if ( $LocalHoldsPriority ne 'None' ) {
+                    # If fulfillment_skips is full, allow fulfillment
+                    if (defined $LocalHoldsPriorityFulfillmentSkips
+                        && $LocalHoldsPriorityFulfillmentSkips != 0 
+                        && int($res->{fulfillment_skips}) >= int($LocalHoldsPriorityFulfillmentSkips)) {
+                        $fulfillment_match = 1;
+                    }
                     $hold_counter++;
                     next if ( defined $LocalHoldsPriorityMaxHolds
                         && $LocalHoldsPriorityMaxHolds != 0
@@ -934,6 +942,10 @@ sub CheckReserves {
                                 Koha::Libraries->find( { branchcode => $local_holds_priority_item_branchcode } )
                                 ->validate_hold_sibling( { branchcode => $local_holds_priority_patron_branchcode } );
                         }
+                    }
+                    if ($LocalHoldsPriorityFulfillmentSkips && !$local_hold_match && !$local_hold_group_match && !$fulfillment_match) {
+                        my $hold = Koha::Holds->find( $res->{reserve_id} );
+                        $hold->update( { fulfillment_skips => $res->{fulfillment_skips} + 1 } );
                     }
                 }
 
@@ -970,6 +982,7 @@ sub CheckReserves {
                     next unless $item->can_be_transferred( { to => Koha::Libraries->find( $res->{branchcode} ) } );
                     $priority = $res->{'priority'};
                     $highest  = $res;
+                    last if $fulfillment_match;
                     last
                         if $local_hold_match
                         || ( ( $LocalHoldsPriority eq 'GiveLibraryGroup' ) && $local_hold_group_match );
@@ -1761,6 +1774,7 @@ sub _Findgroupreserve {
                reserves.found               AS found,
                reserves.reservenotes        AS reservenotes,
                reserves.priority            AS priority,
+               reserves.fulfillment_skips   AS fulfillment_skips,
                reserves.timestamp           AS timestamp,
                biblioitems.biblioitemnumber AS biblioitemnumber,
                reserves.itemnumber          AS itemnumber,
@@ -1798,6 +1812,7 @@ sub _Findgroupreserve {
                reserves.found                      AS found,
                reserves.reservenotes               AS reservenotes,
                reserves.priority                   AS priority,
+               reserves.fulfillment_skips          AS fulfillment_skips,
                reserves.timestamp                  AS timestamp,
                reserves.itemnumber                 AS itemnumber,
                reserves.reserve_id                 AS reserve_id,
