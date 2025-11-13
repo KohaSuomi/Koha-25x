@@ -69,6 +69,11 @@ properties:
       - integer
       - "null"
     description: Where in the queue the patron sits
+  fulfillment_skips:
+    type:
+      - integer
+      - "null"
+    description: Number of times this hold has been skipped for fulfillment by LocalHoldsPriority
   status:
     type:
       - string
