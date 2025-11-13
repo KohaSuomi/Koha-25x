@@ -1761,7 +1761,7 @@ sub _Findgroupreserve {
                reserves.reserve_id          AS reserve_id,
                reserves.itemtype            AS itemtype,
                reserves.non_priority        AS non_priority,
-               reserves.item_group_id           AS item_group_id,
+               reserves.item_group_id       AS item_group_id,
                reserves.hold_pickup_shelf_id AS hold_pickup_shelf_id
         FROM reserves
         JOIN biblioitems USING (biblionumber)
