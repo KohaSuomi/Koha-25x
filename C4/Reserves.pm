@@ -914,7 +914,7 @@ sub CheckReserves {
                     $hold_counter++;
                     next if ( defined $LocalHoldsPriorityMaxHolds
                         && $LocalHoldsPriorityMaxHolds != 0
-                        && $hold_counter >= $LocalHoldsPriorityMaxHolds );
+                        && $hold_counter > $LocalHoldsPriorityMaxHolds );
                     $patron = Koha::Patrons->find( $res->{borrowernumber} );
 
                     unless ( $item->exclude_from_local_holds_priority
