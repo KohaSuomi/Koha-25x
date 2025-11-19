@@ -40,7 +40,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name => 'tools/restore_records.tt',
         query         => $input,
         type          => "intranet",
-        flagsrequired => { tools => 'edit_catalogue' },
+        flagsrequired => { catalogue => 'edit_catalogue' },
     }
 );
 
