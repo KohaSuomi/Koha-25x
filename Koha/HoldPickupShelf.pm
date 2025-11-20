@@ -78,13 +78,11 @@ Return if the shelf is available for holds
 =cut
 
 sub available_shelf {
-    my ($self, $biblio_id, $patron_id) = @_;
-    my $patron = Koha::Patrons->find($patron_id);
+    my ($self, $biblio, $patron) = @_;
     my $patron_category_id = $self->_result->patron_category_id;
     my $biblio_itemtype = $self->_result->biblio_itemtype;
-    my $biblio = Koha::Biblios->find($biblio_id);
 
-    if ($biblio_id && $self->duplicate_record($biblio_id)) {
+    if ($biblio && $self->duplicate_record($biblio->biblionumber)) {
         return 0;
     }
     if ($patron && $patron_category_id && $patron->categorycode ne $patron_category_id) {
