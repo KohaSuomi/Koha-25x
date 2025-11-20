@@ -13,12 +13,25 @@
                         <i class="fas fa-info-circle"></i> <b>{{ notification }}</b>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <select id="hold_pickup_shelf_id" class="form-control me-2" v-model="hold_pickup_shelf_id" @change="changeShelf($event)" :disabled="patron_selected_shelf">
-                        <option v-for="shelf in shelves" :key="shelf.hold_pickup_shelf_id" :value="shelf.hold_pickup_shelf_id">
-                            {{ shelf.shelf_name }}
-                        </option>
-                    </select>
+                <div class="col-md-6 mb-2">
+                    <v-select
+                        :options="shelves"
+                        label="shelf_name"
+                        :reduce="shelf => shelf.hold_pickup_shelf_id"
+                        v-model="hold_pickup_shelf_id"
+                        :searchable="true"
+                        :clearable="false"
+                        :disabled="patron_selected_shelf"
+                        @input="onSelect"
+                        :placeholder="$__('Search shelves...')"
+                    >
+                        <template #option="option">
+                            <span>{{ option.shelf_name }}</span>
+                        </template>
+                        <template #selected-option="option">
+                            <span>{{ option.shelf_name }}</span>
+                        </template>
+                    </v-select>
                 </div>
                 <div class="col-md-2 no-gutters">
                     <button class="btn btn-success me-2" @click="selectShelf($event)" :disabled="!hold_pickup_shelf_id || patron_selected_shelf || special_shelf">
@@ -59,6 +72,7 @@
 <script>
 import { inject } from "vue";
 import { APIClient } from "../../fetch/api-client.js";
+import "vue-select/dist/vue-select.css";
 export default {
     props: {
         biblio_id: {
@@ -109,6 +123,13 @@ export default {
             if (hiddenInput) {
                 hiddenInput.value = this.hold_pickup_shelf_id;
             }
+            this.hold_pickup_shelf = this.shelves.find(shelf => shelf.hold_pickup_shelf_id === this.hold_pickup_shelf_id) || {};
+            if (!this.hold_pickup_shelf || this.hold_pickup_shelf.holds_count === 0) {
+                this.disable_lock_button = true;
+            } else {
+                this.disable_lock_button = false;
+            }
+            this.specialShelf();
         }
     },
     methods: {
@@ -116,7 +137,6 @@ export default {
             try {
                 const client = APIClient.hold_pickup_shelves;
                 let shelves = await client.available.getAll({}, { biblio_id: this.biblio_id, library_id: this.library_id, patron_id: this.patron_id });
-                // Show shelf which has patron_id, otherwise filter out shelves which have patron_id
                 const userShelf = shelves.find(shelf => parseInt(shelf.patron_id) === parseInt(this.logged_in_user_borrowernumber));
                 if (userShelf) {
                     this.patron_selected_shelf = true;
@@ -124,23 +144,20 @@ export default {
                     this.hold_pickup_shelf_id = userShelf.hold_pickup_shelf_id;
                     this.hold_pickup_shelf = userShelf;
                 } else {
-                    // If no user shelf is found, show all shelves without patron_id
                     this.patron_selected_shelf = false;
                     this.shelves = shelves.filter(shelf => !shelf.patron_id);
                     let found = this.shelves.find(shelf => shelf.hold_pickup_shelf_id === this.hold_pickup_shelf_id);
                     if (found) {
                         this.hold_pickup_shelf = found;
-                    } else {
+                    } else if (this.shelves.length > 0) {
                         this.hold_pickup_shelf_id = this.shelves[0].hold_pickup_shelf_id;
                         this.hold_pickup_shelf = this.shelves[0];
                     }
-                    
                 }
                 this.loading = false;
                 if (this.hold_pickup_shelf.holds_count === 0) {
                     this.disable_lock_button = true;
                 }
-
                 this.specialShelf();
             } catch (error) {
                 this.shelves = [];
@@ -148,6 +165,9 @@ export default {
                 this.setError(this.$__("Error fetching pickup shelves") + ": " + error.message);
                 this.loading = false;
             }
+        },
+        onSelect(value) {
+            this.hold_pickup_shelf_id = value;
         },
         selectShelf(e) {
             this.error = false;
@@ -186,15 +206,6 @@ export default {
             } else {
                 this.special_shelf = false;
             }
-        },
-        changeShelf(e) {
-            this.hold_pickup_shelf = this.shelves.find(shelf => shelf.hold_pickup_shelf_id === this.hold_pickup_shelf_id);
-            if (!this.hold_pickup_shelf || this.hold_pickup_shelf.holds_count === 0) {
-                this.disable_lock_button = true;
-            } else {
-                this.disable_lock_button = false;
-            }
-            this.specialShelf();
         },
         handleConfirmButton() {
             // Wait for DOM to be ready
