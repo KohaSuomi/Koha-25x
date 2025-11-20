@@ -2097,6 +2097,8 @@ modules:
             -
               columnname: shelving_location
             -
+              columnname: pickup_shelf
+            -
               columnname: call_number
             -
               columnname: copy_number
