@@ -16,12 +16,12 @@
             <th>Home library</th>
             <th>Current library</th>
             <th>Shelving location</th>
-            <th>Call number</th>
-            <th>Copy number</th>
-            <th>Enumeration</th>
             [% IF Koha.Preference('HoldPickupShelves')%]
                 <th>Pickup shelf</th>
             [% END %]
+            <th>Call number</th>
+            <th>Copy number</th>
+            <th>Enumeration</th>
             <th class="no-sort no-export">Actions</th>
         </tr>
     </thead>
@@ -87,12 +87,12 @@
                 <td>[% Branches.GetName( reserveloo.item.homebranch ) | html %]</td>
                 <td>[% Branches.GetName( reserveloo.item.holdingbranch ) | html %][% IF (reserveloo.desk_id  ) %], [% reserveloo.desk.desk_name | html %][% END %]</td>
                 <td>[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => reserveloo.item.location) | html %]</td>
-                <td>[% reserveloo.item.itemcallnumber | html %]</td>
-                <td>[% reserveloo.item.copynumber | html %]</td>
-                <td>[% reserveloo.item.enumchron | html %]</td>
                 [% IF Koha.Preference('HoldPickupShelves')%]
                     <td>[% IF (reserveloo.hold_pickup_shelf_id  ) %][% reserveloo.hold_pickup_shelf.shelf_name | html %] [% END %]</td>
                 [% END %]
+                <td>[% reserveloo.item.itemcallnumber | html %]</td>
+                <td>[% reserveloo.item.copynumber | html %]</td>
+                <td>[% reserveloo.item.enumchron | html %]</td>
                 <td>
                     <form name="cancelReserve" action="waitingreserves.pl" method="post">
                         [% INCLUDE 'csrf-token.inc' %]
