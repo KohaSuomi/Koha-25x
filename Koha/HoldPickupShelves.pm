@@ -41,59 +41,96 @@ sub available_shelves {
     $self->lock_previously_used_shelves($library_id);
     $self->open_locked_shelves($library_id);
 
-    my $primary_shelves = $self->primary_shelves($library_id, $biblio_id, $patron_id);
-    return $primary_shelves if @$primary_shelves;
+    my $patron = Koha::Patrons->find($patron_id);
+    my $biblio = Koha::Biblios->find($biblio_id);
 
-    my $overflow_shelves = $self->overflow_shelves($library_id, $biblio_id, $patron_id);
-    return $overflow_shelves if @$overflow_shelves;
+    my @methods = (
+        sub { $self->shelves_by_itemtype_and_category($library_id, $biblio->itemtype, $patron->categorycode) },
+        sub { $self->shelves_by_itemtype_or_category($library_id, $biblio->itemtype, $patron->categorycode) },
+        sub { $self->shelves_all_primary($library_id) },
+        sub { $self->overflow_shelves($library_id) },
+    );
 
+    foreach my $method (@methods) {
+        my $shelves = $method->();
+        if ($shelves && @$shelves) {
+            my $response = [];
+            for my $shelf (@$shelves) {
+                if ($shelf->available_shelf($biblio, $patron)) {
+                    my $holds_count = $shelf->holds_count;
+                    $shelf = $shelf->unblessed;
+                    $shelf->{holds_count} = $holds_count;
+                    push @{$response}, $shelf;
+                }
+            }
+            return $response if @$response;
+        }
+    }
     return [];
 }
 
+# Add search helper subs for shelf selection logic
+sub shelves_by_itemtype_and_category {
+    my ($self, $library_id, $biblio_itemtype, $patron_categorycode) = @_;
+    return $self->search({
+        library_id         => $library_id,
+        biblio_itemtype    => $biblio_itemtype,
+        patron_category_id => $patron_categorycode,
+        overflow_shelf     => 0,
+        locked             => 0
+    }, { order_by => { -asc => 'priority' } })->as_list;
+}
 
-=head3 primary_shelves
-Returns the list of primary shelves for a given library.
-=cut
+sub shelves_by_itemtype_or_category {
+    my ($self, $library_id, $biblio_itemtype, $patron_categorycode) = @_;
+    return $self->search({
+        library_id     => $library_id,
+        overflow_shelf => 0,
+        locked         => 0,
+        -or => [
+            { biblio_itemtype    => $biblio_itemtype },
+            { patron_category_id => $patron_categorycode }
+        ]
+    }, { order_by => { -asc => 'priority' } })->as_list;
+}
 
-sub primary_shelves {
-    my ($self, $library_id, $biblio_id, $patron_id) = @_;
-    my $shelves = $self->search(
+sub shelves_by_category {
+    my ($self, $library_id, $patron_categorycode) = @_;
+    return $self->search({
+        library_id         => $library_id,
+        patron_category_id => $patron_categorycode,
+        overflow_shelf     => 0,
+        locked             => 0
+    }, { order_by => { -asc => 'priority' } })->as_list;
+}
+
+sub shelves_by_itemtype {
+    my ($self, $library_id, $biblio_itemtype) = @_;
+    return $self->search({
+        library_id      => $library_id,
+        biblio_itemtype => $biblio_itemtype,
+        overflow_shelf  => 0,
+        locked          => 0
+    }, { order_by => { -asc => 'priority' } })->as_list;
+}
+
+sub shelves_all_primary {
+    my ($self, $library_id) = @_;
+    return $self->search(
         { library_id => $library_id, overflow_shelf => 0, locked => 0 },
         { order_by => { -asc => 'priority' } }
     )->as_list;
-    my $response = [];
-    for my $shelf (@$shelves) {
-        if ($shelf->available_shelf($biblio_id, $patron_id)) {
-            my $holds_count = $shelf->holds_count;
-            $shelf = $shelf->unblessed;
-            $shelf->{holds_count} = $holds_count;
-            push @{$response}, $shelf;
-        }
-    }
-    
-
-    return $response;
 }
 
 =head3 overflow_shelves
 Returns the list of overflow shelves for a given library.
 =cut
 sub overflow_shelves {
-    my ($self, $library_id, $biblio_id, $patron_id) = @_;
-    my $shelves = $self->search(
+    my ($self, $library_id) = @_;
+    return $self->search(
         { library_id => $library_id, overflow_shelf => 1, locked => 0 },
         { order_by => { -asc => 'priority' } }
     )->as_list;
-    my $response = [];
-    for my $shelf (@$shelves) {
-        if ($shelf->available_shelf($biblio_id, $patron_id)) {
-            my $holds_count = $shelf->holds_count;
-            $shelf = $shelf->unblessed;
-            $shelf->{holds_count} = $holds_count;
-            push @{$response}, $shelf;
-        }
-    }
-    return $response;
 }
 
 =head3 lock_previously_used_shelves
