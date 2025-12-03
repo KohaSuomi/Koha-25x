@@ -101,12 +101,6 @@ my $builder = sub {
 		\$('.'+data.field).empty();
 	}
 
-	function MouseOver$function_name(event) {
-		var tag = event.data.id;
-		\$("#"+tag).next().attr('class', tag);
-		selectBox$function_name(tag);
-	}
-
 	function Click$function_name(event) {
 		
 		event.preventDefault();
