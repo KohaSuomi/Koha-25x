@@ -234,7 +234,7 @@
                                     [% IF guarantees_fines and guarantees_fines > 0 %]
                                         <li class="guarantees-fines">
                                             <span class="circ-hlt">Charges:</span>
-                                            Patron's guarantees collectively owe [% guarantees_fines | $Price %].
+                                            Patron's guarantees collectively owe [% guarantees_fines | $Price %].  Total (incl. non-blocking): [% guarantees_fines_total_incl_non_blocking | $Price %].
                                             <a id="view_guarantees_finesandcharges" href="#guarantees_finesandcharges_panel">See all charges.</a>
                                         </li>
                                     [% END %]
