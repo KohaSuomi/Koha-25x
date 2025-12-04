@@ -144,7 +144,7 @@
             </li>
         [% END %]
 
-        [% IF ( charges ) %]
+        [% IF ( total > 0 ) %]
             [% INCLUDE 'blocked-fines.inc' NoIssuesCharge = chargesamount %]
         [% END %]
 
