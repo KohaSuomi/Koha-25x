@@ -334,6 +334,25 @@
                 </xsl:for-each>
             </xsl:for-each>
         </xsl:if>
+        <xsl:if test="marc:datafield[@tag=130]|marc:datafield[@tag=240]|marc:datafield[@tag=730][@ind2!=2]">
+                <xsl:for-each select="marc:datafield[@tag=130]|marc:datafield[@tag=240]|marc:datafield[@tag=730][@ind2!=2]">
+                    <xsl:if test="marc:subfield[@code='i']">
+			    <xsl:call-template name="subfieldSelect">
+				    <xsl:with-param name="codes">i</xsl:with-param>
+			    </xsl:call-template>
+		    </xsl:if>
+		    <xsl:text> </xsl:text>
+                    <xsl:for-each select="marc:subfield">
+                        <xsl:if test="contains('adfghklmnoprst',@code)">
+                            <xsl:value-of select="text()"/>
+                            <xsl:text> </xsl:text>
+                        </xsl:if>
+                    </xsl:for-each>
+                    <xsl:if test="position() != last()">
+                        <span class="separator"><xsl:text> | </xsl:text></span>
+                    </xsl:if>
+                </xsl:for-each>
+        </xsl:if>
     </a>
 
     <!-- Author Statement: Alternate Graphic Representation (MARC 880) -->
