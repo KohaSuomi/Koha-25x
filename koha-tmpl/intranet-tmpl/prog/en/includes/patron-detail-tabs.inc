@@ -15,7 +15,7 @@
 
         [% IF ( guarantees_fines_total_incl_non_blocking ) %]
             [% WRAPPER tab_item tabname= "guarantees_finesandcharges" %]
-                <span>Guarantees' charges ([% guarantees_fines_total_incl_non_blocking | $Price %])</span>
+                <span>Guarantees' charges ([% guarantees_fines_total_incl_non_blocking | $Price with_symbol => 1 %])</span>
             [% END %]
         [% END %]
 

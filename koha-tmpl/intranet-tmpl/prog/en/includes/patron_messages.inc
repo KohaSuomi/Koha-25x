@@ -5,7 +5,7 @@
 [% SET return_claims = patron.return_claims %]
 [% SET logged_in_branchcode = Branches.GetLoggedInBranchcode() %]
 
-[% IF ( has_modifications || warndeparture || returnbeforeexpiry || expired || patron.gonenoaddress || patron.lost || userdebarred || odues || ( return_claims.count > ClaimReturnedWarningThreshold ) || age_limitations || limited_category || charges || charges_guarantors_guarantees || charges_guarantees || credits || patron.account_locked ) %]
+[% IF ( has_modifications || warndeparture || returnbeforeexpiry || expired || patron.gonenoaddress || patron.lost || userdebarred || odues || ( return_claims.count > ClaimReturnedWarningThreshold ) || age_limitations || limited_category || charges || charges_guarantors_guarantees || charges_guarantees || credits || patron.account_locked || total > 0 ) %]
     <h3>Attention</h3>
     <ul>
         [% IF ( has_modifications ) %]
@@ -167,7 +167,7 @@
         [% END %]
 
         [% IF ( credits ) %]
-            <li class="credits"><span class="circ-hlt">Credits:</span> Patron has outstanding credits [% IF ( creditsamount ) %]of <span class="credit"><strong>[% creditsamount | $Price %]</strong></span>[% END %]</li>
+            <li class="credits"><span class="circ-hlt">Credits:</span> Patron has outstanding credits [% IF ( creditsamount ) %]of <span class="credit"><strong>[% creditsamount | $Price with_symbol => 1 %]</strong></span>[% END %]</li>
         [% END %]
         [% IF (noissues && CAN_user_circulate_force_checkout && !moremember) %]
             <li>
