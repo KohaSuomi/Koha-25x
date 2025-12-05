@@ -235,7 +235,7 @@ if ( defined $no_issues_charge_guarantees ) {
         $guarantees_non_issues_charges += $g->account->non_issues_charges;
         $guarantees_total_charges += $total;
     }
-    if ( $guarantees_non_issues_charges > $no_issues_charge_guarantees ) {
+    if ( $guarantees_total_charges > 0 ) {
         $template->param(
             charges_guarantees       => 1,
             chargesamount_guarantees => $guarantees_non_issues_charges,
