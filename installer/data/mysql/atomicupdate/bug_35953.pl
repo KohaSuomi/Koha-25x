@@ -14,6 +14,9 @@ return {
 
         say $out "Added new permission delete_bibliographic_records";
 
-        say $out "Add new permission delete_bibliographic_records for patrons";
+        $dbh->do(
+            q{INSERT IGNORE INTO user_permissions (borrowernumber, module_bit, code) SELECT  borrowernumber, module_bit, 'delete_bibliographic_records' FROM user_permissions where module_bit = 9 and code = 'edit_catalogue';}
+        );
+        say $out "Add new permission delete_bibliographic_records for patrons with edit_catalogue permission";
     },
 };
