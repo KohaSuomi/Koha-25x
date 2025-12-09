@@ -820,7 +820,7 @@ sub cancel {
                         item_id    => $self->itemnumber,
                         description => $description,
                     }
-                ) if $charge;
+                ) if $charge > 0;
             }
 
             C4::Log::logaction( 'HOLDS', 'CANCEL', $self->reserve_id, $self, undef, $original )
