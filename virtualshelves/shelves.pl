@@ -37,6 +37,7 @@ use Koha::Biblioitems;
 use Koha::Items;
 use Koha::ItemTypes;
 use Koha::CsvProfiles;
+use Koha::Libraries;
 use Koha::Patrons;
 use Koha::Virtualshelves;
 
@@ -382,6 +383,18 @@ if ( $op eq 'view' ) {
                         push(@{$otheritems}, $item);
                     }
                 }
+
+                # Sort otheritems by holding branch description
+                my %branch_names;
+                foreach my $item (@{$otheritems}) {
+                    unless (exists $branch_names{$item->holdingbranch}) {
+                        my $branch = Koha::Libraries->find($item->holdingbranch);
+                        $branch_names{$item->holdingbranch} = $branch ? $branch->branchname : '';
+                    }
+                }
+                @{$otheritems} = sort {
+                    $branch_names{$a->holdingbranch} cmp $branch_names{$b->holdingbranch};
+                } @{$otheritems};
 
                 push (@{$holdingbranchitems}, @{$otheritems});
                 $this_item->{'ITEM_RESULTS'} = $holdingbranchitems;
