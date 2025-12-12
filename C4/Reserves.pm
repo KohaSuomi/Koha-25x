@@ -884,14 +884,26 @@ sub CheckReserves {
     my $highest;
 
     if ( scalar @reserves ) {
-        my $LocalHoldsPriority                  = C4::Context->preference('LocalHoldsPriority');
-        my $LocalHoldsPriorityPatronControl     = C4::Context->preference('LocalHoldsPriorityPatronControl');
-        my $LocalHoldsPriorityItemControl       = C4::Context->preference('LocalHoldsPriorityItemControl');
-        my $LocalHoldsPriorityMaxHolds          = C4::Context->preference('LocalHoldsPriorityMaxHolds');
-        my $LocalHoldsPriorityFulfillmentSkips  = C4::Context->preference('LocalHoldsPriorityFulfillmentSkips');
-        my $hold_counter                        = 0;
-        my $fulfillment_match                   = 0;
-        my $priority                            = 10000000;
+        my $LocalHoldsPriority              = C4::Context->preference('LocalHoldsPriority');
+        my $LocalHoldsPriorityPatronControl = C4::Context->preference('LocalHoldsPriorityPatronControl');
+        my $LocalHoldsPriorityItemControl   = C4::Context->preference('LocalHoldsPriorityItemControl');
+        my $LocalHoldsPriorityMaxHolds      = C4::Context->preference('LocalHoldsPriorityMaxHolds');
+        my $LocalHoldsPriorityMinItems      = C4::Context->preference('LocalHoldsPriorityMinItems');
+        my $LocalHoldsPriorityItemsAgainstHoldsRatio =
+            C4::Context->preference('LocalHoldsPriorityItemsAgainstHoldsRatio');
+        my $available_items_count = Koha::Items->search(
+            {
+                biblionumber => $item->biblionumber,
+                damaged      => 0,
+                notforloan   => 0,
+            }
+        )->count();
+        
+        my $LocalHoldsPriorityFulfillmentSkips = C4::Context->preference('LocalHoldsPriorityFulfillmentSkips');
+        my $hold_counter                       = 0;
+        my $fulfillment_match                  = 0;
+        my $priority                           = 10000000;
+        my $ratio_threshold                    = $available_items_count / scalar(@reserves);
 
         foreach my $res (@reserves) {
             if ( $res->{'found'} && $res->{'found'} eq 'W' ) {
@@ -904,7 +916,18 @@ sub CheckReserves {
                 my $patron;
                 my $local_hold_match;
                 my $local_hold_group_match;
-                if ( $LocalHoldsPriority ne 'None' ) {
+                # Ensure only one of LocalHoldsPriorityMinItems or LocalHoldsPriorityItemsAgainstHoldsRatio is active
+                my $min_items_active   = defined($LocalHoldsPriorityMinItems) && $LocalHoldsPriorityMinItems != 0;
+                my $ratio_active       = defined($LocalHoldsPriorityItemsAgainstHoldsRatio) && $LocalHoldsPriorityItemsAgainstHoldsRatio != 0;
+
+                if ( $min_items_active && $ratio_active ) {
+                    warn "Both LocalHoldsPriorityMinItems and LocalHoldsPriorityItemsAgainstHoldsRatio are set. Only one should be active at a time.";
+                }
+
+                my $min_items_valid = $min_items_active && int($available_items_count) >= int($LocalHoldsPriorityMinItems);
+                my $ratio_valid     = $ratio_active && $ratio_threshold >= $LocalHoldsPriorityItemsAgainstHoldsRatio;
+
+                if ( $LocalHoldsPriority ne 'None' && ( $min_items_valid || $ratio_valid ) ) {
                     # If fulfillment_skips is full, allow fulfillment
                     if (defined $LocalHoldsPriorityFulfillmentSkips
                         && $LocalHoldsPriorityFulfillmentSkips != 0 
