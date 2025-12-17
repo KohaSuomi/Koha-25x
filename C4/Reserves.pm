@@ -889,8 +889,8 @@ sub CheckReserves {
         my $LocalHoldsPriorityItemControl   = C4::Context->preference('LocalHoldsPriorityItemControl');
         my $LocalHoldsPriorityMaxHolds      = C4::Context->preference('LocalHoldsPriorityMaxHolds');
         my $LocalHoldsPriorityMinItems      = C4::Context->preference('LocalHoldsPriorityMinItems');
-        my $LocalHoldsPriorityItemsAgainstHoldsRatio =
-            C4::Context->preference('LocalHoldsPriorityItemsAgainstHoldsRatio');
+        my $LocalHoldsPriorityHoldsPerItemThreshold =
+            C4::Context->preference('LocalHoldsPriorityHoldsPerItemThreshold');
         my $available_items_count = Koha::Items->search(
             {
                 biblionumber => $item->biblionumber,
@@ -903,7 +903,8 @@ sub CheckReserves {
         my $hold_counter                       = 0;
         my $fulfillment_match                  = 0;
         my $priority                           = 10000000;
-        my $ratio_threshold                    = $available_items_count / scalar(@reserves);
+        my $ratio_threshold                    = $available_items_count ? scalar(@reserves) / $available_items_count : 0;
+
 
         foreach my $res (@reserves) {
             if ( $res->{'found'} && $res->{'found'} eq 'W' ) {
@@ -916,17 +917,16 @@ sub CheckReserves {
                 my $patron;
                 my $local_hold_match;
                 my $local_hold_group_match;
-                # Ensure only one of LocalHoldsPriorityMinItems or LocalHoldsPriorityItemsAgainstHoldsRatio is active
+                # Ensure only one of LocalHoldsPriorityMinItems or LocalHoldsPriorityHoldsPerItemThreshold is active
                 my $min_items_active   = defined($LocalHoldsPriorityMinItems) && $LocalHoldsPriorityMinItems != 0;
-                my $ratio_active       = defined($LocalHoldsPriorityItemsAgainstHoldsRatio) && $LocalHoldsPriorityItemsAgainstHoldsRatio != 0;
+                my $ratio_active       = defined($LocalHoldsPriorityHoldsPerItemThreshold) && $LocalHoldsPriorityHoldsPerItemThreshold != 0;
 
                 if ( $min_items_active && $ratio_active ) {
-                    warn "Both LocalHoldsPriorityMinItems and LocalHoldsPriorityItemsAgainstHoldsRatio are set. Only one should be active at a time.";
+                    warn "Both LocalHoldsPriorityMinItems and LocalHoldsPriorityHoldsPerItemThreshold are set. Only one should be active at a time.";
                 }
 
                 my $min_items_valid = $min_items_active && int($available_items_count) >= int($LocalHoldsPriorityMinItems);
-                my $ratio_valid     = $ratio_active && $ratio_threshold >= $LocalHoldsPriorityItemsAgainstHoldsRatio;
-
+                my $ratio_valid     = $ratio_active && $ratio_threshold <= $LocalHoldsPriorityHoldsPerItemThreshold;
                 if ( $LocalHoldsPriority ne 'None' && ( $min_items_valid || $ratio_valid ) ) {
                     # If fulfillment_skips is full, allow fulfillment
                     if (defined $LocalHoldsPriorityFulfillmentSkips
