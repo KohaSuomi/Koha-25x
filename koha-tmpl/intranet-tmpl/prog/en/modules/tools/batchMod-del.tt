@@ -174,7 +174,7 @@
                         <input type="hidden" name="op" value="[% op | html %]" />
                         <p>This will delete [% IF ( too_many_items_display ) %]all the[% ELSE %]the selected[% END %] items.</p>
                         <input type="hidden" name="del" value="1" />
-                        [% IF ( CAN_user_editcatalogue_edit_catalogue ) %]
+                        [% IF ( CAN_user_editcatalogue_edit_catalogue || CAN_user_editcatalogue_delete_bibliographic_records ) %]
                             <div style="display: flex; flex-direction: column; gap: 5px;">
                                 <div>
                                     <input type="checkbox" name="del_records" id="del_records" />
