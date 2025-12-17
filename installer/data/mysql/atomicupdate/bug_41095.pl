@@ -24,11 +24,10 @@ return {
         say $out "Added new system preference 'LocalHoldsPriorityMinItems'";
 
         $dbh->do(q{
-            INSERT IGNORE INTO systempreferences (variable,value,explanation,options,type) VALUES ('LocalHoldsPriorityItemsAgainstHoldsRatio', '0', 'How many items against holds ratio to consider for LocalHoldsPriority. Set to 0 for no limit.', '', 'integer');
+            INSERT IGNORE INTO systempreferences (variable,value,explanation,options,type) VALUES ('LocalHoldsPriorityHoldsPerItemThreshold', '0', 'How many items against holds ratio to consider for LocalHoldsPriority. Set to 0 for no limit.', '', 'integer');
         });
 
         # sysprefs
-        say $out "Added new system preference 'LocalHoldsPriorityItemsAgainstHoldsRatio'";
-
+        say $out "Added new system preference 'LocalHoldsPriorityHoldsPerItemThreshold'";
     },
 };
