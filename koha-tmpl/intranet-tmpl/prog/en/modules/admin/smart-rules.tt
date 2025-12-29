@@ -1594,7 +1594,6 @@
                                 current_input_id === "maxissueqty" ||
                                 current_input_id === "maxonsiteissueqty" ||
                                 current_input_id === "reservesallowed" ||
-                                current_input_id === "expire_reserves_charge" ||
                                 current_input_id === "holds_per_day" ||
                                 current_input_id === "holds_per_record" ||
                                 current_input_id === "holds_pickup_period"
@@ -1602,7 +1601,6 @@
                                 // If the value is not an integer for
                                 //     - "Current checkouts allowed"
                                 //     - "Current on-site checkouts allowed"
-                                //     - "Expired hold charge"
                                 //     - "Holds allowed (total)"
                                 //     - "Holds allowed (daily)"
                                 //     - "Holds per record (count)"
