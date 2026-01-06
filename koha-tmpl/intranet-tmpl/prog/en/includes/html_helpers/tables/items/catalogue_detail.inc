@@ -405,7 +405,7 @@
                 },
                 [% END %]
                 {
-                    data: "me.holding_library_id",
+                    data: "holding_library.name:me.holding_library_id",
                     datatype: "coded_value:library",
                     className: "location",
                     searchable: true,
@@ -415,7 +415,7 @@
                     }
                 },
                 {
-                    data: "me.home_library_id",
+                    data: "home_library.name:me.home_library_id",
                     datatype: "coded_value:library",
                     className: "homebranch",
                     searchable: true,
