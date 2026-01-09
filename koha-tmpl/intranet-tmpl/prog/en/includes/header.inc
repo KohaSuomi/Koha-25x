@@ -248,7 +248,7 @@
                             </li>
                         </ul>
                     </li>
-                    [% IF Koha.debug_flag %]
+                    [% IF logged_in_user.has_permission({debug => 1}) %]
                         <li class="nav-item dropdown" id="debug-controls-dropdown">
                             <a id="debug-controls-menu" href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Debug controls">
                                 <i id="debug-icon" class="fa fa-bug"></i>
