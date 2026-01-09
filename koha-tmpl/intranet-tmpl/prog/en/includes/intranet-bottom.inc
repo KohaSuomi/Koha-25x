@@ -186,7 +186,7 @@
     [% END %]
 [% END %]
 
-[% IF Koha.debug_flag %]
+[% IF logged_in_user.has_permission({debug => 1}) %]
     <script>
         (function () {
             function getURLParams() {
