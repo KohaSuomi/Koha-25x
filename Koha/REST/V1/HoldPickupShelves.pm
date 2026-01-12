@@ -187,16 +187,72 @@ Update the order of the shelves.
 sub batch_update_priority {
     my $c = shift->openapi->valid_input or return;
 
-    my $priorities = $c->req->json;
-
-    foreach my $priority (@$priorities) {
-        my $hold_pickup_shelf = $c->objects->find_rs( Koha::HoldPickupShelves->new, $priority->{hold_pickup_shelf_id} );
-        $hold_pickup_shelf->set_from_api( { priority => $priority->{priority} } )->store;
-        $hold_pickup_shelf->discard_changes;
-    }
-
+    try {
     
-    return $c->render( status => 200, openapi => { message => 'Priorities updated successfully' } );
+        my $body = $c->req->json;
+        my $first_priority = $body->{first_priority};
+        my $last_priority  = $body->{last_priority};
+        my $new_priority  = $body->{new_priority};
+        my $shelf_id = $body->{hold_pickup_shelf_id};
+        my $shelf = Koha::HoldPickupShelves->find($shelf_id);
+
+        return $c->render_resource_not_found("Hold pickup shelf")
+            unless $shelf;
+
+        my @shelves = Koha::HoldPickupShelves->search({}, { order_by => ['priority'] })->as_list;
+
+        # Remove the selected shelf from the list
+        @shelves = grep { $_->hold_pickup_shelf_id != $shelf_id } @shelves;
+
+        if ($first_priority) {
+            # Set the selected shelf's priority to 1
+            $shelf->priority(1);
+            $shelf->store;
+
+            # Reassign priorities to the rest, starting from 2
+            my $priority = 2;
+            for my $other_shelf (@shelves) {
+                $other_shelf->priority($priority++);
+                $other_shelf->store;
+            }
+        }
+        elsif ($last_priority) {
+            # Set the selected shelf's priority to the last position
+            my $last_priority_value = scalar(@shelves) + 1;
+            $shelf->priority($last_priority_value);
+            $shelf->store;
+            # Reassign priorities to the rest, starting from 1
+            my $priority = 1;
+            for my $other_shelf (@shelves) {
+                $other_shelf->priority($priority++);
+                $other_shelf->store;
+            }
+        }
+        elsif (defined $new_priority) {
+            # Ensure new_priority is within valid range
+            my $total_shelves = scalar(@shelves) + 1; # +1 for the moved shelf
+            if ($new_priority < 1 || $new_priority > $total_shelves) {
+                return $c->render(
+                    status  => 400,
+                    openapi => {
+                        error      => 'Invalid new_priority value',
+                        error_code => 'invalid_priority',
+                    }
+                );
+            }
+            # Insert the selected shelf at the new priority position
+            splice(@shelves, $new_priority - 1, 0, $shelf);
+            # Reassign priorities to all shelves
+            my $priority = 1;
+            for my $shelf_item (@shelves) {
+                $shelf_item->priority($priority++);
+                $shelf_item->store;
+            }
+        }
+        return $c->render( status => 200, openapi => { message => 'Priorities updated successfully' } );
+    } catch {
+        $c->unhandled_exception($_);
+    };
 }
 
 =head3 delete
