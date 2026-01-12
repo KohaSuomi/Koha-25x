@@ -495,16 +495,20 @@
         description: A JSON array containing the ordered list of hold pickup shelf ids
         required: true
         schema:
-          type: array
-          items:
-            type: object
-            properties:
-              hold_pickup_shelf_id:
-                type: integer
-                description: The hold pickup shelf id
-              priority:
-                type: integer
-                description: The priority of the hold pickup shelf
+          type: object
+          properties:
+            hold_pickup_shelf_id:
+              type: integer
+              description: The hold pickup shelf id
+            new_priority:
+              type: integer
+              description: The new priority for the hold pickup shelf
+            first_priority:
+              type: boolean
+              description: Set as first priority in the list
+            last_priority:
+              type: boolean
+              description: Set as last priority in the list
           additionalProperties: false
     consumes:
       - application/json
