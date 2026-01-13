@@ -2485,7 +2485,8 @@ sub AddReturn {
         }
 
         # cancel transfer if item can float but it wasn't checked in homebranch
-        if ( C4::Context->preference('CancelTransitWhenItemFloats') && $is_floating && $branch ne $item->homebranch)
+        # and reason for transfer isn't "Manual" to rule out transfers made from branch transfer tool
+        if ( C4::Context->preference('CancelTransitWhenItemFloats') && $is_floating && $branch ne $item->homebranch && $transfer->reason ne 'Manual')
         {
             $transfer->cancel( { reason => 'ItemArrivedToFloatBranch', force => 1 } );
         } elsif ( $transfer->in_transit ) {
