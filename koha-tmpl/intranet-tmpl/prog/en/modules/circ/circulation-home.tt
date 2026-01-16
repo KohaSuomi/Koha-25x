@@ -83,7 +83,7 @@
                         <a class="circ-button holds-queue" href="/cgi-bin/koha/circ/view_holdsqueue.pl"><i class="fa fa-tasks"></i> Holds queue</a>
                     </li>
                     <li>
-                        <a class="circ-button holds-to-pull" href="/cgi-bin/koha/circ/pendingreserves.pl"><i class="fa-solid fa-hand-back-fist"></i> Holds to pull</a>
+                        <a class="circ-button holds-to-pull" href="/cgi-bin/koha/circ/kohasuomi-pendingreserves.pl"><i class="fa-solid fa-hand-back-fist"></i> Holds to pull</a>
                     </li>
                     <li>
                         <a class="circ-button holds-awaiting" href="/cgi-bin/koha/circ/waitingreserves.pl"><i class="fa-solid fa-calendar-days"></i> Holds awaiting pickup</a>
