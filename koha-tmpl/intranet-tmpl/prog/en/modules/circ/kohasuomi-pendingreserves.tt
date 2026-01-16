@@ -1,0 +1,347 @@
+[% USE raw %]
+[% USE Asset %]
+[% USE Koha %]
+[% SET KOHA_VERSION = Koha. Preference('Version') %]
+[% USE KohaDates %]
+[% USE TablesSettings %]
+[% USE AuthorisedValues %]
+[%- USE Branches -%]
+[% PROCESS 'i18n.inc' %]
+[% SET footerjs = 1 %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>[% FILTER collapse %]
+    [% t("Holds to pull") | html %]
+    &rsaquo; [% t("Circulation") | html %] &rsaquo; [% t("Koha") | html %]
+[% END %]</title>
+[% INCLUDE 'doc-head-close.inc' %]
+</head>
+
+<body id="circ_pendingreserves" class="circ">
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'circ-search.inc' %]
+[% END %]
+
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Holds to pull</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
+
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <main>
+                [% INCLUDE 'messages.inc' %]
+
+                <h1>Holds to pull reported on [% reporteddate | $KohaDates with_hours => 1 %]</h1>
+
+                [% IF ( reserveloop ) %]
+
+                    <p>The following holds have not been filled.  Please retrieve them and check them in.</p>
+                    <ul>
+                        <li>
+                            <span style="color: #ff5500; font-weight: bold;">Orange</span>
+                            <span> color means that the item can be found in the hold pickup library. </span>
+                        </li>
+                        [% IF reservegroups. length > 2 %]
+                        <li>
+                            <span style="font-weight: bold;">Bold</span>
+                            <span> text means that the item can be found in a library that belongs to the same hold pickup location group as the hold's pickup library.</span>
+                        </li>
+                        [% END %]
+                    </ul>
+
+                    <div id="searchresults">
+                        <table id="holdst">
+                            <thead>
+                                <tr>
+                                    <th data-colname="pull_count">Pull</th>
+                                    <th data-colname="available">Available</th>
+                                    <th data-colname="holds">Holds</th>
+                                    <th data-colname="next_patron">Next patron</th>
+                                    <th data-colname="on_shelf" class="string-sort">On shelf</th>
+                                    <th data-colname="hold_at" class="string-sort">Hold at</th>
+                                    <th data-colname="call_numbers">Call numbers</th>
+                                    <th data-colname="title">Title</th>
+                                    <th data-colname="copies">Copies</th>
+                                    <th data-colname="issues">Issues</th>
+                                    <th data-colname="itemtypes" class="string-sort">Itemtypes</th>
+                                    <th data-colname="materials" class="string-sort">Materials</th>
+                                    <th data-colname="locations" class="string-sort">Locations</th>
+                                    <th data-colname="sublocations" class="string-sort">Sublocations</th>
+                                    <th data-colname="collections" class="string-sort">Collections</th>
+                                    <th data-colname="item_notes">Item notes</th>
+                                    <th data-colname="next_hold" class="string-sort">Next hold</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                [% FOREACH reserveloo IN reserveloop %]
+                                    <tr>
+                                        [% IF ( reserveloo.borrowernumber ) %]
+                                            <td>[% reserveloo.pullcount | html %]</td>
+                                            <td>[% reserveloo.count | html %]</td>
+                                            <td>[% reserveloo.rcount | html %]</td>
+                                            <td>
+                                                <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% reserveloo. borrowernumber | uri %]">[% reserveloo.borrowerinfo | html %]</a>
+                                            </td>
+                                            <td>
+                                                [% IF ( reserveloo.holdingbranches. size ) %]
+                                                    <ul style="padding-left:  0; margin:  0;">
+                                                        [% FOREACH holdingbranch IN reserveloo.holdingbranches %]
+                                                            <li style="list-style-type: none" class="ks-holdingbranch">[% holdingbranch | html %]</li>
+                                                        [% END %]
+                                                    </ul>
+                                                [% END %]
+                                            </td>
+                                            <td class="ks-tobranch">[% reserveloo.branch | html %]</td>
+                                            <td>
+                                                [% IF ( reserveloo. itemcallnumber. size ) %]
+                                                    <ul style="padding-left: 0; margin: 0;">
+                                                        [% FOREACH callnumber IN reserveloo.itemcallnumber %]
+                                                            <li style="list-style-type: none">[% callnumber | html %]</li>
+                                                        [% END %]
+                                                    </ul>
+                                                [% END %]
+                                            </td>
+                                            <td>
+                                                [% INCLUDE 'biblio-default-view.inc' biblionumber = reserveloo.biblionumber %]
+                                                [% reserveloo.title | html %]
+                                                [% IF ( reserveloo. number ) %] [% reserveloo.number | html %] [% END %]
+                                                [% FOREACH s IN reserveloo.subtitle %][% s | html %] [% END %]</a>
+
+                                                [% IF ( reserveloo.part_name ) %]<br/>[% reserveloo.part_name | html %][% END %]
+                                                [% IF ( reserveloo.part_number ) %] [% reserveloo.part_number | html %][% END %]
+                                                <br/><br/>
+
+                                                [% IF ( reserveloo.author ) %]<strong>by</strong> [% reserveloo. author | html %]<br/><br/>[% END %]
+                                                [% IF ( reserveloo.collectiontitle ) %]<strong>series</strong> [% reserveloo.collectiontitle | html %][% END %]
+                                                [% IF ( reserveloo.collectionvolume ) %] [% reserveloo.collectionvolume | html %]<br/><br/>[% END %]
+
+                                                [% IF ( reserveloo.editionstatement ) %][% reserveloo.editionstatement | html %][% END %]
+                                                [% IF ( reserveloo.publicationyear ) %] [% reserveloo.publicationyear | html %][% END %]
+                                                [% IF ( reserveloo.enumchron ) %]Issues [% reserveloo.enumchron | html %][% END %]
+                                            </td>
+                                        [% ELSE %]
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                        [% END %]
+
+                                        <td>[% reserveloo.copyno | html %]</td>
+                                        <td>[% reserveloo.enumchron | html %]</td>
+                                        <td>
+                                            [% IF ( reserveloo. itypes.size ) %]
+                                                <ul style="padding-left:0; margin:0;">
+                                                    [% FOREACH itype IN reserveloo.itypes %]
+                                                        <li style="list-style-type:none">[% itype | html %]</li>
+                                                    [% END %]
+                                                </ul>
+                                            [% END %]
+                                        </td>
+                                        <td>
+                                            [% IF ( reserveloo.mtypes.size ) %]
+                                                <ul style="padding-left:0; margin:0;">
+                                                    [% FOREACH mtype IN reserveloo. mtypes %]
+                                                        <li style="list-style-type:none">[% mtype | html %]</li>
+                                                    [% END %]
+                                                </ul>
+                                            [% END %]
+                                        </td>
+                                        <td>
+                                            [% IF ( reserveloo.locations.size ) %]
+                                                <ul style="padding-left:0; margin:0;">
+                                                    [% FOREACH loc IN reserveloo.locations %]
+                                                        <li style="list-style-type:none">[% loc | html %]</li>
+                                                    [% END %]
+                                                </ul>
+                                            [% END %]
+                                        </td>
+                                        <td>
+                                            [% IF ( reserveloo.sublocations.size ) %]
+                                                <ul style="padding-left:0; margin:0;">
+                                                    [% FOREACH subloc IN reserveloo.sublocations %]
+                                                        <li style="list-style-type:none">[% subloc | html %]</li>
+                                                    [% END %]
+                                                </ul>
+                                            [% END %]
+                                        </td>
+                                        <td>
+                                            [% IF ( reserveloo.ccodes.size ) %]
+                                                <ul style="padding-left:0; margin:0;">
+                                                    [% FOREACH ccode IN reserveloo.ccodes %]
+                                                        <li style="list-style-type:none">[% ccode | html %]</li>
+                                                    [% END %]
+                                                </ul>
+                                            [% END %]
+                                        </td>
+                                        <td>
+                                            [% IF ( reserveloo.itemnotes.size ) %]
+                                                <ul style="padding-left:0; margin:0;">
+                                                    [% FOREACH itemnote IN reserveloo.itemnotes %]
+                                                        <li style="list-style-type:none">[% itemnote | html %]</li>
+                                                    [% END %]
+                                                </ul>
+                                            [% END %]
+                                        </td>
+                                        <td data-order="[% reserveloo.reservedate | html %]">
+                                            <span title="[% reserveloo.reservedate | html %]">[% reserveloo.reservedate | $KohaDates %]</span>
+                                        </td>
+                                    </tr>
+                                [% END %]
+                            </tbody>
+                        </table>
+                    </div>
+
+                [% ELSE %]
+                    <div class="alert alert-info">
+                        No items found.  Please ask your system administrator to ensure that update-holds-to-pull. pl gets run regularly.
+                    </div>
+                [% END %]
+
+            </main>
+        </div>
+        <!-- /.col-12 -->
+    </div>
+    <!-- /.row -->
+</div>
+<!-- /.main. container-fluid -->
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
+    <script>
+        // Store reservegroups data for highlight function
+        var reservegroupsjson = [% reservegroups || '{}' %];
+
+        function get_options(column) {
+            let regex = /(<([^>]+)>)/ig; // Remove html tags
+            let options = [...  new Set(column
+                .data()
+                .toArray()
+                .map(d => d.replace(regex, '').trim().split(/\n/gi).map(s => s.trim()).flat())
+                .flat()
+                .filter(s => s.length > 0)
+                .sort())];
+
+            return options. map(e => {
+                return { _id: e, _str: e }
+            });
+        }
+
+        $(document).ready(function() {
+            let filters_options = {
+                [4]:  (table_dt) => get_options(table_dt. column(4)),  // on_shelf (holdingbranches)
+                [5]: (table_dt) => get_options(table_dt. column(5)),  // hold_at
+                [10]: (table_dt) => get_options(table_dt.column(10)), // itemtypes
+                [11]: (table_dt) => get_options(table_dt.column(11)), // materials
+                [12]: (table_dt) => get_options(table_dt.column(12)), // locations
+                [13]: (table_dt) => get_options(table_dt.column(13)), // sublocations
+                [14]: (table_dt) => get_options(table_dt.column(14)), // collections
+            };
+
+            var table_settings = [% TablesSettings.GetTableSettings('circ', 'holds', 'kohasuomi-holds-to-pull', 'json') | $raw %];
+            var holdst = $("#holdst").kohaTable(
+                {
+                    pagingType: "full_numbers",
+                },
+                table_settings,
+                true,
+                null,
+                filters_options
+            );
+
+            // Run highlight after table is drawn
+            holdst.on('draw.dt', function() {
+                highlight();
+            });
+
+            // Initial highlight
+            highlight();
+        });
+
+        function highlight() {
+            var rows = document.querySelectorAll('#holdst tbody tr');
+
+            rows.forEach(function(row) {
+                checkMatchesReservegroups(row);
+                checkMatches(row);
+            });
+
+            function checkMatches(row) {
+                var holdingbranches = row.querySelectorAll(". ks-holdingbranch");
+                var tobranches = row.querySelectorAll(". ks-tobranch");
+
+                var holdingarr = [];
+                var toarr = [];
+
+                holdingbranches.forEach(function(el) {
+                    holdingarr.push(el. textContent. trim());
+                });
+
+                tobranches.forEach(function(el) {
+                    toarr.push(el.textContent. trim());
+                });
+
+                holdingbranches.forEach(function(fromEl) {
+                    tobranches.forEach(function(toEl) {
+                        if (fromEl.textContent.trim() === toEl.textContent.trim()) {
+                            fromEl. style.color = "#ff5500";
+                            fromEl.style.fontWeight = "bold";
+                        }
+                    });
+                });
+            }
+
+            function checkMatchesReservegroups(row) {
+                if (!reservegroupsjson || Object.keys(reservegroupsjson).length === 0) {
+                    return;
+                }
+
+                function json2array(json) {
+                    var result = [];
+                    var keys = Object.keys(json);
+                    keys.forEach(function(key) {
+                        result.push(json[key]);
+                    });
+                    return result;
+                }
+
+                var reservegroupsarray = json2array(reservegroupsjson);
+
+                var holdingbranches = row.querySelectorAll(".ks-holdingbranch");
+                var tobranches = row.querySelectorAll(".ks-tobranch");
+
+                holdingbranches.forEach(function(fromEl) {
+                    tobranches.forEach(function(toEl) {
+                        for (var m = 0; m < reservegroupsarray.length; m++) {
+                            var group = reservegroupsarray[m];
+                            var groupKeys = Object.keys(group);
+
+                            for (var o = 0; o < groupKeys.length; o++) {
+                                if (group[groupKeys[o]].branchcode === toEl.textContent.trim()) {
+                                    for (var p = 0; p < groupKeys.length; p++) {
+                                        if (group[groupKeys[p]].branchcode === fromEl.textContent.trim()) {
+                                            fromEl.style.fontWeight = "bold";
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                });
+            }
+        }
+    </script>
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' %]
