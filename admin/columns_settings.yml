@@ -2004,6 +2004,45 @@ modules:
             -
               columnname: action
 
+      kohasuomi-holds-to-pull:
+        default_display_length: 20
+        default_sort_order: 0
+        columns:
+            -
+              columnname: pull_count
+            -
+              columnname: available
+            -
+              columnname: holds
+            -
+              columnname:  next_patron
+            -
+              columnname: on_shelf
+            -
+              columnname: hold_at
+            -
+              columnname: call_numbers
+            -
+              columnname: title
+            -
+              columnname: copies
+            -
+              columnname: issues
+            -
+              columnname: itemtypes
+            -
+              columnname: materials
+            -
+              columnname: locations
+            -
+              columnname: sublocations
+            -
+              columnname: collections
+            -
+              columnname:  item_notes
+            -
+              columnname: next_hold
+
       patron_holds_table:
         default_sort_order: 1
         columns:
