@@ -110,7 +110,7 @@
                                                 [% END %]
                                             </td>
                                             <td>
-                                                [% INCLUDE 'biblio-default-view.inc' biblionumber = reserveloo.biblionumber %]
+                                                <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% reserveloo.biblionumber | uri %]">
                                                 [% reserveloo.title | html %]
                                                 [% IF ( reserveloo. number ) %] [% reserveloo.number | html %] [% END %]
                                                 [% FOREACH s IN reserveloo.subtitle %][% s | html %] [% END %]</a>
