@@ -312,7 +312,7 @@ sub checkin {
 
         # Check for overdue fines to display
         if ( $account->{show_outstanding_amount} ) {
-            my $kohaitem = Koha::Items->find( { barcode => $item_id } );
+            my $kohaitem = Koha::Items->search( { barcode => $item_id } )->next;
             if ($kohaitem) {
                 my $charges = Koha::Account::Lines->search(
                     {
