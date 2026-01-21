@@ -81,7 +81,7 @@ Missing POD for new.
 sub new {
     my ( $class, $item_id ) = @_;
     my $type = ref($class) || $class;
-    my $item = Koha::Items->find( { barcode => barcodedecode($item_id) } );
+    my $item = Koha::Items->search( { barcode => barcodedecode($item_id) } )->next;
     unless ($item) {
         siplog( "LOG_DEBUG", "new ILS::Item('%s'): not found", $item_id );
         warn "new ILS::Item($item_id) : No item '$item_id'.";
@@ -109,7 +109,7 @@ sub new {
     $self->{sip_media_type} = $itemtype->sip_media_type() if $itemtype;
 
     # check if its on issue and if so get the borrower
-    my $issue = Koha::Checkouts->find( { itemnumber => $item->itemnumber } );
+    my $issue = Koha::Checkouts->search( { itemnumber => $item->itemnumber } )->next;
     if ($issue) {
         $self->{due_date} = dt_from_string( $issue->date_due, 'sql' )->truncate( to => 'minute' );
         my $patron = Koha::Patrons->find( $issue->borrowernumber );
@@ -434,7 +434,7 @@ sub recall_date {
 sub hold_pickup_date {
     my $self = shift;
 
-    my $hold = Koha::Holds->find( { itemnumber => $self->{itemnumber}, found => 'W' } );
+    my $hold = Koha::Holds->search( { itemnumber => $self->{itemnumber}, found => 'W' } )->next;
     if ($hold) {
         return $hold->expirationdate || 0;
     }
@@ -474,7 +474,7 @@ sub available {
 sub _barcode_to_borrowernumber {
     my $known = shift;
     return unless defined $known;
-    my $patron = Koha::Patrons->find( { cardnumber => $known } ) or return;
+    my $patron = Koha::Patrons->search( { cardnumber => $known } )->next or return;
     return $patron->borrowernumber;
 }
 
