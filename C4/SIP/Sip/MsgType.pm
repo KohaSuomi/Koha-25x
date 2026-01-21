@@ -1273,7 +1273,7 @@ sub handle_fee_paid {
     my @success = ();
     my @fail    = ();
     foreach my $result ( @{ $pay_response->{renew_result} } ) {
-        my $item = Koha::Items->find( { itemnumber => $result->{itemnumber} } );
+        my $item = Koha::Items->search( { itemnumber => $result->{itemnumber} } )->next;
         if ( $result->{success} ) {
             push @success, '"' . $item->biblio->title . '"';
         } else {
@@ -1760,7 +1760,7 @@ sub send_acs_status {
         or die "send_acs_status error: no 'sip_username' in \$server object:\n" . Dumper($server);
     my ( $online_status,    $checkin_ok, $checkout_ok, $ACS_renewal_policy );
     my ( $status_update_ok, $offline_ok, $timeout,     $retries );
-    my $sip_user = Koha::Patrons->find( { userid => $sip_username } );
+    my $sip_user = Koha::Patrons->search( { userid => $sip_username } )->next;
     die "send_acs_status error: sip_username cannot be found in DB or DB cannot be reached" unless $sip_user;
 
     $online_status      = 'Y';

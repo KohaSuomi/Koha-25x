@@ -45,7 +45,7 @@ sub duedatefromissue {
     }    # renew from AddIssue ??
     else {
         # need to reread the issue to get due date
-        $iss = Koha::Checkouts->find( { itemnumber => $itemnum } );
+        $iss = Koha::Checkouts->search( { itemnumber => $itemnum } )->next;
         if ( $iss && $iss->date_due ) {
             $due_dt = dt_from_string( $iss->date_due, 'sql' );
         }

@@ -90,7 +90,7 @@ sub do_checkin {
 
     my ( $return, $messages, $issue, $borrower );
 
-    my $item = Koha::Items->find( { barcode => $barcode } );
+    my $item = Koha::Items->search( { barcode => $barcode } )->next;
 
     my $human_required = 0;
     if (   C4::Context->preference("CircConfirmItemParts")
