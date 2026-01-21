@@ -119,7 +119,7 @@ sub do_checkout {
                 last;
             } elsif ( $confirmation eq 'ADDITIONAL_MATERIALS' ) {
                 if ($allow_additional_materials_checkout) {
-                    my $item = Koha::Items->find( { barcode => $barcode } );
+                    my $item = Koha::Items->search( { barcode => $barcode } )->next;
                     $self->screen_msg( 'Item has additional materials: ' . $item->materials );
                 } else {
                     $self->screen_msg('Item must be checked out at a circulation desk');
