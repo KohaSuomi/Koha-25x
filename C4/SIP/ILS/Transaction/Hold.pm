@@ -43,7 +43,7 @@ sub do_hold {
         $self->ok(0);
         return $self;
     }
-    my $item = Koha::Items->find( { barcode => $self->{item}->id } );
+    my $item = Koha::Items->search( { barcode => $self->{item}->id } )->next;
     unless ($item) {
         $self->screen_msg( 'No biblio record matches barcode "' . $self->{item}->id . '".' );
         $self->ok(0);
@@ -91,7 +91,7 @@ sub drop_hold {
         return $self;
     }
 
-    my $item  = Koha::Items->find( { barcode => $self->{item}->id } );
+    my $item  = Koha::Items->search( { barcode => $self->{item}->id } )->next;
     my $holds = $item->holds->search( { borrowernumber => $patron->borrowernumber } );
 
     return $self unless $holds->count;
@@ -115,7 +115,7 @@ sub change_hold {
         $self->ok(0);
         return $self;
     }
-    my $item = Koha::Items->find( { barcode => $self->{item}->id } );
+    my $item = Koha::Items->search( { barcode => $self->{item}->id } )->next;
     unless ($item) {
         $self->screen_msg( 'No biblio record matches barcode "' . $self->{item}->id . '".' );
         $self->ok(0);

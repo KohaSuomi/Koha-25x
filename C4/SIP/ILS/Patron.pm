@@ -54,9 +54,9 @@ sub new {
         if ( $patron_id->{borrowernumber} ) {
             $patron = Koha::Patrons->find( $patron_id->{borrowernumber} );
         } elsif ( $patron_id->{cardnumber} ) {
-            $patron = Koha::Patrons->find( { cardnumber => $patron_id->{cardnumber} } );
+            $patron = Koha::Patrons->search( { cardnumber => $patron_id->{cardnumber} } )->next;
         } elsif ( $patron_id->{userid} ) {
-            $patron = Koha::Patrons->find( { userid => $patron_id->{userid} } );
+            $patron = Koha::Patrons->search( { userid => $patron_id->{userid} } )->next;
         }
     } else {
         $patron = Koha::Patrons->find_by_identifier($patron_id);
