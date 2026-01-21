@@ -33,7 +33,7 @@ sub new {
 sub do_renew_for {
     my $self     = shift;
     my $patron   = shift;
-    my $checkout = Koha::Checkouts->find( { itemnumber => $self->{item}->{itemnumber} } );
+    my $checkout = Koha::Checkouts->search( { itemnumber => $self->{item}->{itemnumber} } )->next;
     my ( $renewokay, $renewerror ) = CanBookBeRenewed( $patron, $checkout );
     if ($renewokay) {                             # ok so far check charges
         my ( $fee, undef ) = GetIssuingCharges( $self->{item}->{itemnumber}, $self->{patron}->{borrowernumber} );
