@@ -43,18 +43,18 @@
                 [% IF ( reserveloop ) %]
 
                     <p>The following holds have not been filled.  Please retrieve them and check them in.</p>
-                    <ul>
+                    <!-- <ul>
                         <li>
                             <span style="color: #ff5500; font-weight: bold;">Orange</span>
                             <span> color means that the item can be found in the hold pickup library. </span>
                         </li>
-                        [% IF reservegroups. length > 2 %]
+                        [% IF reservegroups.length > 2 %]
                         <li>
                             <span style="font-weight: bold;">Bold</span>
                             <span> text means that the item can be found in a library that belongs to the same hold pickup location group as the hold's pickup library.</span>
                         </li>
-                        [% END %]
-                    </ul>
+                    </ul> -->
+                    [% END %]
 
                     <div id="searchresults">
                         <table id="holdst">
@@ -91,7 +91,7 @@
                                                 <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% reserveloo. borrowernumber | uri %]">[% reserveloo.borrowerinfo | html %]</a>
                                             </td>
                                             <td>
-                                                [% IF ( reserveloo.holdingbranches. size ) %]
+                                                [% IF ( reserveloo.holdingbranches.size ) %]
                                                     <ul style="padding-left:  0; margin:  0;">
                                                         [% FOREACH holdingbranch IN reserveloo.holdingbranches %]
                                                             <li style="list-style-type: none" class="ks-holdingbranch">[% holdingbranch | html %]</li>
@@ -101,7 +101,7 @@
                                             </td>
                                             <td class="ks-tobranch">[% reserveloo.branch | html %]</td>
                                             <td>
-                                                [% IF ( reserveloo. itemcallnumber. size ) %]
+                                                [% IF ( reserveloo.itemcallnumber.size ) %]
                                                     <ul style="padding-left: 0; margin: 0;">
                                                         [% FOREACH callnumber IN reserveloo.itemcallnumber %]
                                                             <li style="list-style-type: none">[% callnumber | html %]</li>
@@ -141,7 +141,7 @@
                                         <td>[% reserveloo.copyno | html %]</td>
                                         <td>[% reserveloo.enumchron | html %]</td>
                                         <td>
-                                            [% IF ( reserveloo. itypes.size ) %]
+                                            [% IF ( reserveloo.itypes.size ) %]
                                                 <ul style="padding-left:0; margin:0;">
                                                     [% FOREACH itype IN reserveloo.itypes %]
                                                         <li style="list-style-type:none">[% itype | html %]</li>
@@ -205,7 +205,7 @@
 
                 [% ELSE %]
                     <div class="alert alert-info">
-                        No items found.  Please ask your system administrator to ensure that update-holds-to-pull. pl gets run regularly.
+                        No items found. Please ask your system administrator to ensure that update-holds-to-pull.pl gets run regularly.
                     </div>
                 [% END %]
 
@@ -221,7 +221,7 @@
     [% INCLUDE 'datatables.inc' %]
     <script>
         // Store reservegroups data for highlight function
-        var reservegroupsjson = [% reservegroups || '{}' %];
+        // var reservegroupsjson = [% reservegroups || '{}' %];
 
         function get_options(column) {
             let regex = /(<([^>]+)>)/ig; // Remove html tags
@@ -233,15 +233,15 @@
                 .filter(s => s.length > 0)
                 .sort())];
 
-            return options. map(e => {
+            return options.map(e => {
                 return { _id: e, _str: e }
             });
         }
 
         $(document).ready(function() {
             let filters_options = {
-                [4]:  (table_dt) => get_options(table_dt. column(4)),  // on_shelf (holdingbranches)
-                [5]: (table_dt) => get_options(table_dt. column(5)),  // hold_at
+                [4]:  (table_dt) => get_options(table_dt.column(4)),  // on_shelf (holdingbranches)
+                [5]:  (table_dt) => get_options(table_dt.column(5)),  // hold_at
                 [10]: (table_dt) => get_options(table_dt.column(10)), // itemtypes
                 [11]: (table_dt) => get_options(table_dt.column(11)), // materials
                 [12]: (table_dt) => get_options(table_dt.column(12)), // locations
@@ -261,12 +261,12 @@
             );
 
             // Run highlight after table is drawn
-            holdst.on('draw.dt', function() {
-                highlight();
-            });
+            // holdst.on('draw.dt', function() {
+                // highlight();
+            // });
 
             // Initial highlight
-            highlight();
+            // highlight();
         });
 
         function highlight() {
@@ -295,7 +295,7 @@
                 holdingbranches.forEach(function(fromEl) {
                     tobranches.forEach(function(toEl) {
                         if (fromEl.textContent.trim() === toEl.textContent.trim()) {
-                            fromEl. style.color = "#ff5500";
+                            fromEl.style.color = "#ff5500";
                             fromEl.style.fontWeight = "bold";
                         }
                     });
