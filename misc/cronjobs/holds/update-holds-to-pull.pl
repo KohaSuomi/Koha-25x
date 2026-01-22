@@ -29,15 +29,6 @@ use Storable;
 
 use constant PULL_INTERVAL => 2;
 
-sub pad_token {
-    my ($string, $length) = @_;
-    $length ||= 10;
-    $string //= '';
-    my $padlen = $length - length($string);
-    $padlen = $padlen > 0 ? $padlen : 0;
-    return $string . ("\x{200B}" x $padlen);
-}
-
 my $dbh = C4::Context->dbh;
 my @query_params = ();
 
@@ -152,14 +143,14 @@ while (my $data = $sth->fetchrow_hashref) {
     $data->{l_ccode} = '' unless $data->{l_ccode};
     $data->{l_itemnotes} = '' unless $data->{l_itemnotes};
 
-    # PAD fields here
-    $data->{l_holdingbranch} = join('|', map { pad_token($_, 10) } split(/\|/, $data->{l_holdingbranch} // '')) if defined $data->{l_holdingbranch};
-    $data->{l_itype}         = join('|', map { pad_token($_, 10) } split(/\|/, $data->{l_itype} // '')) if defined $data->{l_itype};
-    $data->{l_location}      = join('|', map { pad_token($_, 10) } split(/\|/, $data->{l_location} // '')) if defined $data->{l_location};
-    $data->{l_sub_location}  = join('|', map { pad_token($_, 10) } split(/\|/, $data->{l_sub_location} // '')) if defined $data->{l_sub_location};
-    $data->{l_ccode}         = join('|', map { pad_token($_, 10) } split(/\|/, $data->{l_ccode} // '')) if defined $data->{l_ccode};
-    $data->{l_mtype}         = join('|', map { pad_token($_, 10) } split(/\|/, $data->{l_mtype} // '')) if defined $data->{l_mtype};
-    $data->{l_branch}        = join('|', map { pad_token($_, 10) } split(/\|/, $data->{l_branch} // '')) if defined $data->{l_branch};
+    # Mark string limits with zero-width space to prevent false matches on filtering
+    $data->{l_holdingbranch} = "\x{200B}" . $data->{l_holdingbranch} . "\x{200B}" if defined $data->{l_holdingbranch};
+    $data->{l_itype}         = "\x{200B}" . $data->{l_itype} . "\x{200B}"         if defined $data->{l_itype};
+    $data->{l_location}      = "\x{200B}" . $data->{l_location} . "\x{200B}"      if defined $data->{l_location};
+    $data->{l_sub_location}  = "\x{200B}" . $data->{l_sub_location} . "\x{200B}"  if defined $data->{l_sub_location};
+    $data->{l_ccode}         = "\x{200B}" . $data->{l_ccode} . "\x{200B}"         if defined $data->{l_ccode};
+    $data->{l_mtype}         = "\x{200B}" . $data->{l_mtype} . "\x{200B}"         if defined $data->{l_mtype};
+    $data->{l_branch}        = "\x{200B}" . $data->{l_branch} . "\x{200B}"        if defined $data->{l_branch};
 
     if (($data->{icount}) && ($data->{l_itemcallnumber})) {
         push(
