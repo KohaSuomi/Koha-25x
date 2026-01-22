@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Copyright 2000-2002 Katipo Communications
-# Copyright 2016-2022 Koha-Suomi Oy
+# Copyright 2016-2026 Koha-Suomi Oy
 #
 # This file is part of Koha.
 #
@@ -21,13 +21,22 @@
 use Modern::Perl;
 use C4::Context;
 use Koha::Biblios;
-use Koha::DateUtils qw (dt_from_string output_pref);
-use Koha::CirculationRules qw ( get_effective_rule );
+use Koha::DateUtils qw(dt_from_string output_pref);
+use Koha::CirculationRules qw(get_effective_rule);
 use DateTime::Duration;
 use List::MoreUtils qw(uniq);
 use Storable;
 
 use constant PULL_INTERVAL => 2;
+
+sub pad_token {
+    my ($string, $length) = @_;
+    $length ||= 10;
+    $string //= '';
+    my $padlen = $length - length($string);
+    $padlen = $padlen > 0 ? $padlen : 0;
+    return $string . ("\x{200B}" x $padlen);
+}
 
 my $dbh = C4::Context->dbh;
 my @query_params = ();
@@ -35,128 +44,154 @@ my @query_params = ();
 my $today = dt_from_string;
 
 # Find two days ago for the default shelf pull start date, unless HoldsToPullStartDate sys pref is set.
-my $startdate = $today - DateTime::Duration->new( days => C4::Context->preference('HoldsToPullStartDate') || PULL_INTERVAL );
+my $startdate = $today - DateTime::Duration->new(days => C4::Context->preference('HoldsToPullStartDate') || PULL_INTERVAL);
 my $startdate_iso = output_pref({ dt => $startdate, dateformat => 'iso', dateonly => 1 });
 push @query_params, $startdate_iso;
 
-#similarly: calculate end date with ConfirmFutureHolds (days)
+# Similarily: calculate end date with ConfirmFutureHolds (days)
 my $enddate = $today + DateTime::Duration->new( days => C4::Context->preference('ConfirmFutureHolds') || 0 );
 my $enddate_iso   = output_pref({ dt => $enddate, dateformat => 'iso', dateonly => 1 });
 push @query_params, $enddate_iso;
 
 my @reservedata;
 
-my $strsth =
-    "SELECT min(reservedate)        AS l_reservedate,
-            reserves.borrowernumber AS borrowernumber,
-            reserves.branchcode     AS l_branch,
-            reserves.biblionumber,
+my $strsth = q{
+    SELECT
+        MIN(reservedate) AS l_reservedate,
 
-            GROUP_CONCAT(DISTINCT items.holdingbranch  ORDER BY items.itemnumber SEPARATOR '|')     l_holdingbranch,
-            GROUP_CONCAT(DISTINCT items.itype          ORDER BY items.itemnumber SEPARATOR '|')     l_itype,
-            GROUP_CONCAT(DISTINCT items.location       ORDER BY items.itemnumber SEPARATOR '|')     l_location,
-            GROUP_CONCAT(DISTINCT items.sub_location   ORDER BY items.itemnumber SEPARATOR '|')     l_sub_location,
-            GROUP_CONCAT(DISTINCT items.ccode          ORDER BY items.itemnumber SEPARATOR '|')     l_ccode,
-            GROUP_CONCAT(DISTINCT items.cn_sort        ORDER BY items.itemnumber SEPARATOR '|')     l_itemcallnumber,
-            GROUP_CONCAT(DISTINCT items.enumchron      ORDER BY items.itemnumber SEPARATOR ', ')    l_enumchron,
-            GROUP_CONCAT(DISTINCT items.copynumber     ORDER BY items.itemnumber SEPARATOR '<br/>') l_copynumber,
-            GROUP_CONCAT(DISTINCT items.itemnotes      ORDER BY items.itemnumber SEPARATOR '|')     l_itemnotes,
-            GROUP_CONCAT(DISTINCT items.itemnumber     ORDER BY items.itemnumber SEPARATOR '|')     l_itemnumbers,
-            GROUP_CONCAT(DISTINCT biblioitems.itemtype ORDER BY items.itemnumber SEPARATOR '|')     l_mtype,
+        (SELECT r2.borrowernumber
+         FROM reserves r2
+         WHERE r2.biblionumber = reserves.biblionumber
+           AND r2.found IS NULL
+           AND r2.priority <> 0
+           AND r2.suspend = 0
+         ORDER BY r2.priority ASC
+         LIMIT 1) AS borrowernumber,
 
-            biblioitems.collectiontitle,
-            biblioitems.collectionvolume,
-            biblioitems.editionstatement,
-            biblioitems.number,
-			biblio.copyrightdate AS 'publicationyear',
+        (SELECT r2.branchcode
+         FROM reserves r2
+         WHERE r2.biblionumber = reserves.biblionumber
+           AND r2.found IS NULL
+           AND r2.priority <> 0
+           AND r2.suspend = 0
+         ORDER BY r2.priority ASC
+         LIMIT 1) AS l_branch,
 
-            biblio.title,
-            biblio.author,
-			biblio.part_number,
-			biblio.part_name,
+        reserves.biblionumber,
 
-            COUNT(DISTINCT items.itemnumber)    AS icount,
-            COUNT(DISTINCT reserves.reserve_id) AS rcount,
+        GROUP_CONCAT(DISTINCT items.holdingbranch  ORDER BY items.itemnumber SEPARATOR '|')     AS l_holdingbranch,
+        GROUP_CONCAT(DISTINCT items.itype          ORDER BY items.itemnumber SEPARATOR '|')     AS l_itype,
+        GROUP_CONCAT(DISTINCT items.location       ORDER BY items.itemnumber SEPARATOR '|')     AS l_location,
+        GROUP_CONCAT(DISTINCT items.sub_location   ORDER BY items.itemnumber SEPARATOR '|')     AS l_sub_location,
+        GROUP_CONCAT(DISTINCT items.ccode          ORDER BY items.itemnumber SEPARATOR '|')     AS l_ccode,
+        GROUP_CONCAT(DISTINCT items.cn_sort        ORDER BY items.itemnumber SEPARATOR '|')     AS l_itemcallnumber,
+        GROUP_CONCAT(DISTINCT items.enumchron      ORDER BY items.itemnumber SEPARATOR ', ')    AS l_enumchron,
+        GROUP_CONCAT(DISTINCT items.copynumber     ORDER BY items.itemnumber SEPARATOR '<br/>') AS l_copynumber,
+        GROUP_CONCAT(DISTINCT items.itemnotes      ORDER BY items.itemnumber SEPARATOR '|')     AS l_itemnotes,
+        GROUP_CONCAT(DISTINCT items.itemnumber     ORDER BY items.itemnumber SEPARATOR '|')     AS l_itemnumbers,
+        GROUP_CONCAT(DISTINCT biblioitems.itemtype ORDER BY items.itemnumber SEPARATOR '|')     AS l_mtype,
 
-            borrowers.othernames othernames
+        biblioitems.collectiontitle,
+        biblioitems.collectionvolume,
+        biblioitems.editionstatement,
+        biblioitems.number,
+        biblio.copyrightdate AS publicationyear,
+
+        biblio.title,
+        biblio.author,
+        biblio.part_number,
+        biblio.part_name,
+
+        COUNT(DISTINCT items.itemnumber)    AS icount,
+        COUNT(DISTINCT reserves.reserve_id) AS rcount,
+
+        (SELECT b.othernames
+         FROM reserves r2
+         JOIN borrowers b ON r2.borrowernumber = b.borrowernumber
+         WHERE r2.biblionumber = reserves.biblionumber
+           AND r2.found IS NULL
+           AND r2.priority <> 0
+           AND r2.suspend = 0
+         ORDER BY r2.priority ASC
+         LIMIT 1) AS othernames
 
     FROM reserves
 
-            LEFT JOIN items           ON items.biblionumber=reserves.biblionumber
-            LEFT JOIN biblio          ON reserves.biblionumber=biblio.biblionumber
-            LEFT JOIN biblioitems     ON reserves.biblionumber=biblioitems.biblionumber
-            LEFT JOIN branchtransfers ON items.itemnumber=branchtransfers.itemnumber
-            LEFT JOIN issues          ON items.itemnumber=issues.itemnumber
-            LEFT JOIN borrowers       ON reserves.borrowernumber=borrowers.borrowernumber
+        LEFT JOIN items           ON items.biblionumber = reserves.biblionumber
+        LEFT JOIN biblio          ON reserves.biblionumber = biblio.biblionumber
+        LEFT JOIN biblioitems     ON reserves.biblionumber = biblioitems.biblionumber
+        LEFT JOIN branchtransfers ON items.itemnumber = branchtransfers.itemnumber
+        LEFT JOIN issues          ON items.itemnumber = issues.itemnumber
 
     WHERE reserves.found IS NULL
+      AND reservedate >= ?
+      AND reservedate <= ?
+      AND (reserves.itemnumber IS NULL OR reserves.itemnumber = items.itemnumber)
+      AND items.itemnumber NOT IN (SELECT itemnumber FROM branchtransfers WHERE datearrived IS NULL AND datecancelled IS NULL)
+      AND items.itemnumber NOT IN (SELECT itemnumber FROM reserves WHERE found IS NOT NULL AND itemnumber IS NOT NULL)
+      AND issues.itemnumber IS NULL
+      AND reserves.priority <> 0
+      AND reserves.suspend = 0
+      AND notforloan = 0 AND damaged = 0 AND itemlost = 0 AND withdrawn = 0
+      AND items.itype NOT IN (SELECT itemtype FROM itemtypes WHERE notforloan=1)
 
-            AND reservedate >= ?
-            AND reservedate <= ?
-            AND (reserves.itemnumber IS NULL OR reserves.itemnumber = items.itemnumber)
-            AND items.itemnumber NOT IN (SELECT itemnumber FROM branchtransfers WHERE datearrived IS NULL AND datecancelled IS NULL)
-            AND items.itemnumber NOT IN (SELECT itemnumber FROM reserves WHERE found IS NOT NULL AND itemnumber IS NOT NULL)
-            AND issues.itemnumber IS NULL
-            AND reserves.priority <> 0
-            AND reserves.suspend = 0
-            AND notforloan = 0 AND damaged = 0 AND itemlost = 0 AND withdrawn = 0
-            AND items.itype NOT IN (select itemtype from itemtypes where notforloan=1)
-
-    GROUP BY reserves.biblionumber ORDER BY biblio.title
-    ";
-
-    # GROUP BY reserves.biblionumber allows only items that are not checked out, else multiples occur when
-    #    multiple patrons have a hold on an item
-
+    GROUP BY reserves.biblionumber
+    ORDER BY biblio.title
+};
 
 my $sth = $dbh->prepare($strsth);
 $sth->execute(@query_params);
 
-while ( my $data = $sth->fetchrow_hashref ) {
-
+while (my $data = $sth->fetchrow_hashref) {
     my $record = Koha::Biblios->find($data->{biblionumber});
     $data = check_issuingrules($data);
 
-    # Not every item has collection and sub-location, so set them empty in those cases to prevent
-    # warnings on split below. We'll probs want warnings on missing itypes, mtypes, locations and such, so
-    # leave them undefined.
+    # Not every item has collection and sub-location, so set them empty in those cases to prevent warnings on split below.
+    $data->{subtitle} = [$record->subtitle] if $record;
+    $data->{l_sub_location} = '' unless $data->{l_sub_location};
+    $data->{l_ccode} = '' unless $data->{l_ccode};
+    $data->{l_itemnotes} = '' unless $data->{l_itemnotes};
 
-    $data->{subtitle} = [ $record->subtitle ] if $record;
-    $data->{l_sub_location}='' unless $data->{l_sub_location};
-    $data->{l_ccode}='' unless $data->{l_ccode};
-    $data->{l_itemnotes}='' unless $data->{l_itemnotes};
+    # PAD fields here
+    $data->{l_holdingbranch} = join('|', map { pad_token($_, 10) } split(/\|/, $data->{l_holdingbranch} // '')) if defined $data->{l_holdingbranch};
+    $data->{l_itype}         = join('|', map { pad_token($_, 10) } split(/\|/, $data->{l_itype} // '')) if defined $data->{l_itype};
+    $data->{l_location}      = join('|', map { pad_token($_, 10) } split(/\|/, $data->{l_location} // '')) if defined $data->{l_location};
+    $data->{l_sub_location}  = join('|', map { pad_token($_, 10) } split(/\|/, $data->{l_sub_location} // '')) if defined $data->{l_sub_location};
+    $data->{l_ccode}         = join('|', map { pad_token($_, 10) } split(/\|/, $data->{l_ccode} // '')) if defined $data->{l_ccode};
+    $data->{l_mtype}         = join('|', map { pad_token($_, 10) } split(/\|/, $data->{l_mtype} // '')) if defined $data->{l_mtype};
+    $data->{l_branch}        = join('|', map { pad_token($_, 10) } split(/\|/, $data->{l_branch} // '')) if defined $data->{l_branch};
 
     if (($data->{icount}) && ($data->{l_itemcallnumber})) {
         push(
             @reservedata, {
-                reservedate     => $data->{l_reservedate},
-                borrowerinfo    => $data->{othernames},
-                title           => $data->{title},
-                editionstatement=> $data->{editionstatement},
-                number          => $data->{number},
-                subtitle        => $data->{subtitle},
-                author          => $data->{author},
-                collectiontitle => $data->{collectiontitle},
-                collectionvolume=> $data->{collectionvolume},
-				publicationyear => $data->{publicationyear},
-				part_name       => $data->{part_name},
-				part_number     => $data->{part_number},
-                borrowernumber  => $data->{borrowernumber},
-                biblionumber    => $data->{biblionumber},
-                holdingbranches => [sort(split('\|', $data->{l_holdingbranch}))],
-                branch          => $data->{l_branch},
-                itemcallnumber  => [sort(split('\|', $data->{l_itemcallnumber}))],
-                enumchron       => $data->{l_enumchron},
-                copyno          => $data->{l_copynumber},
-                itemnotes       => [sort(split('\|', $data->{l_itemnotes}))],
-                count           => $data->{icount},
-                rcount          => $data->{rcount},
-                itypes          => [sort(split('\|', $data->{l_itype}))],
-                mtypes          => [sort(split('\|', $data->{l_mtype}))],
-                pullcount       => $data->{icount} <= $data->{rcount} ? $data->{icount} : $data->{rcount},
-                locations       => [sort(split('\|', $data->{l_location}))],
-                sublocations    => [sort(split('\|', $data->{l_sub_location}))],
-                ccodes          => [sort(split('\|', $data->{l_ccode}))]
+                reservedate      => $data->{l_reservedate},
+                borrowerinfo     => $data->{othernames},
+                title            => $data->{title},
+                editionstatement => $data->{editionstatement},
+                number           => $data->{number},
+                subtitle         => $data->{subtitle},
+                author           => $data->{author},
+                collectiontitle  => $data->{collectiontitle},
+                collectionvolume => $data->{collectionvolume},
+                publicationyear  => $data->{publicationyear},
+                part_name        => $data->{part_name},
+                part_number      => $data->{part_number},
+                borrowernumber   => $data->{borrowernumber},
+                biblionumber     => $data->{biblionumber},
+                holdingbranches  => [sort(split('\|', $data->{l_holdingbranch}))],
+                branch           => $data->{l_branch},
+                itemcallnumber   => [sort(split('\|', $data->{l_itemcallnumber}))],
+                enumchron        => $data->{l_enumchron},
+                copyno           => $data->{l_copynumber},
+                itemnotes        => [sort(split('\|', $data->{l_itemnotes}))],
+                count            => $data->{icount},
+                rcount           => $data->{rcount},
+                itypes           => [sort(split('\|', $data->{l_itype}))],
+                mtypes           => [sort(split('\|', $data->{l_mtype}))],
+                pullcount        => $data->{icount} <= $data->{rcount} ? $data->{icount} : $data->{rcount},
+                locations        => [sort(split('\|', $data->{l_location}))],
+                sublocations     => [sort(split('\|', $data->{l_sub_location}))],
+                ccodes           => [sort(split('\|', $data->{l_ccode}))]
             }
         );
     }
@@ -175,19 +210,20 @@ sub check_issuingrules {
     my $count;
 
     foreach my $itemnumber (@itemnumbers) {
-        my $item = Koha::Items->find( $itemnumber );
+        my $item = Koha::Items->find($itemnumber);
         if (!defined($item)) {
             warn "item $itemnumber is not defined";
             next;
         }
         my $issuing_rule = Koha::CirculationRules->get_effective_rule(
-            {   categorycode => $borrower->categorycode,
+            {
+                categorycode => $borrower->categorycode,
                 itemtype     => $item->itype,
                 branchcode   => $data->{l_branch},
                 rule_name    => 'holdallowed',
             }
         );
-        if ( ! $issuing_rule || ( $issuing_rule->rule_value && $issuing_rule->rule_value ne 'not_allowed' ) ) {
+        if (!$issuing_rule || ($issuing_rule->rule_value && $issuing_rule->rule_value ne 'not_allowed')) {
             push @itypes, $item->itype;
             push @holdingbranches, $item->holdingbranch;
             $count++;
@@ -199,3 +235,4 @@ sub check_issuingrules {
     $data->{icount} = $count;
     return $data;
 }
+
