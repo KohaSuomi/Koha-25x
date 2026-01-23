@@ -954,7 +954,7 @@ sub checkauth {
             && $auth_state eq 'additional-auth-needed'
             && ( my $otp_token = $query->param('otp_token') ) )
         {
-            my $patron   = Koha::Patrons->find( { userid => $userid } );
+            my $patron   = Koha::Patrons->find_by_identifier( $userid );
             my $auth     = Koha::Auth::TwoFactorAuth->new( { patron => $patron } );
             my $verified = $auth->verify($otp_token);
             $auth->clear;
@@ -1271,7 +1271,7 @@ sub checkauth {
                     my $ip = $ENV{'REMOTE_ADDR'};
 
                     # if they specify at login, use that
-                    my $patron = Koha::Patrons->find( { userid => $userid } );
+                    my $patron = Koha::Patrons->find_by_identifier( $userid );
                     if ( $query->param('branch')
                         && ( haspermission( $userid, { 'loggedinlibrary' => 1 } ) || $patron->is_superlibrarian ) )
                     {
@@ -1418,7 +1418,7 @@ sub checkauth {
 
         # Auth is completed unless an additional auth is needed
         if ($require_2FA) {
-            my $patron = Koha::Patrons->find( { userid => $userid } );
+            my $patron = Koha::Patrons->find_by_identifier( $userid );
             if ( C4::Context->preference('TwoFactorAuthentication') eq "enforced"
                 && $patron->auth_method eq 'password' )
             {
@@ -1452,7 +1452,7 @@ sub checkauth {
             );
         }
 
-        my $patron = $userid ? Koha::Patrons->find( { userid => $userid } ) : undef;
+        my $patron = $userid ? Koha::Patrons->find_by_identifier( $userid ) : undef;
         $patron->update_lastseen('login') if $patron;
 
         # FIXME This is only needed for scripts not using plack
@@ -1496,7 +1496,7 @@ sub checkauth {
     #
     #
 
-    my $patron = Koha::Patrons->find( { userid => $q_userid } );    # Not necessary logged in!
+    my $patron = Koha::Patrons->find_by_identifier( $q_userid );    # Not necessary logged in!
 
     # get the inputs from the incoming query
     my @inputs          = ();
@@ -1560,7 +1560,7 @@ sub checkauth {
     $template->param( OpacPublic  => C4::Context->preference("OpacPublic") );
     $template->param( loginprompt => 1 ) unless $info{'nopermission'};
     if ( $auth_state eq 'additional-auth-needed' ) {
-        my $patron = Koha::Patrons->find( { userid => $userid } );
+        my $patron = Koha::Patrons->find_by_identifier( $userid );
         $template->param(
             TwoFA_prompt         => 1,
             invalid_otp_token    => $invalid_otp_token,
@@ -1966,7 +1966,7 @@ sub check_cookie_auth {
 
         } elsif ($userid) {
             $session->param( 'lasttime', time() );
-            my $patron = Koha::Patrons->find( { userid => $userid } );
+            my $patron = Koha::Patrons->find_by_identifier( $userid );
 
             # If the user modify their own userid
             # Better than 500 but we could do better
@@ -1976,7 +1976,7 @@ sub check_cookie_auth {
                 return ( "expired", undef );
             }
 
-            $patron = Koha::Patrons->find( { cardnumber => $userid } )
+            $patron = Koha::Patrons->find_by_identifier( $userid )
                 unless $patron;
             return ( "password_expired", undef ) if $patron->password_expired;
             my $flags = defined($flagsrequired) ? haspermission( $userid, $flagsrequired ) : 1;
@@ -2211,7 +2211,7 @@ sub checkpw_internal {
     $password = Encode::encode( 'UTF-8', $password )
         if Encode::is_utf8($password);
 
-    my $patron = Koha::Patrons->find( { userid => $userid } );
+    my $patron = Koha::Patrons->find_by_identifier( $userid );
     if ($patron) {
         if ( checkpw_hash( $password, $patron->password ) ) {
             my $borrowernumber = $patron->borrowernumber;
@@ -2222,7 +2222,7 @@ sub checkpw_internal {
             return 1, $patron->cardnumber, $patron->userid, $patron;
         }
     }
-    $patron = Koha::Patrons->find( { cardnumber => $userid } );
+    $patron = Koha::Patrons->find_by_identifier( $userid );
     if ($patron) {
         if ( checkpw_hash( $password, $patron->password ) ) {
             my $borrowernumber = $patron->borrowernumber;
