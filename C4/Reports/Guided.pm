@@ -846,7 +846,7 @@ sub get_saved_reports {
     $filter = { keyword => $filter } if $filter && !ref($filter);
     my ( $group, $subgroup ) = @_;
 
-    my $dbh   = C4::KohaSuomi::Tweaks->dbh();
+    my $dbh   = C4::Context->dbh();
     my $query = get_saved_reports_base_query;
     my ( @cond, @args );
     if ($filter) {
