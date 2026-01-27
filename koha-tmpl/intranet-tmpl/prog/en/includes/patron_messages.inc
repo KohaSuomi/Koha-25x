@@ -148,7 +148,7 @@
             [% INCLUDE 'blocked-fines.inc' NoIssuesCharge = chargesamount %]
         [% END %]
 
-        [% IF ( charges_guarantors_guarantees_incl_non_blocking ) %]
+        [% IF ( charges_guarantees ) %]
             <li class="charges_guarantors_guarantees">
                 <span class="circ-hlt">Charges:</span> Patron's guarantors and their other guarantees collectively owe [% charges_guarantors_guarantees | $Price with_symbol => 1 %]. Total (incl. non-blocking): [% charges_guarantors_guarantees_incl_non_blocking | $Price with_symbol => 1 %].
                 [% IF noissues %]
