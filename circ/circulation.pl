@@ -632,16 +632,16 @@ if ($patron) {
         $noissues = 1;
     }
 
+    my $account = $patron->account;
+    my $account_lines = $account->outstanding_debits;
+    my $total = $account_lines->total_outstanding;
+
+    $template->param(
+    total => $total,
+    );
+
     my $patron_charge_limits = $patron->is_patron_inside_charge_limits();
     if ( $patron_charge_limits->{noissuescharge}->{charge} > 0 ) {
-
-        my $account = $patron->account;
-        my $account_lines = $account->outstanding_debits;
-        my $total = $account_lines->total_outstanding;
-
-        $template->param(
-        total => $total,
-        );
 
         my $noissuescharge =
             $patron_charge_limits->{noissuescharge}->{limit} || 5;    # FIXME If noissuescharge == 0 then 5, why??
@@ -669,6 +669,26 @@ if ($patron) {
                     $patron_charge_limits->{NoIssuesChargeGuarantorsWithGuarantees}->{charge} );
             $noissues = 1 unless C4::Context->preference("allowfineoverride");
         }
+    }
+
+    my $guarantees_non_issues_charges = 0;
+    my $guarantees_total_charges = 0;
+    my $guarantees = $patron->guarantee_relationships->guarantees;
+    while ( my $g = $guarantees->next ) {
+
+        my $account = $g->account;
+        my $account_lines = $account->outstanding_debits;
+        my $total = $account_lines->total_outstanding;
+
+        $guarantees_non_issues_charges += $g->account->non_issues_charges;
+        $guarantees_total_charges += $total;
+    }
+
+    if ( $guarantees_total_charges > 0 ) {
+        $template->param(
+            chargesamount_guarantees => $guarantees_non_issues_charges,
+            chargesamount_guarantees_total => $guarantees_total_charges,
+        );
     }
 
     my $no_issues_charge_guarantees = $patron_charge_limits->{NoIssuesChargeGuarantees}->{limit};
