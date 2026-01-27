@@ -9,7 +9,7 @@
             />
         </Toolbar>
         <h1>{{ title }}</h1>
-        <div v-if="hold_pickup_shelves_any > 0" class="page-section">
+        <div v-if="hold_pickup_shelves_count > 0" class="page-section">
             <div class="mb-3">
                 <label for="libraryFilter" class="pe-1">{{ $__("Filter by library") }}:</label>
                 <select id="libraryFilter" v-model="library_id" @change="fetchHoldPickupShelves($event)">
@@ -66,7 +66,11 @@ export default {
                                 <div style="display:flex;align-items:center;gap:2px;">
                                     <button type="button" class="priority-arrow-last" data-id="${row.hold_pickup_shelf_id}" data-priority="${data}" title="${this.$__('Set last priority')}" style="border:none;background:none;padding:0 2px;font-size:16px;">&#8659;</button>
                                     <button type="button" class="priority-arrow-down" data-id="${row.hold_pickup_shelf_id}" data-priority="${data}" title="${this.$__('Decrease priority')}" style="border:none;background:none;padding:0 2px;font-size:16px;">&#8595;</button>
-                                    <span style="min-width:30px;display:inline-block;text-align:center;">${data !== null ? data : ''}</span>
+                                    <select class="priority-select" data-id="${row.hold_pickup_shelf_id}" style="min-width:50px;padding:2px;">
+                                        ${Array.from({length: this.hold_pickup_shelves_count}, (_, i) => i + 1).map(p => 
+                                            `<option value="${p}" ${p === data ? 'selected' : ''}>${p}</option>`
+                                        ).join('')}
+                                    </select>
                                     <button type="button" class="priority-arrow-up" data-id="${row.hold_pickup_shelf_id}" data-priority="${data}" title="${this.$__('Increase priority')}" style="border:none;background:none;padding:0 2px;font-size:16px;">&#8593;</button>
                                     <button type="button" class="priority-arrow-first" data-id="${row.hold_pickup_shelf_id}" data-priority="${data}" title="${this.$__('Set first priority')}" style="border:none;background:none;padding:0 2px;font-size:16px;">&#8657;</button>
                                 </div>
@@ -164,7 +168,7 @@ export default {
                           order: [[1, "asc"]]},
             },
             initialized: false,
-            hold_pickup_shelves_any: 0,
+            hold_pickup_shelves_count: 0,
             library_id: null,
         };
     },
@@ -180,10 +184,15 @@ export default {
             url,
         };
     },
-    beforeRouteEnter(to, from, next) {
-        next(vm => {
-            vm.anyHoldPickupShelves().then(() => (vm.initialized = true));
-        });
+    beforeCreate() {
+        const client = APIClient.hold_pickup_shelves;
+        client.hold_pickup_shelves.count().then(
+            count => {
+                this.hold_pickup_shelves_count = count;
+                this.initialized = true;
+            },
+            error => {}
+        );
     },
     watch: {
         initialized(newVal) {
@@ -204,21 +213,18 @@ export default {
                                 this.batchUpdatePriorities({first_priority: true, hold_pickup_shelf_id: event.target.getAttribute("data-id")});
                             }
                         });
+                        table.addEventListener("change", (event) => {
+                            if (event.target && event.target.classList.contains("priority-select")) {
+                                const new_priority = parseInt(event.target.value);
+                                this.batchUpdatePriorities({new_priority: new_priority, hold_pickup_shelf_id: event.target.getAttribute("data-id")});
+                            }
+                        });
                     }
                 });
             }
         }
     },
     methods: {
-        async anyHoldPickupShelves() {
-            const client = APIClient.hold_pickup_shelves;
-            await client.hold_pickup_shelves.getAll({}, {_page: 1, _per_page: 1}).then(
-                hold_pickup_shelves => {
-                    this.hold_pickup_shelves_any = hold_pickup_shelves.length;
-                },
-                error => {}
-            );
-        },
         fetchHoldPickupShelves(event) {
             this.url = this.library_id
                 ? `/api/v1/holds/pickup_shelves?library_id=${this.library_id}`
