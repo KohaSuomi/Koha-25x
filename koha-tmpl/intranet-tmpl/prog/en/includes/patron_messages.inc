@@ -5,7 +5,7 @@
 [% SET return_claims = patron.return_claims %]
 [% SET logged_in_branchcode = Branches.GetLoggedInBranchcode() %]
 
-[% IF ( has_modifications || warndeparture || returnbeforeexpiry || expired || patron.gonenoaddress || patron.lost || userdebarred || odues || ( return_claims.count > ClaimReturnedWarningThreshold ) || age_limitations || limited_category || charges || charges_guarantors_guarantees || charges_guarantees || credits || patron.account_locked || total > 0 ) %]
+[% IF ( has_modifications || warndeparture || returnbeforeexpiry || expired || patron.gonenoaddress || patron.lost || userdebarred || odues || ( return_claims.count > ClaimReturnedWarningThreshold ) || age_limitations || limited_category || charges || charges_guarantors_guarantees || charges_guarantees || charges_guarantors_guarantees_incl_non_blocking || chargesamount_guarantees_total || credits || patron.account_locked || total > 0 ) %]
     <h3>Attention</h3>
     <ul>
         [% IF ( has_modifications ) %]
@@ -148,7 +148,7 @@
             [% INCLUDE 'blocked-fines.inc' NoIssuesCharge = chargesamount %]
         [% END %]
 
-        [% IF ( charges_guarantees ) %]
+        [% IF ( charges_guarantors_guarantees ) %]
             <li class="charges_guarantors_guarantees">
                 <span class="circ-hlt">Charges:</span> Patron's guarantors and their other guarantees collectively owe [% charges_guarantors_guarantees | $Price with_symbol => 1 %]. Total (incl. non-blocking): [% charges_guarantors_guarantees_incl_non_blocking | $Price with_symbol => 1 %].
                 [% IF noissues %]
@@ -163,6 +163,12 @@
                     [% IF noissues %]
                         <span class="circ-hlt">Checkouts are BLOCKED because fine balance is OVER THE LIMIT.</span>
                     [% END %]
+            </li>
+        [% END %]
+
+        [% IF ( chargesamount_guarantees_total ) %]
+            <li class="charges_guarantees">
+                <span class="circ-hlt">Charges:</span> Patron's guarantees collectively owe [% chargesamount_guarantees | $Price with_symbol => 1 %]. Guarantees total (incl. non-blocking ): [% chargesamount_guarantees_total | $Price with_symbol => 1 %].
             </li>
         [% END %]
 
