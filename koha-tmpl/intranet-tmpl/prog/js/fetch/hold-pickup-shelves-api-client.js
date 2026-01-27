@@ -37,6 +37,15 @@ export class HoldPickupShelvesAPIClient {
                     params,
                     headers: {},
                 }),
+            count: (query = {}) =>
+                this.httpClient.count({
+                    endpoint: "/" + "?" +
+                        new URLSearchParams({
+                            _page: 1,
+                            _per_page: 1,
+                            ...(query && { q: JSON.stringify(query) }),
+                        }),
+                }),
         };  
     }
     get available() {
