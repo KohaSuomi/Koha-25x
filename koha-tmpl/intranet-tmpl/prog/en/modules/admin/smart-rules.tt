@@ -1555,6 +1555,12 @@
                             var cap_fine_to_replacement_price = $(this).find("input[type='checkbox']");
                             $("#cap_fine_to_replacement_price").prop("checked", cap_fine_to_replacement_price.is(":checked"));
                             $("#overduefinescap").prop("disabled", cap_fine_to_replacement_price.is(":checked"));
+                        } else if (current_input_id === "expire_reserves_charge") {
+                            if (parseFloat(itm_text) || parseFloat(itm_text) == 0){
+                                $(current_column).find("input[type='text']").val(itm_text);
+                            } else {
+                                $(current_column).find("input[type='text']").val("");
+                            }
                         } else {
                             $(current_column).find("input[type='text']").val(itm_text);
                             // unformat prices
