@@ -162,9 +162,9 @@
                 <span class="circ-hlt">Charges:</span> Patron's guarantees collectively owe [% chargesamount_guarantees | $Price with_symbol => 1 %]. Guarantees total (incl. non-blocking ): [% chargesamount_guarantees_total | $Price with_symbol => 1 %].
                 <span class="circ-hlt">Checkouts are BLOCKED because fine balance is OVER THE LIMIT.</span>
             </li>
-        [% ELSIF ( chargesamount_guarantees_total && !noissues ) %]
-            <li class="charges_guarantees">
-                <span class="circ-hlt">Charges:</span> Patron's guarantees collectively owe [% chargesamount_guarantees | $Price with_symbol => 1 %]. Guarantees total (incl. non-blocking ): [% chargesamount_guarantees_total | $Price with_symbol => 1 %].
+        [% ELSIF ( chargesamount_guarantees_total > 0 ) %]
+            <li class="charges_guarantees_total">
+                <strong>Charges:</strong> Patron's guarantees collectively owe [% chargesamount_guarantees | $Price with_symbol => 1 %]. Guarantees total (incl. non-blocking ): [% chargesamount_guarantees_total | $Price with_symbol => 1 %].
             </li>
         [% END %]
 
@@ -174,7 +174,7 @@
         [% IF (noissues && CAN_user_circulate_force_checkout && !moremember) %]
             <li>
                 <span class="override_debarment">
-                    <a href="/cgi-bin/koha/circ/circulation.pl?forceallow=1&amp;borrowernumber=[% patron.borrowernumber | uri %]" class="btn btn-xs btn-default">Override restriction temporarily</a>
+                    <a href="/cgi-bin/koha/circ/circulation.pl?forceallow=1&amp;borrowernumber=[% patron.borrowernumber | uri %]" class="btn btn-xs btn-default">Override restrictions temporarily</a>
                 </span>
             </li>
         [% END %]
