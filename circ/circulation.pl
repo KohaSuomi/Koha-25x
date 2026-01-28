@@ -691,7 +691,7 @@ if ($patron) {
     }
 
     my $no_issues_charge_guarantees = $patron_charge_limits->{NoIssuesChargeGuarantees}->{limit};
-    if ( defined $no_issues_charge_guarantees ) {
+    if ( $no_issues_charge_guarantees ) {
 
         my $guarantees_non_issues_charges = 0;
         my $guarantees_total_charges = 0;
