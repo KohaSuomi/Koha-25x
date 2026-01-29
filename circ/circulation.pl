@@ -647,8 +647,20 @@ if ($patron) {
         $noissues ||= ( not C4::Context->preference("AllowFineOverride")
                 and $patron_charge_limits->{noissuescharge}->{overlimit} );
         $template->param(
-            charges       => 1,
-            chargesamount => $patron_charge_limits->{noissuescharge}->{charge},
+            charges                   => 1,
+            chargesamount             => $patron_charge_limits->{noissuescharge}->{charge},
+            NoIssuesCharge            => $patron_charge_limits->{noissuescharge},
+            NoIssuesChargeLimit       => $patron_charge_limits->{noissuescharge}->{limit},
+            NoIssuesChargeCharge      => $patron_charge_limits->{noissuescharge}->{charge},
+            NoIssuesChargeOverlimit   => $patron_charge_limits->{noissuescharge}->{overlimit},
+        );
+    } else {
+        # Still pass the charge limits hash so template can access limit and overlimit even with zero charges
+        $template->param(
+            NoIssuesCharge            => $patron_charge_limits->{noissuescharge},
+            NoIssuesChargeLimit       => $patron_charge_limits->{noissuescharge}->{limit},
+            NoIssuesChargeCharge      => $patron_charge_limits->{noissuescharge}->{charge},
+            NoIssuesChargeOverlimit   => $patron_charge_limits->{noissuescharge}->{overlimit},
         );
     }
 
