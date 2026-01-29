@@ -257,6 +257,10 @@ if ( $patron_charge_limits->{noissuescharge}->{charge} > 0 ) {
     $template->param(
         charges       => 1,
         chargesamount => $patron_charge_limits->{noissuescharge}->{charge},
+        NoIssuesCharge            => $patron_charge_limits->{noissuescharge},
+        NoIssuesChargeLimit       => $patron_charge_limits->{noissuescharge}->{limit},
+        NoIssuesChargeCharge      => $patron_charge_limits->{noissuescharge}->{charge},
+        NoIssuesChargeOverlimit   => $patron_charge_limits->{noissuescharge}->{overlimit},
     );
 }
 
