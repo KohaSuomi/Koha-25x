@@ -1,11 +1,145 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <title></title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    html, body { height: 100%; margin: 0; padding: 0; }
+    body {
+      background: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui, sans-serif;
+      text-align: center;
+      padding: 0 1em;
+    }
+    .spinner {
+      width: 64px;
+      height: 64px;
+      border: 8px solid #eee;
+      border-radius: 50%;
+      border-top: 8px solid #179942;
+      animation: spin 1s linear infinite;
+      box-sizing: border-box;
+      margin: 0 auto 32px auto;
+      display: block;
+    }
+    @keyframes spin {
+      0%   { transform: rotate(0deg);}
+      100% { transform: rotate(360deg);}
+    }
+    .wait-text {
+      color: #444;
+      font-size: 1.5em;
+      letter-spacing: 0.03em;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .error {
+      color: #444;
+      font-size: 1.6em;
+      margin-bottom: 24px;
+      text-align: center;
+      /* DO NOT put display:none here; hidden state is toggled separately */
+    }
+    .info-block {
+      color: #222;
+      background: #eaf7ea;
+      border-left: 5px solid #179942;
+      border-radius: 3px;
+      padding: 12px 22px;
+      margin: 18px auto 28px auto;
+      display: none;
+      font-size: 1em;
+      line-height: 1.5;
+      text-align: left;
+      max-width: 440px;
+    }
+    .visible {
+      display: inline-block !important;
+    }
+    .retry-btn {
+      appearance: none;
+      padding: 0.7em 1.4em;
+      background: #179942;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(23,153,66,0.2);
+      transition: background 0.18s;
+      margin-top: 18px;
+      margin-bottom: 0;
+      display: none;
+    }
+    .retry-btn.visible {
+      display: inline-block !important;
+    }
+    .hidden {
+      display: none !important;
+    }
+  </style>
+  <script>
+    var maxTries = 6;
+    function showWait() {
+      document.getElementById("spinner").classList.remove("hidden");
+      document.getElementById("waittext").classList.remove("hidden");
+      document.getElementById("error").classList.add("hidden");
+      document.getElementById("info-block").classList.remove("visible");
+      document.getElementById("retry-btn").classList.remove("visible");
+    }
+
+    function showError() {
+      document.getElementById("spinner").classList.add("hidden");
+      document.getElementById("waittext").classList.add("hidden");
+      document.getElementById("error").classList.remove("hidden");
+      document.getElementById("retry-btn").classList.add("visible");
+      // Only show info-block if 2nd wednesday
+      var info = document.getElementById("info-block");
+      info.classList.add("visible");
+    }
+
+    function doRetry() {
+      if (window.sessionStorage) {
+        sessionStorage.setItem("wait_tries", "0");
+      }
+      showWait();
+      setTimeout(function() { window.location.reload(); }, 500);
+    }
+
+    window.onload = function() {
+      var tries = 0;
+      if (window.sessionStorage) {
+        tries = Number(sessionStorage.getItem("wait_tries") || "0");
+      }
+      if (tries < maxTries) {
+        showWait();
+        tries += 1;
+        if (window.sessionStorage) {
+          sessionStorage.setItem("wait_tries", "" + tries);
+        }
+        setTimeout(function() { window.location.reload(); }, 10000);
+      } else {
+        showError();
+      }
+    };
+  </script>
 </head>
-<body bgcolor=white>
-<table border=0 width=100% height=100%>
-<tr><td align=center valign=center>
-KOHA IS STOPPED DUE TO CHECKSUM MISMATCH IN SYSTEM PREFERENCES. PLEASE CONTACT YOUR SYSTEM ADMINISTRATOR.
-</td></tr>
-</table>
+<body>
+  <div id="spinner" class="spinner"></div>
+  <div id="waittext" class="wait-text">Please wait...</div>
+  <div id="error" class="error hidden">
+    <div style="color:#444;">This service has been temporarily suspended for security reasons</div>
+  </div>
+  <div id="info-block" class="info-block">
+    Unconfirmed changes have been detected in one of the critical system preferences.<br/><br/>Please ask your system administrator to review the changes and confirm or discard them. After that you can retry loading the page you were trying to access.
+  </div>
+  <button id="retry-btn" class="retry-btn" onclick="doRetry()">Retry</button>
 </body>
 </html>
+
