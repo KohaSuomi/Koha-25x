@@ -236,10 +236,15 @@ if ( defined $no_issues_charge_guarantees ) {
         $guarantees_total_charges += $total;
     }
     if ( $guarantees_total_charges > 0 ) {
+        my $noissues = 0;
+        if ( $guarantees_non_issues_charges > $no_issues_charge_guarantees ) {
+            $noissues = 1 unless C4::Context->preference("allowfineoverride");
+        }
         $template->param(
             charges_guarantees       => 1,
             chargesamount_guarantees => $guarantees_non_issues_charges,
             chargesamount_guarantees_total => $guarantees_total_charges,
+            noissues => $noissues,
         );
 
     }
