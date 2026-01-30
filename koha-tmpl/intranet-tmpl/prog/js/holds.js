@@ -715,8 +715,8 @@ $(document).ready(function () {
 
 async function load_patron_holds_table(biblio_id, split_data) {
     const { name: split_name, value: split_value } = split_data;
-    const table_id = `#patron_holds_table_${biblio_id}_${split_value}`;
-    hold_table_settings.table = `patron_holds_table_${biblio_id}_${split_data.value}`;
+    let table_class = `patron_holds_table_${biblio_id}_${split_value}`;
+    const table_id = `#` + table_class;
     let url = `/api/v1/holds/?q={"me.biblio_id":${biblio_id}`;
 
     if (split_name === "branch" && split_value !== "any") {
@@ -734,17 +734,13 @@ async function load_patron_holds_table(biblio_id, split_data) {
     url += "}";
     const totalHolds = $(table_id).data("total-holds");
     const totalHoldsSelect = parseInt(totalHolds) + 1;
-    let pageStart;
     var holdsQueueTable = $(table_id).kohaTable(
         {
             language: {
                 infoFiltered: "",
             },
             ajax: {
-                url: url,
-                data: function (params) {
-                    pageStart = params.start;
-                },
+                url: url
             },
             embed: ["patron", "item", "item_group", "item_level_holds"],
             columnDefs: [
@@ -778,7 +774,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                     searchable: false,
                     render: function (data, type, row, meta) {
                         let select =
-                            '<select name="rank-request" class="rank-request" data-id="' +
+                            '<select name="rank-request" class="rank-request ' + table_class + '" data-id="' +
                             row.hold_id;
                         if (
                             CAN_user_reserveforothers_modify_holds_priority &&
@@ -844,7 +840,9 @@ async function load_patron_holds_table(biblio_id, split_data) {
                                     HoldsSplitQueueNumbering === "virtual"
                                 ) {
                                     let virtualPriority =
-                                        pageStart + meta.row + 1;
+                                        meta.settings._iDisplayStart +
+                                        meta.row +
+                                        1;
                                     select +=
                                         '" disabled="disabled"><option value="' +
                                         data +
@@ -874,25 +872,25 @@ async function load_patron_holds_table(biblio_id, split_data) {
                             return null;
                         }
                         let buttons =
-                            '<a class="hold-arrow move-hold" title="Move hold up" href="#" data-move-hold="up" data-priority="' +
+                            '<a class="hold-arrow move-hold ' + table_class + '" title="Move hold up" href="#" data-move-hold="up" data-priority="' +
                             row.priority +
                             '" reserve_id="' +
                             row.hold_id +
                             '"><i class="fa fa-lg icon-move-hold-up" aria-hidden="true"></i></a>';
                         buttons +=
-                            '<a class="hold-arrow move-hold" title="Move hold to top" href="#" data-move-hold="top" data-priority="' +
+                            '<a class="hold-arrow move-hold ' + table_class + '" title="Move hold to top" href="#" data-move-hold="top" data-priority="' +
                             row.priority +
                             '" reserve_id="' +
                             row.hold_id +
                             '"><i class="fa fa-lg icon-move-hold-top" aria-hidden="true"></i></a>';
                         buttons +=
-                            '<a class="hold-arrow move-hold" title="Move hold to bottom" href="#" data-move-hold="bottom" data-priority="' +
+                            '<a class="hold-arrow move-hold ' + table_class + '" title="Move hold to bottom" href="#" data-move-hold="bottom" data-priority="' +
                             row.priority +
                             '" reserve_id="' +
                             row.hold_id +
                             '"><i class="fa fa-lg icon-move-hold-bottom" aria-hidden="true"></i></a>';
                         buttons +=
-                            '<a class="hold-arrow move-hold" title="Move hold down" href="#" data-move-hold="down" data-priority="' +
+                            '<a class="hold-arrow move-hold ' + table_class + '" title="Move hold down" href="#" data-move-hold="down" data-priority="' +
                             row.priority +
                             '" reserve_id="' +
                             row.hold_id +
@@ -938,7 +936,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                     render: function (data, type, row, meta) {
                         if (AllowHoldDateInFuture) {
                             return (
-                                '<input type="text" class="holddate" value="' +
+                                '<input type="text" class="holddate ' + table_class + '" value="' +
                                 $date(data, { dateformat: "rfc3339" }) +
                                 '" size="10" name="hold_date" data-id="' +
                                 row.hold_id +
@@ -957,7 +955,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                     searchable: false,
                     render: function (data, type, row, meta) {
                         return (
-                            '<input type="text" class="expirationdate" value="' +
+                            '<input type="text" class="expirationdate ' + table_class + '" value="' +
                             $date(data, { dateformat: "rfc3339" }) +
                             '" size="10" name="expiration_date" data-id="' +
                             row.hold_id +
@@ -975,7 +973,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                         var branchSelect =
                             "<select priority=" +
                             row.priority +
-                            ' class="hold_location_select" data-id="' +
+                            ' class="hold_location_select ' + table_class + '" data-id="' +
                             row.hold_id +
                             '" reserve_id="' +
                             row.hold_id +
@@ -1052,7 +1050,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                                     "</a>";
                                 return __("Only item") + ' ' + link;
                             } else {
-                                let select = '<select id="change_hold_type" class="change_hold_type" data-id="' + row.hold_id + '">';
+                                let select = '<select id="change_hold_type" class="change_hold_type ' + table_class + '" data-id="' + row.hold_id + '">';
                                 select += '<option value="" selected>' + __("Only item") + ' ' + barcode + '</option>';
                                 select += '<option value="">' + __("Next available") + '</option>';
                                 select += '</select>';
@@ -1065,9 +1063,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                         } else {
                             if (row.non_priority) {
                                 return (
-                                    "<em>" +
-                                    __("Next available") +
-                                    "</em><br/><i>" +
+                                    "<em>" + __("Next available") + "</em><br/><i>" +
                                     __("Non priority hold") +
                                     "</i>"
                                 );
@@ -1087,7 +1083,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                         } else {
                             if (row.lowest_priority) {
                                 return (
-                                    '<a class="hold-arrow toggle-lowest-priority" title="Remove lowest priority" href="#" data-op="cud-setLowestPriority" data-borrowernumber="' +
+                                    '<a class="hold-arrow toggle-lowest-priority ' + table_class + '" title="Remove lowest priority" href="#" data-op="cud-setLowestPriority" data-borrowernumber="' +
                                     row.patron_id +
                                     '" data-biblionumber="' +
                                     biblio_id +
@@ -1099,7 +1095,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                                 );
                             } else {
                                 return (
-                                    '<a class="hold-arrow toggle-lowest-priority" title="Set lowest priority" href="#" data-op="cud-setLowestPriority" data-borrowernumber="' +
+                                    '<a class="hold-arrow toggle-lowest-priority ' + table_class + '" title="Set lowest priority" href="#" data-op="cud-setLowestPriority" data-borrowernumber="' +
                                     row.patron_id +
                                     '" data-biblionumber="' +
                                     biblio_id +
@@ -1119,7 +1115,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                     searchable: false,
                     render: function (data, type, row, meta) {
                         return (
-                            '<a class="cancel-hold" title="Cancel hold" reserve_id="' +
+                            '<a class="cancel-hold ' + table_class + '" title="Cancel hold" reserve_id="' +
                             data +
                             '" href="#"><i class="fa fa-trash" aria-label="Cancel hold"></i></a>'
                         );
@@ -1158,7 +1154,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                             let td = "";
                             if (SuspendHoldsIntranet) {
                                 td +=
-                                    '<button class="btn btn-default btn-xs toggle-suspend" data-id="' +
+                                    '<button class="btn btn-default btn-xs toggle-suspend ' + table_class + '" data-id="' +
                                     data +
                                     '" data-biblionumber="' +
                                     biblio_id +
@@ -1201,7 +1197,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                                         $date(row.suspended_until, {
                                             dateformat: "rfc3339",
                                         }) +
-                                        '" class="suspenddate" data-flatpickr-futuredate="true" data-suspend-date="' +
+                                        '" class="suspenddate ' + table_class + '" data-flatpickr-futuredate="true" data-suspend-date="' +
                                         row.suspended_until +
                                         '" />';
                                 }
@@ -1219,7 +1215,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                     render: function (data, type, row, meta) {
                         if (row.status == "W" || row.status == "T") {
                             return (
-                                '<a class="btn btn-default btn-xs printholdslip" data-reserve_id="' +
+                                '<a class="btn btn-default btn-xs printholdslip ' + table_class + '" data-reserve_id="' +
                                 data +
                                 '">' +
                                 __("Print slip") +
@@ -1234,6 +1230,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
         },
         hold_table_settings
     );
+    holdsQueueTable.api().page(0).draw(false);
     $(table_id).on("draw.dt", function () {
         // Always deselect the "select all" checkbox when the page changes
         $(".holds_table .select_hold_all").prop("checked", false);
@@ -1400,7 +1397,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                 console.error("Error when deleting hold: " + hold_id);
             }
         }
-        $(".holddate, .expirationdate").flatpickr({
+        $(".holddate." + table_class + ", .expirationdate." + table_class).flatpickr({
             onReady: function (selectedDates, dateStr, instance) {
                 $(instance.altInput)
                     .wrap("<span class='flatpickr_wrapper'></span>")
@@ -1446,7 +1443,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                 }
             },
         });
-        $(".suspenddate").flatpickr({
+        $(".suspenddate." + table_class).flatpickr({
             onReady: function (selectedDates, dateStr, instance) {
                 $(instance.altInput)
                     .wrap("<span class='flatpickr_wrapper'></span>")
@@ -1464,11 +1461,11 @@ async function load_patron_holds_table(biblio_id, split_data) {
                     );
             },
         });
-        $(".toggle-suspend").one("click", function (e) {
+        $(".toggle-suspend." + table_class).one("click", function (e) {
             e.preventDefault();
             const hold_id = $(this).data("id");
             const suspended = $(this).attr("data-suspended");
-            const input = $(`.suspenddate[data-id="${hold_id}"]`);
+            const input = $(`.suspenddate.` + table_class + `[data-id="${hold_id}"]`);
             const method = suspended == "true" ? "DELETE" : "POST";
             let end_date = input.val() && method == "POST" ? input.val() : null;
             let params =
@@ -1494,7 +1491,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                 },
             });
         });
-        $(".rank-request").on("change", function (e) {
+        $(".rank-request." + table_class).on("change", function (e) {
             e.preventDefault();
             const hold_id = $(this).data("id");
             let priority = e.target.value;
@@ -1524,7 +1521,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                 },
             });
         });
-        $(".move-hold").one("click", function (e) {
+        $(".move-hold." + table_class).one("click", function (e) {
             e.preventDefault();
             let toPosition = $(this).attr("data-move-hold");
             let priority = $(this).attr("data-priority");
@@ -1557,7 +1554,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                 },
             });
         });
-        $(".toggle-lowest-priority").one("click", function (e) {
+        $(".toggle-lowest-priority." + table_class).one("click", function (e) {
             e.preventDefault();
             var res_id = $(this).attr("data-reserve_id");
             $.ajax({
@@ -1576,7 +1573,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                 },
             });
         });
-        $(".hold_location_select").on("change", function () {
+        $(".hold_location_select." + table_class).on("change", function () {
             $(this).prop("disabled", true);
             var cur_select = $(this);
             var res_id = $(this).attr("reserve_id");
@@ -1609,7 +1606,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                 },
             });
         });
-        $(".change_hold_type").on("change", function () {
+        $(".change_hold_type." + table_class).on("change", function () {
             $(this).prop("disabled", true);
             var cur_select = $(this);
             var hold_id = $(this).attr("data-id");
@@ -1642,7 +1639,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                 },
             });
         });
-        $(".printholdslip").one("click", function () {
+        $(".printholdslip." + table_class).one("click", function () {
             var reserve_id = $(this).attr("data-reserve_id");
             window.open(
                 "/cgi-bin/koha/circ/hold-transfer-slip.pl?reserve_id=" +
