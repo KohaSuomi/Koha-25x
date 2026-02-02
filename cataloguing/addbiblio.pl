@@ -510,6 +510,14 @@ $frameworkcode = &GetFrameworkCode($biblionumber)
     if ( $biblionumber and not( defined $frameworkcode ) and $op ne 'cud-addbiblio' );
 $frameworkcode //= '';
 
+if ($z3950 && $breedingid) {
+    my ($tmpmarc, $tmpencoding) = GetImportRecordMarc($breedingid);
+    if ($tmpmarc) {
+        my $tmprecord = MARC::Record->new_from_usmarc($tmpmarc);
+        Koha::Plugins->call('automatic_frameworkcode', { 'frameworkcode' => \$frameworkcode, 'record' => $tmprecord });
+    }
+}
+
 my $userflags =
     $frameworkcode eq 'FA'
     ? [ 'fast_cataloging', 'edit_catalogue' ]
