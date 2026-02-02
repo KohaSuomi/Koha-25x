@@ -1339,7 +1339,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                 .attr("data-id");
             let reason = $("#modal-cancellation-reason").val();
             if (hold_id) {
-                hold_ids = [hold_id];
+                hold_ids = [parseInt(hold_id)];
             } else {
                 hold_ids = JSON.parse(localStorage.selectedHolds);
             }
@@ -1355,47 +1355,37 @@ async function load_patron_holds_table(biblio_id, split_data) {
                 .attr("data-id", "");
         });
         async function deleteHolds(hold_ids, reason) {
-            for (const hold_id of hold_ids) {
-                await deleteHold(hold_id, reason);
-                $("#cancelModal")
-                    .find(".modal-body")
-                    .append(
-                        '<p class="hold-cancelled">' +
-                            __("Hold") +
-                            " " +
-                            hold_id +
-                            " " +
-                            __("cancelled") +
-                            "</p>"
+            $.ajax({
+                method: "DELETE",
+                url: "/api/v1/holds/cancellation_bulk",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    hold_ids: hold_ids,
+                    cancellation_reason: reason,
+                }),
+                success: function () {
+                    setTimeout(() => {
+                        $("#cancelModal").modal("hide");
+                        $("#cancelModal")
+                            .find(".modal-footer #cancelModalConfirmBtn")
+                            .prev("img")
+                            .remove();
+                        $("#cancelModal")
+                            .find(".modal-body")
+                            .find(".hold-cancelled")
+                            .remove();
+                        delete localStorage.selectedHolds;
+                        $(".cancel_selected_holds").html(MSG_CANCEL_SELECTED.format(0));
+                    }, 500);
+                    holdsQueueTable.api().ajax.reload(null, false);
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    alert(
+                        "There was an error:" + textStatus + " " + errorThrown
                     );
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-
-            holdsQueueTable.api().ajax.reload(null, false);
-            setTimeout(() => {
-                $("#cancelModal").modal("hide");
-                $("#cancelModal")
-                    .find(".modal-footer #cancelModalConfirmBtn")
-                    .prev("img")
-                    .remove();
-                $("#cancelModal")
-                    .find(".modal-body")
-                    .find(".hold-cancelled")
-                    .remove();
-                delete localStorage.selectedHolds;
-                $(".cancel_selected_holds").html(MSG_CANCEL_SELECTED.format(0));
+                }
             });
-        }
-        async function deleteHold(hold_id, reason) {
-            try {
-                await $.ajax({
-                    method: "DELETE",
-                    url: "/api/v1/holds/" + encodeURIComponent(hold_id),
-                    data: JSON.stringify(reason),
-                });
-            } catch (error) {
-                console.error("Error when deleting hold: " + hold_id);
-            }
+
         }
         $(".holddate." + table_class + ", .expirationdate." + table_class).flatpickr({
             onReady: function (selectedDates, dateStr, instance) {
