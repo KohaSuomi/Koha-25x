@@ -26,7 +26,9 @@ use Koha::DateUtils qw/ dt_from_string /;
 use Koha::I18N      qw(__);
 use Koha::ILL::Requests;
 use Koha::ILL::Request::Attribute;
-use C4::Biblio  qw( AddBiblio );
+use C4::Biblio qw( AddBiblio );
+use Koha::BiblioFramework;
+use Koha::BiblioFrameworks;
 use C4::Charset qw( MarcToUTF8Record );
 
 =head1 NAME
@@ -1212,6 +1214,10 @@ sub _standard_request2biblio {
 
     # Suppress the record
     _set_suppression($record);
+
+    # Fill with default values from framework
+    my $framework = Koha::BiblioFrameworks->find( $self->{framework} );
+    $framework->fill_with_default_values($record);
 
     # Create a biblio record
     my ( $biblionumber, $biblioitemnumber ) =
