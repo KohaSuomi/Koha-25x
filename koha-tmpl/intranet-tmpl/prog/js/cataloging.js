@@ -443,18 +443,6 @@ function CloneField(index, hideMarc, advancedMARCEditor) {
     // insert this line on the page
     original.parentNode.insertBefore(clone, original.nextSibling);
 
-    // Re-execute scripts in cloned element to ensure framework plugins work with new field IDs
-    var scripts = original.querySelectorAll("script");
-    scripts.forEach(function(script) {
-        var newScript = document.createElement("script");
-        if (script.src) {
-            newScript.src = script.src;
-        } else {
-            newScript.textContent = script.textContent;
-        }
-        script.parentNode.replaceChild(newScript, script);
-    });
-
     $(clone)
         .find("ul.sortable_subfield")
         .each((i, e) => {
@@ -464,9 +452,6 @@ function CloneField(index, hideMarc, advancedMARCEditor) {
                 animation: 150,
             });
         });
-
-    var original_select = $(original).find("select");
-    $(original_select).remove();
 
     Select2Utils.initSelect2($(original).find("select"));
     Select2Utils.initSelect2($(clone).find("select"));
