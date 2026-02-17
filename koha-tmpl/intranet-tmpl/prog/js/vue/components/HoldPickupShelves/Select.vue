@@ -34,11 +34,14 @@
                     </v-select>
                 </div>
                 <div class="col-md-2 no-gutters">
-                    <button class="btn btn-success me-2" @click="selectShelf($event)" :disabled="!hold_pickup_shelf_id || patron_selected_shelf || special_shelf">
-                        <i class="fas fa-check"></i>
+                    <button v-if="!patron_selected_shelf" class="btn btn-success me-2" @click="selectShelf($event)" :disabled="!hold_pickup_shelf_id || patron_selected_shelf || special_shelf">
+                        <i class="fas fa-user-check"></i>
+                    </button>
+                    <button v-else class="btn btn-secondary me-2" @click="releaseShelf($event)" :disabled="!hold_pickup_shelf_id">
+                        <i class="fas fa-user-times"></i>
                     </button>
                     <button class="btn btn-primary" @click="lockShelf($event)" :disabled="disable_lock_button">
-                        <i class="fas fa-lock"></i>
+                        <i class="fas fa-ban"></i>
                     </button>
                 </div>
             </div>
@@ -181,6 +184,21 @@ export default {
                     .catch(error => {
                         this.error = true;
                         this.setError(this.$__("Error selecting pickup shelf") + ": " + error.message);
+                    });
+            }
+        },
+        releaseShelf(e) {
+            this.error = false;
+            e.preventDefault();
+            const client = APIClient.hold_pickup_shelves;
+            if (this.hold_pickup_shelf_id) {
+                client.hold_pickup_shelves.patch(this.hold_pickup_shelf_id, { patron_id: null })
+                    .then(() => {
+                        this.getShelves();
+                    })
+                    .catch(error => {
+                        this.error = true;
+                        this.setError(this.$__("Error releasing pickup shelf") + ": " + error.message);
                     });
             }
         },
