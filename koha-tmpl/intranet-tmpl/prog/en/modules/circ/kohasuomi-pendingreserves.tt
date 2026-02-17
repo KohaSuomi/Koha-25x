@@ -221,7 +221,7 @@
     [% INCLUDE 'datatables.inc' %]
     <script>
         // Store reservegroups data for highlight function
-        // var reservegroupsjson = [% reservegroups || '{}' %];
+        var reservegroupsjson = [% reservegroups || '{}' %];
 
         function get_options(column) {
             let regex = /(<([^>]+)>)/ig; // Remove html tags
@@ -261,12 +261,12 @@
             );
 
             // Run highlight after table is drawn
-            // holdst.on('draw.dt', function() {
-                // highlight();
-            // });
+            holdst.on('draw.dt', function() {
+                highlight();
+            });
 
             // Initial highlight
-            // highlight();
+            highlight();
         });
 
         function highlight() {
@@ -278,18 +278,18 @@
             });
 
             function checkMatches(row) {
-                var holdingbranches = row.querySelectorAll(". ks-holdingbranch");
-                var tobranches = row.querySelectorAll(". ks-tobranch");
+                var holdingbranches = row.querySelectorAll(".ks-holdingbranch");
+                var tobranches = row.querySelectorAll(".ks-tobranch");
 
                 var holdingarr = [];
                 var toarr = [];
 
                 holdingbranches.forEach(function(el) {
-                    holdingarr.push(el. textContent. trim());
+                    holdingarr.push(el.textContent.trim());
                 });
 
                 tobranches.forEach(function(el) {
-                    toarr.push(el.textContent. trim());
+                    toarr.push(el.textContent.trim());
                 });
 
                 holdingbranches.forEach(function(fromEl) {
