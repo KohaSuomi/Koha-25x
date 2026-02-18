@@ -302,6 +302,10 @@
                 });
             }
 
+            function unicodeTrim(str) {
+                return str.replace(/^[\s\u00A0\u200B\u200C\u200D\uFEFF]+|[\s\u00A0\u200B\u200C\u200D\uFEFF]+$/g, '');
+            }
+
             function checkMatchesReservegroups(row) {
                 if (!reservegroupsjson || Object.keys(reservegroupsjson).length === 0) {
                     return;
@@ -328,9 +332,9 @@
                             var groupKeys = Object.keys(group);
 
                             for (var o = 0; o < groupKeys.length; o++) {
-                                if (group[groupKeys[o]].branchcode === toEl.textContent.trim()) {
+                                if (unicodeTrim(group[groupKeys[o]].branchcode) === unicodeTrim(toEl.textContent)) {
                                     for (var p = 0; p < groupKeys.length; p++) {
-                                        if (group[groupKeys[p]].branchcode === fromEl.textContent.trim()) {
+                                        if (unicodeTrim(group[groupKeys[p]].branchcode) === unicodeTrim(fromEl.textContent)) {
                                             fromEl.style.fontWeight = "bold";
                                         }
                                     }
