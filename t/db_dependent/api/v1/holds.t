@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 17;
+use Test::More tests => 18;
 use Test::NoWarnings;
 use Test::MockModule;
 use Test::Mojo;
@@ -325,6 +325,99 @@ subtest 'test AllowHoldDateInFuture' => sub {
 
     $t->post_ok( "//$userid_3:$password@/api/v1/holds" => json => $post_data )->status_is(201)
         ->json_is( '/hold_date', output_pref( { dt => $future_hold_date, dateformat => 'iso', dateonly => 1 } ) );
+};
+
+subtest 'Test place_holds permission for POST and PATCH' => sub {
+    plan tests => 7;
+
+    $dbh->do('DELETE FROM reserves');
+
+    # Create fresh biblio and item for this test
+    my $test_biblio = $builder->build_sample_biblio;
+    my $test_item   = $builder->build_sample_item( { biblionumber => $test_biblio->biblionumber, itype => $itemtype } );
+
+    # Create a patron to receive the hold
+    my $hold_recipient = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                categorycode => $categorycode,
+                branchcode   => $branchcode,
+            }
+        }
+    );
+
+    # Create two separate patrons to test with and without permissions
+    # Patron WITHOUT place_holds permission
+    my $patron_no_perm = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                categorycode => $categorycode,
+                branchcode   => $branchcode,
+                flags        => 0
+            }
+        }
+    );
+    $patron_no_perm->set_password( { password => $password, skip_validation => 1 } );
+    my $userid_no_perm = $patron_no_perm->userid;
+
+    # Patron WITH place_holds permission
+    my $patron_with_perm = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                categorycode => $categorycode,
+                branchcode   => $branchcode,
+                flags        => 0
+            }
+        }
+    );
+    $builder->build(
+        {
+            source => 'UserPermission',
+            value  => {
+                borrowernumber => $patron_with_perm->borrowernumber,
+                module_bit     => 6,
+                code           => 'place_holds',
+            },
+        }
+    );
+    $patron_with_perm->set_password( { password => $password, skip_validation => 1 } );
+    my $userid_with_perm = $patron_with_perm->userid;
+
+    # place_holds is for placing holds for others
+    my $test_post_data = {
+        patron_id         => $hold_recipient->borrowernumber,
+        biblio_id         => $test_biblio->biblionumber,
+        item_id           => $test_item->itemnumber,
+        pickup_library_id => $branchcode,
+    };
+
+    # Make sure pickup location checks doesn't get in the middle
+    my $mock_biblio = Test::MockModule->new('Koha::Biblio');
+    $mock_biblio->mock( 'pickup_locations', sub { return Koha::Libraries->search; } );
+    my $mock_item = Test::MockModule->new('Koha::Item');
+    $mock_item->mock( 'pickup_locations', sub { return Koha::Libraries->search } );
+
+    # Test POST without place_holds permission - should fail
+    $t->post_ok( "//$userid_no_perm:$password@/api/v1/holds" => json => $test_post_data )
+        ->status_is(403, 'POST without place_holds permission returns 403');
+
+    # Test POST with place_holds permission - should succeed
+    $t->post_ok( "//$userid_with_perm:$password@/api/v1/holds" => json => $test_post_data )
+        ->status_is(201, 'POST with place_holds permission returns 201')
+        ->json_has('/hold_id');
+
+    my $created_hold_id = $t->tx->res->json->{hold_id};
+
+    # Test PATCH with place_holds permission - should succeed
+    my $test_patch_data = {
+        priority => 1,
+    };
+
+    $t->patch_ok( "//$userid_with_perm:$password@/api/v1/holds/$created_hold_id" => json => $test_patch_data )
+        ->status_is(200, 'PATCH with place_holds permission returns 200');
 };
 
 $schema->storage->txn_rollback;
