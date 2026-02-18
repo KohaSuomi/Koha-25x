@@ -748,12 +748,6 @@ async function load_patron_holds_table(biblio_id, split_data) {
                     targets: [2, 3],
                     className: "dt-body-nowrap",
                 },
-                {
-                    targets: [3, 9],
-                    visible: CAN_user_reserveforothers_modify_holds_priority
-                        ? true
-                        : false,
-                },
             ],
             columns: [
                 {
@@ -868,7 +862,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                     orderable: false,
                     searchable: false,
                     render: function (data, type, row, meta) {
-                        if (row.status) {
+                        if (row.status || !CAN_user_reserveforothers_modify_holds_priority) {
                             return null;
                         }
                         let buttons =
@@ -1081,7 +1075,7 @@ async function load_patron_holds_table(biblio_id, split_data) {
                     orderable: false,
                     searchable: false,
                     render: function (data, type, row, meta) {
-                        if (row.item_id) {
+                        if (row.item_id || !CAN_user_reserveforothers_modify_holds_priority) {
                             return null;
                         } else {
                             if (row.lowest_priority) {
