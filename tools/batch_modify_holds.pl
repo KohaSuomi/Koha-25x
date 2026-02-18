@@ -25,6 +25,7 @@ use JSON qw( to_json );
 
 use C4::Auth   qw( get_template_and_user );
 use C4::Output qw( output_html_with_http_headers );
+use C4::Log    qw( logaction );
 
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Holds;
@@ -66,6 +67,7 @@ if ( $op eq 'cud-form' ) {
         Koha::Holds->search( { reserve_id => { -in => \@hold_ids } }, { join => [ "item", "biblio" ] } );
 
     while ( my $hold = $holds_to_update->next ) {
+        my $hold_before_mod = $hold->unblessed;
         my $hold_failed     = 0;
         if ( $new_pickup_loc && ( $hold->branchcode ne $new_pickup_loc ) ) {
             my $patron = $hold->patron;
@@ -121,6 +123,9 @@ if ( $op eq 'cud-form' ) {
             if ($clear_hold_notes) {
                 $hold->reservenotes(undef)->store;
             }
+
+            logaction( 'HOLDS', 'MODIFY', $hold->reserve_id, $hold, undef, $hold_before_mod )
+                if C4::Context->preference('HoldsLog');
 
             push @holds_data, $hold;
         }
