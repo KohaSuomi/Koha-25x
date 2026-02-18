@@ -284,7 +284,7 @@
           $ref: "../swagger.yaml#/definitions/error"
     x-koha-authorization:
       permissions:
-        reserveforothers: "1"
+        reserveforothers: place_holds
 "/holds/cancellation_bulk":
   delete:
     x-mojo-to: Holds#delete_bulk
@@ -431,7 +431,7 @@
           $ref: "../swagger.yaml#/definitions/error"
     x-koha-authorization:
       permissions:
-        reserveforothers: "1"
+        reserveforothers: place_holds
   put:
     x-mojo-to: Holds#edit
     operationId: overwriteHold
