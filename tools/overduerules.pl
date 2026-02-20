@@ -92,7 +92,7 @@ if ( $op eq 'cud-save' ) {
     my $sth_search = $dbh->prepare("SELECT count(*) AS total FROM overduerules WHERE branchcode=? AND categorycode=?");
 
     my $sth_insert = $dbh->prepare(
-        "INSERT INTO overduerules (branchcode,categorycode, delay1,letter1,debarred1,fine1, delay2,letter2,debarred2,fine2, delay3,letter3,debarred3,fine3) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+        "INSERT INTO overduerules (branchcode,categorycode, delay1,letter1,debarred1,fine1, delay2,letter2,debarred2,fine2, delay3,letter3,debarred3,fine3) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
     );
     my $sth_update = $dbh->prepare(
         "UPDATE overduerules SET delay1=?, letter1=?, debarred1=?, fine1=?, delay2=?, letter2=?, debarred2=?, fine2=?, delay3=?, letter3=?, debarred3=?, fine3=? WHERE branchcode=? AND categorycode=?"
