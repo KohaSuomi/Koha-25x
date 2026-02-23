@@ -115,8 +115,10 @@ my $builder = sub {
 			authcode = 'CORPO_NAME';
 		}
 
-		newin=window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=finto_finaf.pl&index=\"+event.data.id,\"_blank\",'width=1000,height=600,toolbar=false,scrollbars=yes');
-
+        //Relaunch plugin when Tag editor button is pressed
+		var tag = event.data.id;
+		\$("#"+tag).next().attr('class', tag);
+		selectBox$function_name(tag);
 	}
 
 //]]>
