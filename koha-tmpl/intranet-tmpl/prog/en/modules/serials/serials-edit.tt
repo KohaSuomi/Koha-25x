@@ -15,6 +15,7 @@
     [% END %]</title
 >
 [% INCLUDE 'doc-head-close.inc' %]
+[% Asset.css("css/serials-edit.css") | $raw %]
 [% Asset.js("js/cataloging.js") | $raw %]
 [% Asset.js("js/marceditlib.js") | $raw %]
 [% INCLUDE 'calendar.inc' %]
