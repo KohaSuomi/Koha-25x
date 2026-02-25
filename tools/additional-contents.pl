@@ -132,8 +132,8 @@ if ( $op eq 'add_form' ) {
 
                     # Deny forbidden tags (KD-4348)
                     for ( 'style', 'script', 'link', 'iframe', 'applet' ) {
-                        undef $title   if ( defined $title   and lc ( $title )   =~ /<\/{0,1}\Q$_\E.*>/ );
-                        undef $content if ( defined $content and lc ( $content ) =~ /<\/{0,1}\Q$_\E.*>/ );
+                        die if ( defined $title   and lc ( $title )   =~ /<\/{0,1}\Q$_\E.*>/ );
+                        die if ( defined $content and lc ( $content ) =~ /<\/{0,1}\Q$_\E.*>/ );
                     }
                     next unless $title || $content;
 
