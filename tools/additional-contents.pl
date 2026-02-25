@@ -113,7 +113,7 @@ if ( $op eq 'add_form' ) {
                         }
                     )->store;
                 }
-                unless ($code) {
+               unless ($code) {
                     $additional_content->discard_changes;
                     $code =
                         $category eq 'news'
@@ -129,8 +129,12 @@ if ( $op eq 'add_form' ) {
                     my $id      = $cgi->param( 'id_' . $lang );
                     my $title   = $cgi->param( 'title_' . $lang );
                     my $content = $cgi->param( 'content_' . $lang );
-                    $content ||= '<!-- no_content -->' if $lang eq 'default';
 
+                    # Deny forbidden tags (KD-4348)
+                    for ( 'style', 'script', 'link', 'iframe', 'applet' ) {
+                        undef $title   if ( defined $title   and lc ( $title )   =~ /<\/{0,1}\Q$_\E.*>/ );
+                        undef $content if ( defined $content and lc ( $content ) =~ /<\/{0,1}\Q$_\E.*>/ );
+                    }
                     next unless $title || $content;
 
                     push @seen_ids, $id;
