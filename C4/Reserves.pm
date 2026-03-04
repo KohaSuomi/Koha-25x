@@ -2338,6 +2338,53 @@ sub GetMaxPatronHoldsForRecord {
     return $max;
 }
 
+=head2 GetUpcomingExpiringHolds
+
+    my $upcoming_expirations = GetUpcomingExpiringHolds({
+        days_in_advance => 4,
+    });
+
+Returns reference to an array of holds that are expiring within the specified number of days.
+
+Each hold record includes:
+- reserve_id: primary key
+- borrowernumber: patron ID
+- biblionumber: bib record ID
+- branchcode: pickup branch
+- expirationdate: hold expiration date
+- days_until_expiration: calculated number of days until hold expires
+- branchemail: branch email address
+
+Parameters:
+- days_in_advance: number of days in advance to get expiring holds (default: 4)
+
+=cut
+
+sub GetUpcomingExpiringHolds {
+    my $params = shift;
+
+    $params->{'days_in_advance'} = 4 unless exists $params->{'days_in_advance'};
+    my $dbh = C4::Context->dbh;
+    my $statement = q{
+        SELECT reserves.*, items.itype as itemtype, branches.branchemail,
+               TO_DAYS( expirationdate )-TO_DAYS( NOW() ) as days_until_expiration
+        FROM reserves
+        LEFT JOIN items ON items.itemnumber = reserves.itemnumber
+        LEFT JOIN branches ON branches.branchcode = reserves.branchcode
+        WHERE expirationdate IS NOT NULL
+          AND TO_DAYS( expirationdate )-TO_DAYS( NOW() ) BETWEEN 0 AND ?
+        ORDER BY expirationdate
+    };
+
+    my @bind_parameters = ( $params->{'days_in_advance'} );
+
+    my $sth = $dbh->prepare($statement);
+    $sth->execute(@bind_parameters);
+    my $upcoming_expirations = $sth->fetchall_arrayref( {} );
+
+    return $upcoming_expirations;
+}
+
 =head1 AUTHOR
 
 Koha Development Team <http://koha-community.org/>
