@@ -9,7 +9,7 @@ values
 (7, 'Ill_ready', 0),
 (8, 'Ill_unavailable', 0),
 (9, 'Auto_Renewals', 0),
-(10, 'Hold_Reminder', 0),
+(10, 'Hold_Reminder', 1),
 (11, 'Ill_update', 0),
 (12, 'Recall_Waiting', 0),
 (13, 'Recall_Requested', 0),
