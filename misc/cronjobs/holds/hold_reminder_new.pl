@@ -194,61 +194,71 @@ my $upcoming_holds = C4::Reserves::GetUpcomingExpiringHolds(
 );
 warn 'found ' . scalar(@$upcoming_holds) . ' upcoming expiring holds' if $verbose;
 
-my $dbh = C4::Context->dbh();
-my $sth_holds = $dbh->prepare(<<'END_SQL');
-SELECT biblio.*, reserves.*
-  FROM reserves,biblio
-  WHERE biblio.biblionumber=reserves.biblionumber
-    AND reserves.borrowernumber = ?
-    AND reserves.reserve_id = ?
-END_SQL
-
 my $admin_adress = C4::Context->preference('KohaAdminEmailAddress');
 
-my @letters;
-HOLDITEM: foreach my $upcoming_hold (@$upcoming_holds) {
-    @letters = ();
-    warn 'examining ' . $upcoming_hold->{'reserve_id'} . ' upcoming expiring hold' if $verbose;
+# Group holds by borrowernumber and days_until_expiration for digest delivery
+my %holds_by_patron_day = ();
+foreach my $upcoming_hold (@$upcoming_holds) {
+    my $key = $upcoming_hold->{'borrowernumber'} . '_' . $upcoming_hold->{'days_until_expiration'};
+    push @{ $holds_by_patron_day{$key} }, $upcoming_hold;
+}
 
-    my $from_address = $upcoming_hold->{branchemail} || $admin_adress;
+my @letters;
+HOLDGROUP: foreach my $key ( sort keys %holds_by_patron_day ) {
+    my @group = @{ $holds_by_patron_day{$key} };
+    @letters = ();
+
+    my $first_hold      = $group[0];
+    my $borrowernumber  = $first_hold->{'borrowernumber'};
+    my $days_until      = $first_hold->{'days_until_expiration'};
+    my $branchcode      = $first_hold->{'branchcode'};
+    my $from_address    = $first_hold->{branchemail} || $admin_adress;
+
+    warn 'examining digest for borrowernumber ' . $borrowernumber . ' with ' . scalar(@group) . ' holds expiring in ' . $days_until . ' days' if $verbose;
 
     my $borrower_preferences = C4::Members::Messaging::GetMessagingPreferences(
         {
-            borrowernumber => $upcoming_hold->{'borrowernumber'},
+            borrowernumber => $borrowernumber,
             message_name   => 'hold_reminder'
         }
     );
-    next HOLDITEM unless $borrower_preferences && exists $borrower_preferences->{'days_in_advance'};
-    next HOLDITEM unless $borrower_preferences->{'days_in_advance'} == $upcoming_hold->{'days_until_expiration'};
+
+    # Check if patron has this notification enabled for the correct days
+    my $patron_days = 0;
+    if ( $borrower_preferences && exists $borrower_preferences->{days_in_advance} ) {
+        $patron_days = $borrower_preferences->{days_in_advance};
+    }
+
+    # Only send if days match
+    next HOLDGROUP if $patron_days != $days_until;
 
     # Only send email for hold reminders
     if ( exists $borrower_preferences->{'transports'}->{'email'} ) {
-        my $branchcode = $upcoming_hold->{'branchcode'};
-
         # Skip this HOLD_REMINDER if we specify list of libraries and this one is not part of it
         next if ( @branchcodes && !$branches{$branchcode} );
 
-        my $letter_type = 'HOLD_REMINDER';
-        $sth_holds->execute( $upcoming_hold->{'borrowernumber'}, $upcoming_hold->{'reserve_id'} );
-        my $hold_info = $sth_holds->fetchrow_hashref();
+        # Collect reserve IDs for the loop
+        my @reserve_ids = map { $_->{'reserve_id'} } @group;
 
+        my $letter_type = 'HOLD_REMINDER';
         my $letter = parse_letter(
             {
                 letter_code    => $letter_type,
-                borrowernumber => $upcoming_hold->{'borrowernumber'},
+                borrowernumber => $borrowernumber,
                 branchcode     => $branchcode,
-                biblionumber   => $hold_info->{'biblionumber'},
-                reserve_id     => $upcoming_hold->{'reserve_id'},
-                substitute     => {
-                    hold => $hold_info,
+                loops          => {
+                    reserves => \@reserve_ids,
                 },
                 message_transport_type => 'email',
             }
         )
         or warn "no letter of type '$letter_type' found for borrowernumber "
-        . $upcoming_hold->{'borrowernumber'}
+        . $borrowernumber
         . ". Please see sample_notices.sql";
-        push @letters, $letter if $letter;
+        if ($letter) {
+            push @letters, $letter;
+            warn 'successfully created digest letter for borrowernumber ' . $borrowernumber . ' with ' . scalar(@group) . ' holds expiring in ' . $days_until . ' days' if $verbose;
+        }
     }
 
     # If we have prepared a letter, send it.
@@ -263,11 +273,12 @@ HOLDITEM: foreach my $upcoming_hold (@$upcoming_holds) {
                 C4::Letters::EnqueueLetter(
                     {
                         letter                 => $letter,
-                        borrowernumber         => $upcoming_hold->{'borrowernumber'},
+                        borrowernumber         => $borrowernumber,
                         from_address           => $from_address,
                         message_transport_type => $letter->{message_transport_type}
                     }
                 );
+                warn 'enqueued hold reminder digest for borrowernumber ' . $borrowernumber . ' via ' . $letter->{message_transport_type} . ' for ' . scalar(@group) . ' holds (patron selected ' . $borrower_preferences->{'days_in_advance'} . ' days in advance)' if $verbose;
             }
         }
     }
@@ -300,12 +311,13 @@ sub parse_letter {
     }
 
     return C4::Letters::GetPreparedLetter(
-        module      => 'circulation',
+        module      => 'reserves',
         letter_code => $params->{'letter_code'},
         branchcode  => $table_params{'branches'},
         lang        => $patron->lang,
         substitute  => $params->{'substitute'},
         tables      => \%table_params,
+        loops       => $params->{'loops'},
         message_transport_type => $params->{message_transport_type},
     );
 }
