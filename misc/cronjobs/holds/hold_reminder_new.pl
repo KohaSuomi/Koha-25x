@@ -235,14 +235,14 @@ HOLDGROUP: foreach my $key ( sort keys %holds_by_patron_day ) {
     # Only send if days match
     next HOLDGROUP if $patron_days != $days_until;
 
-    # Only send email for hold reminders
-    if ( exists $borrower_preferences->{'transports'}->{'email'} ) {
-        # Skip this HOLD_REMINDER if we specify list of libraries and this one is not part of it
-        next if ( @branchcodes && !$branches{$branchcode} );
+    # Skip this HOLD_REMINDER if we specify list of libraries and this one is not part of it
+    next if ( @branchcodes && !$branches{$branchcode} );
 
-        # Collect reserve IDs for the loop
-        my @reserve_ids = map { $_->{'reserve_id'} } @group;
+    # Collect reserve IDs for the loop
+    my @reserve_ids = map { $_->{'reserve_id'} } @group;
 
+    # Send hold reminders via all configured transports
+    foreach my $transport_type ( keys %{ $borrower_preferences->{'transports'} } ) {
         my $letter_type = 'HOLD_REMINDER';
         my $letter = parse_letter(
             {
@@ -252,7 +252,7 @@ HOLDGROUP: foreach my $key ( sort keys %holds_by_patron_day ) {
                 loops          => {
                     reserves => \@reserve_ids,
                 },
-                message_transport_type => 'email',
+                message_transport_type => $transport_type,
             }
         )
         or warn "no letter of type '$letter_type' found for borrowernumber "
@@ -260,36 +260,7 @@ HOLDGROUP: foreach my $key ( sort keys %holds_by_patron_day ) {
         . ". Please see sample_notices.sql";
         if ($letter) {
             push @letters, $letter;
-            warn 'successfully created digest letter for borrowernumber ' . $borrowernumber . ' with ' . scalar(@group) . ' holds expiring in ' . $days_until . ' days' if $verbose;
-        }
-    }
-
-    # Send SMS for hold reminders if configured
-    if ( exists $borrower_preferences->{'transports'}->{'sms'} ) {
-        # Skip this HOLD_REMINDER if we specify list of libraries and this one is not part of it
-        next if ( @branchcodes && !$branches{$branchcode} );
-
-        # Collect reserve IDs for the loop
-        my @reserve_ids = map { $_->{'reserve_id'} } @group;
-
-        my $letter_type = 'HOLD_REMINDER';
-        my $letter = parse_letter(
-            {
-                letter_code    => $letter_type,
-                borrowernumber => $borrowernumber,
-                branchcode     => $branchcode,
-                loops          => {
-                    reserves => \@reserve_ids,
-                },
-                message_transport_type => 'sms',
-            }
-        )
-        or warn "no letter of type '$letter_type' found for borrowernumber "
-        . $borrowernumber
-        . ". Please see sample_notices.sql";
-        if ($letter) {
-            push @letters, $letter;
-            warn 'successfully created digest SMS for borrowernumber ' . $borrowernumber . ' with ' . scalar(@group) . ' holds expiring in ' . $days_until . ' days' if $verbose;
+            warn 'successfully created digest letter for borrowernumber ' . $borrowernumber . ' via ' . $transport_type . ' with ' . scalar(@group) . ' holds expiring in ' . $days_until . ' days' if $verbose;
         }
     }
 
