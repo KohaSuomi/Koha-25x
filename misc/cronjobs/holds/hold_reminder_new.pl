@@ -93,18 +93,21 @@ performed by borrowers in the OPAC, or by staff in the patron detail page of the
 The content of the messages is configured in Tools -> Notices and slips, using the
 HOLD_REMINDER letter template.
 
-Hold reminders are sent via email only if the patron has configured an email address
-and has set a "days in advance" preference for hold reminders via the "My Alerts"
-section in the OPAC. More information about the use of this section of Koha is
-available in the Koha manual.
+Hold reminders can be sent via email and/or SMS. Emails are sent only if the patron
+has configured an email address and enabled email notifications. SMS messages are sent
+only if the patron has configured a phone number and enabled SMS notifications. The patron
+can set a "days in advance" preference for hold reminders via the "My Alerts" section in
+the OPAC. More information about the use of this section of Koha is available in the
+Koha manual.
 
-=head2 Outgoing emails
+=head2 Outgoing messages
 
 Messages are staged in the outgoing message queue, as are messages produced by
 other features of Koha. This message queue must be processed regularly by the
-F<misc/cronjobs/process_message_queue.pl> program.
+F<misc/cronjobs/process_message_queue.pl> program. This includes both email and
+SMS messages.
 
-In the event that the C<-n> flag is passed to this program, no emails are sent.
+In the event that the C<-n> flag is passed to this program, no messages are sent.
 Instead, messages are sent on standard output from this program. They may be
 redirected to a file if desired.
 
@@ -258,6 +261,35 @@ HOLDGROUP: foreach my $key ( sort keys %holds_by_patron_day ) {
         if ($letter) {
             push @letters, $letter;
             warn 'successfully created digest letter for borrowernumber ' . $borrowernumber . ' with ' . scalar(@group) . ' holds expiring in ' . $days_until . ' days' if $verbose;
+        }
+    }
+
+    # Send SMS for hold reminders if configured
+    if ( exists $borrower_preferences->{'transports'}->{'sms'} ) {
+        # Skip this HOLD_REMINDER if we specify list of libraries and this one is not part of it
+        next if ( @branchcodes && !$branches{$branchcode} );
+
+        # Collect reserve IDs for the loop
+        my @reserve_ids = map { $_->{'reserve_id'} } @group;
+
+        my $letter_type = 'HOLD_REMINDER';
+        my $letter = parse_letter(
+            {
+                letter_code    => $letter_type,
+                borrowernumber => $borrowernumber,
+                branchcode     => $branchcode,
+                loops          => {
+                    reserves => \@reserve_ids,
+                },
+                message_transport_type => 'sms',
+            }
+        )
+        or warn "no letter of type '$letter_type' found for borrowernumber "
+        . $borrowernumber
+        . ". Please see sample_notices.sql";
+        if ($letter) {
+            push @letters, $letter;
+            warn 'successfully created digest SMS for borrowernumber ' . $borrowernumber . ' with ' . scalar(@group) . ' holds expiring in ' . $days_until . ' days' if $verbose;
         }
     }
 
