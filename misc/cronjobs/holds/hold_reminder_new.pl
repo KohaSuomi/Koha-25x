@@ -44,7 +44,6 @@ use Koha::Script -cron;
 use C4::Context;
 use C4::Letters;
 use C4::Members::Messaging;
-use C4::Reserves;
 use C4::Log qw( cronlogaction );
 use Koha::Patrons;
 
@@ -66,12 +65,14 @@ Verbose. Without this flag set, only fatal errors are reported.
 
 =item B<-n>
 
-Do not send any email. Hold reminder notices that would have been sent to
+Do not generate messages. Hold reminder notices that would have been sent to
 the patrons are printed to standard out.
 
 =item B<-m>
 
-Defines the maximum number of days in advance to send hold reminder notices.
+Optional parameter. Defines the maximum number of days in advance to fetch hold
+reminders. Defaults to 30, which is the maximum value settable via the patron messaging preferences.
+This parameter can be increased if custom messaging preferences exceed 30 days.
 
 =item B<-c>
 
@@ -93,19 +94,17 @@ performed by borrowers in the OPAC, or by staff in the patron detail page of the
 The content of the messages is configured in Tools -> Notices and slips, using the
 HOLD_REMINDER letter template.
 
-Hold reminders can be sent via email and/or SMS. Emails are sent only if the patron
+Hold reminders can be sent via all message transports. Emails are sent only if the patron
 has configured an email address and enabled email notifications. SMS messages are sent
 only if the patron has configured a phone number and enabled SMS notifications. The patron
-can set a "days in advance" preference for hold reminders via the "My Alerts" section in
-the OPAC. More information about the use of this section of Koha is available in the
-Koha manual.
+can set a "days in advance" preference for hold reminders. This script checks that preference
+and only sends messages for holds expiring in the number of days specified by the patron.
 
 =head2 Outgoing messages
 
 Messages are staged in the outgoing message queue, as are messages produced by
 other features of Koha. This message queue must be processed regularly by the
-F<misc/cronjobs/process_message_queue.pl> program. This includes both email and
-SMS messages.
+F<misc/cronjobs/process_message_queue.pl> program.
 
 In the event that the C<-n> flag is passed to this program, no messages are sent.
 Instead, messages are sent on standard output from this program. They may be
@@ -145,7 +144,7 @@ binmode( STDOUT, ':encoding(UTF-8)' );
 # These are defaults for command line options.
 my $confirm;                   # -c: Confirm that the user has read and configured this script.
 my $nomail;                    # -n: No mail. Will not send any emails.
-my $maxdays = 30;              # -m: Maximum number of days in advance to send notices
+my $maxdays = 30;              # -m: Maximum number of days in advance to fetch notices (UI max is 30)
 my $verbose = 0;               # -v: verbose
 my @branchcodes;               # Branch(es) passed as parameter
 
@@ -190,11 +189,22 @@ if (@branchcodes) {
 
 # Process hold expiration reminders
 warn 'getting upcoming expiring holds' if $verbose;
-my $upcoming_holds = C4::Reserves::GetUpcomingExpiringHolds(
-    {
-        days_in_advance => $maxdays,
-    }
-);
+
+my $dbh = C4::Context->dbh;
+my $statement = q{
+    SELECT reserves.*, items.itype as itemtype, branches.branchemail,
+           TO_DAYS( expirationdate )-TO_DAYS( NOW() ) as days_until_expiration
+    FROM reserves
+    LEFT JOIN items ON items.itemnumber = reserves.itemnumber
+    LEFT JOIN branches ON branches.branchcode = reserves.branchcode
+    WHERE expirationdate IS NOT NULL
+      AND TO_DAYS( expirationdate )-TO_DAYS( NOW() ) BETWEEN 0 AND ?
+    ORDER BY expirationdate
+};
+
+my $sth = $dbh->prepare($statement);
+$sth->execute($maxdays);
+my $upcoming_holds = $sth->fetchall_arrayref( {} );
 warn 'found ' . scalar(@$upcoming_holds) . ' upcoming expiring holds' if $verbose;
 
 my $admin_adress = C4::Context->preference('KohaAdminEmailAddress');
@@ -260,7 +270,7 @@ HOLDGROUP: foreach my $key ( sort keys %holds_by_patron_day ) {
         . ". Please see sample_notices.sql";
         if ($letter) {
             push @letters, $letter;
-            warn 'successfully created digest letter for borrowernumber ' . $borrowernumber . ' via ' . $transport_type . ' with ' . scalar(@group) . ' holds expiring in ' . $days_until . ' days' if $verbose;
+            warn 'successfully created digest message for borrowernumber ' . $borrowernumber . ' via ' . $transport_type . ' with ' . scalar(@group) . ' holds expiring in ' . $days_until . ' days' if $verbose;
         }
     }
 
