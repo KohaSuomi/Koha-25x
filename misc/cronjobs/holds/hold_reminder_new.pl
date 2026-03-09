@@ -74,6 +74,12 @@ Optional parameter. Defines the maximum number of days in advance to fetch hold
 reminders. Defaults to 30, which is the maximum value settable via the patron messaging preferences.
 This parameter can be increased if custom messaging preferences exceed 30 days.
 
+=item B<-d>
+
+Optional parameter. Defines a default number of days in advance for hold reminders
+if the patron has not configured a preference. If not specified, patrons without a
+configured preference will not receive hold reminder messages.
+
 =item B<-c>
 
 Confirm flag: Add this option. The script will only print a usage
@@ -146,6 +152,7 @@ my $confirm;                   # -c: Confirm that the user has read and configur
 my $nomail;                    # -n: No mail. Will not send any emails.
 my $maxdays = 30;              # -m: Maximum number of days in advance to fetch notices (UI max is 30)
 my $verbose = 0;               # -v: verbose
+my $default_days;              # -d: Default days in advance if patron has not set a preference
 my @branchcodes;               # Branch(es) passed as parameter
 
 my $help = 0;
@@ -161,6 +168,7 @@ GetOptions(
     'c'         => \$confirm,
     'n'         => \$nomail,
     'm:i'       => \$maxdays,
+    'd:i'       => \$default_days,
     'v'         => \$verbose,
 ) or pod2usage(2);
 pod2usage(1)               if $help;
@@ -237,10 +245,18 @@ HOLDGROUP: foreach my $key ( sort keys %holds_by_patron_day ) {
     );
 
     # Check if patron has this notification enabled for the correct days
-    my $patron_days = 0;
+    my $patron_days;
     if ( $borrower_preferences && exists $borrower_preferences->{days_in_advance} ) {
         $patron_days = $borrower_preferences->{days_in_advance};
+    } elsif ( defined $default_days ) {
+        $patron_days = $default_days;
     }
+
+    # Skip if patron has not set a preference for hold reminders and no default was provided
+    next HOLDGROUP unless defined $patron_days;
+
+    # Skip if borrower preferences were not found for the HOLD_REMINDER message
+    next HOLDGROUP unless $borrower_preferences;
 
     # Only send if days match
     next HOLDGROUP if $patron_days != $days_until;
