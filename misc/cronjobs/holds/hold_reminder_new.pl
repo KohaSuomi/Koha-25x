@@ -261,11 +261,14 @@ HOLDGROUP: foreach my $key ( sort keys %holds_by_patron_day ) {
     # Only send if days match
     next HOLDGROUP if $patron_days != $days_until;
 
-    # Skip this HOLD_REMINDER if we specify list of libraries and this one is not part of it
-    next if ( @branchcodes && !$branches{$branchcode} );
-
-    # Collect reserve IDs for the loop
-    my @reserve_ids = map { $_->{'reserve_id'} } @group;
+    # Collect reserve IDs for the loop, filtering by specified libraries if any
+    my @reserve_ids;
+    if ( @branchcodes ) {
+        @reserve_ids = map { $_->{'reserve_id'} } grep { $branches{$_->{'branchcode'}} } @group;
+        next HOLDGROUP unless @reserve_ids;
+    } else {
+        @reserve_ids = map { $_->{'reserve_id'} } @group;
+    }
 
     # Send hold reminders via all configured transports
     foreach my $transport_type ( keys %{ $borrower_preferences->{'transports'} } ) {
