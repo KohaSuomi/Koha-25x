@@ -505,7 +505,7 @@ if (   ( $findborrower && $borrowernumber_hold || $findclub && $club_hold )
                     } else {
                         $default_pickup_branch = C4::Context->userenv->{branch};
                     }
-
+                    $valid_items = 0;
                     if (
                            !$item->{cantreserve}
                         && !$exceeded_maxreserves
