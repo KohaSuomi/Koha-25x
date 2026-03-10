@@ -13,6 +13,25 @@
     [% t("Holds to pull") | html %]
     &rsaquo; [% t("Circulation") | html %] &rsaquo; [% t("Koha") | html %]
 [% END %]</title>
+<style>
+    #holdst ul {
+        list-style: none !important;
+        list-style-type: none !important;
+        list-style-position: inside !important;
+    }
+
+    #holdst li {
+        list-style: none !important;
+        list-style-type: none !important;
+        list-style-position: inside !important;
+        display: block !important;
+    }
+
+    #holdst li::marker {
+        content: "" !important;
+        display: none !important;
+    }
+</style>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -57,7 +76,7 @@
                     [% END %]
 
                     <div id="searchresults">
-                        <table id="holdst">
+                        <table id="holdst" class="compact">
                             <thead>
                                 <tr>
                                     <th data-colname="pull_count">Pull</th>
@@ -110,7 +129,7 @@
                                                 [% END %]
                                             </td>
                                             <td>
-                                                <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% reserveloo.biblionumber | uri %]">
+                                                <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% reserveloo.biblionumber | uri %]" style="font-weight: bold;">
                                                 [% reserveloo.title | html %]
                                                 [% IF ( reserveloo. number ) %] [% reserveloo.number | html %] [% END %]
                                                 [% FOREACH s IN reserveloo.subtitle %][% s | html %] [% END %]</a>
