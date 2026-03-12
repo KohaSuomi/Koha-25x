@@ -77,8 +77,8 @@
                             <span style="font-weight: bold;">Bold</span>
                             <span> text means that the item can be found in a library that belongs to the same hold pickup location group as the hold's pickup library.</span>
                         </li>
+                        [% END %]
                     </ul>
-                    [% END %]
 
                     <div id="searchresults">
                         <table id="holdst" class="compact">
