@@ -77,8 +77,8 @@ This parameter can be increased if custom messaging preferences exceed 30 days.
 =item B<-d>
 
 Optional parameter. Defines a default number of days in advance for hold reminders
-if the patron has not configured a preference. If not specified, patrons without a
-configured preference will not receive hold reminder messages.
+if the patron has not configured a days in advance preference, but still has a message transport selected. This provides backwards compatibility so messages get generated if a transport exists.
+If not specified, patrons without a configured days in advance value will not receive hold reminder messages.
 
 =item B<-c>
 
@@ -244,7 +244,8 @@ HOLDGROUP: foreach my $key ( sort keys %holds_by_patron_day ) {
         }
     );
 
-    # Check if patron has this notification enabled for the correct days
+    # Check if patron has this notification enabled and get their days in advance preference.
+    # If no days in advance preference is set and notifications are enabled, use the default if provided.
     my $patron_days;
     if ( $borrower_preferences && exists $borrower_preferences->{days_in_advance} ) {
         $patron_days = $borrower_preferences->{days_in_advance};
