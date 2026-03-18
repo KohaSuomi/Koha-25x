@@ -16,7 +16,7 @@ my $builder = sub {
     my $js = <<ENDJS;
 <script type="text/javascript">
 //<![CDATA[
-    if (window.location.pathname === '/cgi-bin/koha/tools/batchMod.pl') {
+    if (window.location.pathname === '/cgi-bin/koha/tools/batchMod.pl' || window.location.pathname === '/cgi-bin/koha/acqui/neworderempty.pl') {
 
         console.log('$langcode');
         if ('$langcode' === 'fin') {
