@@ -235,8 +235,6 @@ HOLDGROUP: foreach my $key ( sort keys %holds_by_patron_day ) {
     my $branchcode      = $first_hold->{'branchcode'};
     my $from_address    = $first_hold->{branchemail} || $admin_adress;
 
-    warn 'examining digest for borrowernumber ' . $borrowernumber . ' with ' . scalar(@group) . ' holds expiring in ' . $days_until . ' days' if $verbose;
-
     my $borrower_preferences = C4::Members::Messaging::GetMessagingPreferences(
         {
             borrowernumber => $borrowernumber,
@@ -247,10 +245,12 @@ HOLDGROUP: foreach my $key ( sort keys %holds_by_patron_day ) {
     # Check if patron has this notification enabled and get their days in advance preference.
     # If no days in advance preference is set and notifications are enabled, use the default if provided.
     my $patron_days;
+    my $used_default = 0;
     if ( $borrower_preferences && exists $borrower_preferences->{days_in_advance} ) {
         $patron_days = $borrower_preferences->{days_in_advance};
     } elsif ( defined $default_days ) {
         $patron_days = $default_days;
+        $used_default = 1;
     }
 
     # Skip if patron has not set a preference for hold reminders and no default was provided
@@ -290,7 +290,7 @@ HOLDGROUP: foreach my $key ( sort keys %holds_by_patron_day ) {
         . ". Please see sample_notices.sql";
         if ($letter) {
             push @letters, $letter;
-            warn 'successfully created digest message for borrowernumber ' . $borrowernumber . ' via ' . $transport_type . ' with ' . scalar(@group) . ' holds expiring in ' . $days_until . ' days' if $verbose;
+            #warn 'successfully created digest message for borrowernumber ' . $borrowernumber . ' via ' . $transport_type . ' with ' . scalar(@group) . ' holds expiring in ' . $days_until . ' days' if $verbose;
         }
     }
 
@@ -311,7 +311,8 @@ HOLDGROUP: foreach my $key ( sort keys %holds_by_patron_day ) {
                         message_transport_type => $letter->{message_transport_type}
                     }
                 );
-                warn 'enqueued hold reminder digest for borrowernumber ' . $borrowernumber . ' via ' . $letter->{message_transport_type} . ' for ' . scalar(@group) . ' holds (patron selected ' . $borrower_preferences->{'days_in_advance'} . ' days in advance)' if $verbose;
+                my $default_note = $used_default ? ' [used default value via -d flag]' : '';
+                warn 'enqueued hold reminder digest for borrowernumber ' . $borrowernumber . ' via ' . $letter->{message_transport_type} . ' for ' . scalar(@group) . ' holds (' . $patron_days . ' days in advance)' . $default_note if $verbose;
             }
         }
     }
