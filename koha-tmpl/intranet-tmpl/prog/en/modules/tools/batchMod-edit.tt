@@ -285,6 +285,7 @@
     [% Asset.js("js/cataloging.js") | $raw %]
     [% INCLUDE 'datatables.inc' %]
     [% Asset.js("js/pages/batchMod.js") | $raw %]
+    [% Asset.js("js/marceditlib.js") | $raw %]
     [% INCLUDE 'select2.inc' %]
     [% INCLUDE 'calendar.inc' %]
     <script>
