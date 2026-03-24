@@ -864,7 +864,7 @@
                 [% print_button = '<button type="button" class="btn btn-default print" accesskey="p"> <i class="fa fa-print"></i> ' _ t('Print slip, transfer, and confirm') _ ' (P) </button>' %]
             [% ELSE %]
                 [% confirm_button_text = t('Confirm hold') %]
-                [% IF Koha.Preference('HoldPickupShelves') %]
+                [% IF Koha.Preference('HoldPickupShelves') && hold_pickup_library %]
                     [% print_button = '<button id="hold-pickup-shelf-print" type="button" class="btn btn-default" accesskey="p"> <i class="fa fa-print"></i> ' _ t('Print slip and confirm') _ ' (P) </button>' %]
                 [% ELSE %]
                     [% print_button = '<button type="button" class="btn btn-default print" accesskey="p"> <i class="fa fa-print"></i> ' _ t('Print slip and confirm') _ ' (P) </button>' %]
