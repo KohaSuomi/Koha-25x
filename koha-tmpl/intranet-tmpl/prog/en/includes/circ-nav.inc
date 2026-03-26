@@ -49,7 +49,7 @@
             <a href="/cgi-bin/koha/circ/view_holdsqueue.pl">Holds queue</a>
         </li>
         <li>
-            <a href="/cgi-bin/koha/circ/pendingreserves.pl">Holds to pull</a>
+            <a href="/cgi-bin/koha/circ/kohasuomi-pendingreserves.pl">Holds to pull</a>
         </li>
         <li>
             <a href="/cgi-bin/koha/circ/waitingreserves.pl">Holds awaiting pickup</a>
