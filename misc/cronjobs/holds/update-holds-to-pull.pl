@@ -133,8 +133,6 @@ my $strsth = q{
 my $sth = $dbh->prepare($strsth);
 $sth->execute(@query_params);
 
-my $anchor="\x{200B}"; # Use zero width space as anchor
-
 while (my $data = $sth->fetchrow_hashref) {
     my $record = Koha::Biblios->find($data->{biblionumber});
     $data = check_issuingrules($data);
@@ -144,15 +142,6 @@ while (my $data = $sth->fetchrow_hashref) {
     $data->{l_sub_location} = '' unless $data->{l_sub_location};
     $data->{l_ccode} = '' unless $data->{l_ccode};
     $data->{l_itemnotes} = '' unless $data->{l_itemnotes};
-
-    # Mark string limits with anchor to prevent false matches on filtering
-    $data->{l_holdingbranch} = join('|', map { $anchor . $_ . $anchor } split(/\|/, $data->{l_holdingbranch} // '')) if $data->{l_holdingbranch};
-    $data->{l_itype}         = join('|', map { $anchor . $_ . $anchor } split(/\|/, $data->{l_itype} // ''))         if $data->{l_itype};
-    $data->{l_location}      = join('|', map { $anchor . $_ . $anchor } split(/\|/, $data->{l_location} // ''))      if $data->{l_location};
-    $data->{l_sub_location}  = join('|', map { $anchor . $_ . $anchor } split(/\|/, $data->{l_sub_location} // ''))  if $data->{l_sub_location};
-    $data->{l_ccode}         = join('|', map { $anchor . $_ . $anchor } split(/\|/, $data->{l_ccode} // ''))         if $data->{l_ccode};
-    $data->{l_mtype}         = join('|', map { $anchor . $_ . $anchor } split(/\|/, $data->{l_mtype} // ''))         if $data->{l_mtype};
-    $data->{l_branch}        = join('|', map { $anchor . $_ . $anchor } split(/\|/, $data->{l_branch} // ''))        if $data->{l_branch};
 
     if (($data->{icount}) && ($data->{l_itemcallnumber})) {
         push(
