@@ -283,65 +283,43 @@
                 filters_options
             );
 
-            // Override column searches to use regex with exact matching (^ and $)
+// Override column searches to use exact matching
             // This intercepts the built-in filter mechanism
             var dt = holdst.DataTable ? holdst.DataTable() : holdst.api();
 
-            // Custom search for column 4 (list-based filtering with exact matching)
+            // Custom search for all filterable columns with exact matching
             $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
                 var api = new $.fn.dataTable.Api(settings);
-                var col4Search = api.column(4).search();
-
-                // Only process if column 4 has an active search
-                if (col4Search) {
-                    // Get the raw data for column 4
-                    var col4Data = data[4];
-
-                    // Remove HTML tags to get plain text
-                    var plainText = col4Data.replace(/<[^>]*>/g, '').trim();
-
-                    // Split on whitespace (newlines + multiple spaces) to get individual values
-                    var values = plainText.split(/\s+/).filter(function(v) { return v.length > 0; });
-
-                    // Check if any value matches the search term exactly
-                    var hasMatch = values.some(function(val) {
-                        return val === col4Search;
-                    });
-
-                    if (!hasMatch) {
-                        return false; // Hide this row
-                    }
-                }
-
-                return true; // Show this row
-            });
-
-            // Custom search for columns 5, 10, 11, 12, 13, 14 (exact matching with regex anchors)
-            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
-                var api = new $.fn.dataTable.Api(settings);
-                var filterColumns = [5, 10, 11, 12, 13, 14];
+                // Columns that support filtering: 4 (on_shelf), 5 (hold_at), 10 (itemtypes), 11 (materials), 12 (locations), 13 (sublocations), 14 (collections)
+                var filterColumns = [4, 5, 10, 11, 12, 13, 14];
 
                 for (var i = 0; i < filterColumns.length; i++) {
                     var colIndex = filterColumns[i];
                     var colSearch = api.column(colIndex).search();
 
+                    // Only process if there's an active search for this column
                     if (colSearch) {
                         var colData = data[colIndex];
 
-                        // For plain text columns, convert search to exact match regex
-                        var exactRegex = '^' + $.fn.dataTable.util.escapeRegex(colSearch) + '$';
-                        var regex = new RegExp(exactRegex);
-
-                        // Remove HTML tags
+                        // Remove HTML tags to get plain text
                         var plainText = colData.replace(/<[^>]*>/g, '').trim();
 
-                        if (!regex.test(plainText)) {
-                            return false;
+                        // Split on whitespace (newlines + multiple spaces) to get individual values
+                        // This handles both plain text and list-based columns
+                        var values = plainText.split(/\s+/).filter(function(v) { return v.length > 0; });
+
+                        // Check if any value matches the search term exactly
+                        var hasMatch = values.some(function(val) {
+                            return val === colSearch;
+                        });
+
+                        if (!hasMatch) {
+                            return false; // Hide this row
                         }
                     }
                 }
 
-                return true;
+                return true; // Show this row
             });
 
             // Run highlight after table is drawn
