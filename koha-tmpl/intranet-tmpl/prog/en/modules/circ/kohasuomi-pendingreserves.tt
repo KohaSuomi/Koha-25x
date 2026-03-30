@@ -252,9 +252,8 @@
             let options = [...  new Set(column
                 .data()
                 .toArray()
-                .map(d => d.replace(regex, '').trim().split(/\n/gi).map(s => s.trim()).flat())
+                .map(d => d.replace(regex, '').trim().split(/\s+/gi).filter(s => s.length > 0))
                 .flat()
-                .filter(s => s.length > 0)
                 .sort())];
 
             return options.map(e => {
@@ -283,6 +282,67 @@
                 null,
                 filters_options
             );
+
+            // Override column searches to use regex with exact matching (^ and $)
+            // This intercepts the built-in filter mechanism
+            var dt = holdst.DataTable ? holdst.DataTable() : holdst.api();
+
+            // Custom search for column 4 (list-based filtering with exact matching)
+            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                var api = new $.fn.dataTable.Api(settings);
+                var col4Search = api.column(4).search();
+
+                // Only process if column 4 has an active search
+                if (col4Search) {
+                    // Get the raw data for column 4
+                    var col4Data = data[4];
+
+                    // Remove HTML tags to get plain text
+                    var plainText = col4Data.replace(/<[^>]*>/g, '').trim();
+
+                    // Split on whitespace (newlines + multiple spaces) to get individual values
+                    var values = plainText.split(/\s+/).filter(function(v) { return v.length > 0; });
+
+                    // Check if any value matches the search term exactly
+                    var hasMatch = values.some(function(val) {
+                        return val === col4Search;
+                    });
+
+                    if (!hasMatch) {
+                        return false; // Hide this row
+                    }
+                }
+
+                return true; // Show this row
+            });
+
+            // Custom search for columns 5, 10, 11, 12, 13, 14 (exact matching with regex anchors)
+            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                var api = new $.fn.dataTable.Api(settings);
+                var filterColumns = [5, 10, 11, 12, 13, 14];
+
+                for (var i = 0; i < filterColumns.length; i++) {
+                    var colIndex = filterColumns[i];
+                    var colSearch = api.column(colIndex).search();
+
+                    if (colSearch) {
+                        var colData = data[colIndex];
+
+                        // For plain text columns, convert search to exact match regex
+                        var exactRegex = '^' + $.fn.dataTable.util.escapeRegex(colSearch) + '$';
+                        var regex = new RegExp(exactRegex);
+
+                        // Remove HTML tags
+                        var plainText = colData.replace(/<[^>]*>/g, '').trim();
+
+                        if (!regex.test(plainText)) {
+                            return false;
+                        }
+                    }
+                }
+
+                return true;
+            });
 
             // Run highlight after table is drawn
             holdst.on('draw.dt', function() {
