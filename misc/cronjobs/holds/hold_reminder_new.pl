@@ -206,6 +206,7 @@ my $statement = q{
     LEFT JOIN items ON items.itemnumber = reserves.itemnumber
     LEFT JOIN branches ON branches.branchcode = reserves.branchcode
     WHERE expirationdate IS NOT NULL
+      AND reserves.found = 'W'
       AND TO_DAYS( expirationdate )-TO_DAYS( NOW() ) BETWEEN 0 AND ?
     ORDER BY expirationdate
 };
