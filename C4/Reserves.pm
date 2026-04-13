@@ -927,7 +927,10 @@ sub CheckReserves {
 
                 my $min_items_valid = $min_items_active && int($available_items_count) >= int($LocalHoldsPriorityMinItems);
                 my $ratio_valid     = $ratio_active && $ratio_threshold <= $LocalHoldsPriorityHoldsPerItemThreshold;
-                if ( $LocalHoldsPriority ne 'None' && ( $min_items_valid || $ratio_valid ) ) {
+                my $local_holds_priority_enabled =
+                    $LocalHoldsPriority ne 'None'
+                    && ( ( !$min_items_active && !$ratio_active ) || $min_items_valid || $ratio_valid );
+                if ($local_holds_priority_enabled) {
                     # If fulfillment_skips is full, allow fulfillment
                     if (defined $LocalHoldsPriorityFulfillmentSkips
                         && $LocalHoldsPriorityFulfillmentSkips != 0 
