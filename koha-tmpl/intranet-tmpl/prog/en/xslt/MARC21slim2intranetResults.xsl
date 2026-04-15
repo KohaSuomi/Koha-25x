@@ -308,7 +308,8 @@
         </xsl:attribute>
         <xsl:attribute name="class">title</xsl:attribute>
 
-        <xsl:if test="marc:datafield[@tag=245]">
+        <xsl:choose>
+        <xsl:when test="marc:datafield[@tag=245]">
             <xsl:for-each select="marc:datafield[@tag=245]">
                 <xsl:call-template name="subfieldSelect">
                     <xsl:with-param name="codes">a</xsl:with-param>
@@ -333,7 +334,8 @@
                     </xsl:choose>
                 </xsl:for-each>
             </xsl:for-each>
-        </xsl:if>
+        </xsl:when>
+        <xsl:otherwise>
         <xsl:if test="marc:datafield[@tag=130]|marc:datafield[@tag=240]|marc:datafield[@tag=730][@ind2!=2]">
                 <xsl:for-each select="marc:datafield[@tag=130]|marc:datafield[@tag=240]|marc:datafield[@tag=730][@ind2!=2]">
                     <xsl:if test="marc:subfield[@code='i']">
@@ -353,6 +355,8 @@
                     </xsl:if>
                 </xsl:for-each>
         </xsl:if>
+        </xsl:otherwise>
+        </xsl:choose>
     </a>
 
     <!-- Author Statement: Alternate Graphic Representation (MARC 880) -->
