@@ -90,18 +90,48 @@ sub drop_hold {
         return $self;
     }
 
+    # Get the item from the barcode passed in the SIP message
     my $item  = Koha::Items->search( { barcode => $self->{item}->id } )->next;
-    my $holds = $item->holds->search( { borrowernumber => $patron->borrowernumber } );
+    my $itemnumber = $item->itemnumber;
+    my $biblionumber = $item->biblionumber;
+    my $found_holds = 0;
 
-    return $self unless $holds->count;
-    my $hold = $holds->next;
-
-    if ( C4::Context->preference('HoldCancellationRequestSIP') ) {
-        $hold->add_cancellation_request;
-    } else {
-        $hold->cancel;
+    # First, try to cancel biblio-level hold(s) on this biblio (itemnumber IS NULL)
+    my $biblio_holds = Koha::Holds->search(
+        {
+            borrowernumber => $patron->borrowernumber,
+            biblionumber   => $biblionumber,
+            itemnumber     => undef
+        }
+    );
+    while ( my $hold = $biblio_holds->next ) {
+        if ( C4::Context->preference('HoldCancellationRequestSIP') ) {
+            $hold->add_cancellation_request;
+        } else {
+            $hold->cancel;
+        }
+        $found_holds = 1;
     }
 
+    # Only try item-level hold if no biblio-level hold was found
+    unless ($found_holds) {
+        my $item_holds = Koha::Holds->search(
+            {
+                borrowernumber => $patron->borrowernumber,
+                itemnumber     => $itemnumber
+            }
+        );
+        while ( my $hold = $item_holds->next ) {
+            if ( C4::Context->preference('HoldCancellationRequestSIP') ) {
+                $hold->add_cancellation_request;
+            } else {
+                $hold->cancel;
+            }
+            $found_holds = 1;
+        }
+    }
+
+    return $self unless $found_holds;
     $self->ok(1);
     return $self;
 }
