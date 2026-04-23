@@ -69,7 +69,8 @@ sub do_hold {
                 priority       => $priority,
                 branchcode     => $branch,
                 borrowernumber => $patron->borrowernumber,
-                biblionumber   => $item->biblionumber
+                biblionumber   => $item->biblionumber,
+                itemnumber     => $item->itemnumber
             }
         );
 
@@ -94,44 +95,36 @@ sub drop_hold {
     my $item  = Koha::Items->search( { barcode => $self->{item}->id } )->next;
     my $itemnumber = $item->itemnumber;
     my $biblionumber = $item->biblionumber;
-    my $found_holds = 0;
 
-    # First, try to cancel biblio-level hold(s) on this biblio (itemnumber IS NULL)
-    my $biblio_holds = Koha::Holds->search(
+    # First, try to cancel item-level hold
+    my $item_holds = Koha::Holds->search(
         {
             borrowernumber => $patron->borrowernumber,
-            biblionumber   => $biblionumber,
-            itemnumber     => undef
+            itemnumber     => $itemnumber
         }
     );
-    while ( my $hold = $biblio_holds->next ) {
-        if ( C4::Context->preference('HoldCancellationRequestSIP') ) {
-            $hold->add_cancellation_request;
-        } else {
-            $hold->cancel;
-        }
-        $found_holds = 1;
-    }
+    my $hold = $item_holds->next;
 
-    # Only try item-level hold if no biblio-level hold was found
-    unless ($found_holds) {
-        my $item_holds = Koha::Holds->search(
+    # Only try biblio-level hold if no item-level hold was found
+    unless ($hold) {
+        my $biblio_holds = Koha::Holds->search(
             {
                 borrowernumber => $patron->borrowernumber,
-                itemnumber     => $itemnumber
+                biblionumber   => $biblionumber,
+                itemnumber     => undef
             }
         );
-        while ( my $hold = $item_holds->next ) {
-            if ( C4::Context->preference('HoldCancellationRequestSIP') ) {
-                $hold->add_cancellation_request;
-            } else {
-                $hold->cancel;
-            }
-            $found_holds = 1;
-        }
+        $hold = $biblio_holds->next;
     }
 
-    return $self unless $found_holds;
+    return $self unless $hold;
+
+    if ( C4::Context->preference('HoldCancellationRequestSIP') ) {
+        $hold->add_cancellation_request;
+    } else {
+        $hold->cancel;
+    }
+
     $self->ok(1);
     return $self;
 }
