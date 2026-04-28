@@ -482,6 +482,12 @@ Patrons:
          - If not enabled patrons must either use the 'Forgot your password' feature or have staff
          - reset their password.
      -
+         - pref: ClearPermissionsAutomatically
+           choices:
+               1: "Enable"
+               0: "Don't enable"
+         - the ability for staff permissions to be automatically cleared when a staff member's category is changed to one that does not have permissions.  
+     -
          - Block a patron's account if it reaches
          - pref: FailedLoginAttempts
            class: integer
