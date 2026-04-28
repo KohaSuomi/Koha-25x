@@ -20,7 +20,7 @@
 use Modern::Perl;
 
 use Test::NoWarnings;
-use Test::More tests => 9;
+use Test::More tests => 10;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
@@ -359,6 +359,22 @@ subtest 'can_make_suggestions' => sub {
         !$category_1->can_make_suggestions && !$category_2->can_make_suggestions,
         'suggestions disabled, no matter what the value of suggestionPatronCategoryExceptions is'
     );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'can_have_permissions' => sub {
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    my $category = $builder->build_object( { class => 'Koha::Patron::Categories' } );
+
+    ok( !$category->can_have_permissions, 'By default, categories cannot have permissions' );
+
+    $category->can_have_permissions(1)->store;
+    $category->discard_changes;
+    ok( $category->can_have_permissions, 'Category can have permissions when the flag is set' );
 
     $schema->storage->txn_rollback;
 };

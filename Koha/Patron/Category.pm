@@ -326,7 +326,8 @@ sub to_api_mapping {
         exclude_from_local_holds_priority      => 'exclude_from_local_holds_priority',
         noissuescharge                         => 'no_issues_charge',
         noissueschargeguarantees               => 'no_issues_charge_guarantees',
-        noissueschargeguarantorswithguarantees => 'no_issues_charge_guarantors_with_guarantees'
+        noissueschargeguarantorswithguarantees => 'no_issues_charge_guarantors_with_guarantees',
+        can_have_permissions                   => 'can_have_permissions',
     };
 }
 
@@ -346,7 +347,7 @@ sub _library_limits {
     };
 }
 
-=head3 type
+=head3 _type
 
 =cut
 

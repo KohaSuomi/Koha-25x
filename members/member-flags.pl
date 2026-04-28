@@ -26,6 +26,11 @@ unless ($patron) {
     exit;
 }
 
+unless ( $patron->category->can_have_permissions ) {
+    print $input->redirect("/cgi-bin/koha/circ/circulation.pl?borrowernumber=$member");
+    exit;
+}
+
 my $category_type = $patron->category->category_type;
 my $bor           = $patron->unblessed;
 if ( $category_type eq 'S' ) {    # FIXME Is this really needed?
