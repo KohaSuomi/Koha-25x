@@ -85,9 +85,15 @@
                     </li>
                 [% END %]
                 [% IF ( CAN_user_permissions ) %]
-                    <li>
-                        <a class="dropdown-item" id="patronflags" href="/cgi-bin/koha/members/member-flags.pl?member=[% patron.borrowernumber | html %]">Set permissions</a>
-                    </li>
+                    [% IF patron.category.can_have_permissions %]
+                        <li>
+                            <a class="dropdown-item" id="patronflags" href="/cgi-bin/koha/members/member-flags.pl?member=[% patron.borrowernumber | html %]">Set permissions</a>
+                        </li>
+                    [% ELSE %]
+                        <li data-bs-toggle="tooltip" data-bs-placement="left" title="Patron category does not allow permissions">
+                            <a class="dropdown-item disabled" aria-disabled="true" id="patronflags" href="#">Set permissions</a>
+                        </li>
+                    [% END %]
                 [% ELSE %]
                     <li data-bs-toggle="tooltip" data-bs-placement="left" title="You are not authorized to set permissions">
                         <a class="dropdown-item disabled" aria-disabled="true" id="patronflags" href="#">Set permissions</a>
