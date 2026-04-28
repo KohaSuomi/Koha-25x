@@ -368,6 +368,8 @@ modules:
             -
               columnname: enforce_expiry_notice
             -
+              columnname: can_have_permissions
+            -
               columnname: actions
               cannot_be_toggled: 1
               cannot_be_modified: 1
