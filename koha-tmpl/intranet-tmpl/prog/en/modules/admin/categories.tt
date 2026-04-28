@@ -521,6 +521,19 @@
                         </select>
                         <div class="hint">Make the account expiry notice mandatory for all patrons in this category and prevent patrons from opting out in the messaging preferences</div>
                     </li>
+                    <li>
+                        <label for="can_have_permissions">Can have permissions:</label>
+                        <select name="can_have_permissions" id="can_have_permissions">
+                            [% IF category.can_have_permissions %]
+                                <option value="1" selected>Yes</option>
+                                <option value="0">No</option>
+                            [% ELSE %]
+                                <option value="1">Yes</option>
+                                <option value="0" selected>No</option>
+                            [% END %]
+                        </select>
+                        <div class="hint">Determine if patrons in this category can have permissions assigned.</div>
+                    </li>
                 </ol>
             </fieldset>
 
@@ -589,6 +602,7 @@
                     </tr>
                 [% END %]
                 <tr><th scope="row">Can be guarantee:</th><td>[% IF category.can_be_guarantee %]Yes[% ELSE %]No[% END %]</td></tr>
+                <tr><th scope="row">Can have permissions:</th><td>[% IF category.can_have_permissions %]Yes[% ELSE %]No[% END %]</td></tr>
                 [% IF ( Koha.Preference('ILLModule') ) %]
                     <tr>
                         <th scope="row">Can place ILL in OPAC: </th>
