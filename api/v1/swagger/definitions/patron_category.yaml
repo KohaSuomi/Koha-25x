@@ -129,6 +129,9 @@ properties:
     type:
       - boolean
     description: Set threshold of debt allowed before issues are blocked
+  can_have_permissions:
+    type: boolean
+    description: If patrons of this category can have permissions
 additionalProperties: false
 required:
   - patron_category_id

@@ -621,6 +621,13 @@ if ( ( !$nok ) and $nodouble and ( $op eq 'cud-insert' or $op eq 'cud-save' ) ) 
                     $template
                 );
             }
+
+            if ( C4::Context->preference('ClearPermissionsAutomatically') && !$category->can_have_permissions ) {
+               my $sth = $dbh->prepare("DELETE FROM user_permissions WHERE borrowernumber = ?");
+               $sth->execute($borrowernumber);
+               $sth = $dbh->prepare("UPDATE borrowers SET flags=0 WHERE borrowernumber = ?");
+               $sth->execute($borrowernumber);
+            }
         }
     }
 
