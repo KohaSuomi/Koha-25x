@@ -308,9 +308,16 @@
                         // This handles both plain text and list-based columns
                         var values = plainText.split(/\s+/).filter(function(v) { return v.length > 0; });
 
-                        // Check if any value matches the search term exactly
+                        // Remove diacritics for accent-insensitive comparison
+                        function removeDiacritics(str) {
+                            return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                        }
+
+                        // Check if any value matches the search term exactly (accent-insensitive)
+                        var searchNormalized = removeDiacritics(colSearch);
                         var hasMatch = values.some(function(val) {
-                            return val === colSearch;
+                            var valNormalized = removeDiacritics(val);
+                            return valNormalized === searchNormalized;
                         });
 
                         if (!hasMatch) {
