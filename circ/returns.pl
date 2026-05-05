@@ -285,6 +285,8 @@ if ( $barcode && ( $op eq 'cud-checkin' || $op eq 'cud-affect_reserve' ) ) {
         my $validate_float =
             Koha::Libraries->find( $item->homebranch )->validate_float_sibling( { branchcode => $userenv_branch } );
 
+        my $validate_floatrules = C4::Circulation::_validate_floatrules({ barcode => $barcode, branch => $userenv_branch });
+
         # get the proper branch to which to return the item
         # if library isn't in same the float group, transfer item to homelibrary
         $returnbranch =
@@ -294,6 +296,12 @@ if ( $barcode && ( $op eq 'cud-checkin' || $op eq 'cud-affect_reserve' ) ) {
                 ? $userenv_branch
                 : $item->homebranch
             : $item->$hbr;
+
+        if($validate_floatrules && $validate_floatrules ne "nofloatrule"){
+            $hbr = 'homebranch';
+            $returnbranch = $validate_floatrules eq "float" ? $userenv_branch : $item->$hbr;
+        }
+
         my $materials    = $item->materials;
         my $descriptions = Koha::AuthorisedValues->get_description_by_koha_field(
             { frameworkcode => '', kohafield => 'items.materials', authorised_value => $materials } );
