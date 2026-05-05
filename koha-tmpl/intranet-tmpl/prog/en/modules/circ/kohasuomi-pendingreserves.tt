@@ -118,7 +118,22 @@
                                                 [% IF ( reserveloo.holdingbranches.size ) %]
                                                     <ul style="padding-left:  0; margin:  0;">
                                                         [% FOREACH holdingbranch IN reserveloo.holdingbranches %]
-                                                            <li style="list-style-type: none" class="ks-holdingbranch">[% holdingbranch | html %]</li>
+                                                            [% IF holdingbranch.code %]
+                                                                [%# Branch is now an object with code and highlight flags %]
+                                                                [% SET branch_style = "list-style-type: none" %]
+                                                                [% IF holdingbranch.highlight_orange %]
+                                                                    [% SET branch_style = branch_style _ "; color: #ff5500" %]
+                                                                [% END %]
+                                                                [% IF holdingbranch.highlight_bold %]
+                                                                    [% SET branch_style = branch_style _ "; font-weight: bold" %]
+                                                                [% END %]
+                                                                <li style="[% branch_style %]" class="ks-holdingbranch">
+                                                                    [% holdingbranch.code | html %]
+                                                                </li>
+                                                            [% ELSE %]
+                                                                [%# Fallback for plain string format %]
+                                                                <li style="list-style-type: none" class="ks-holdingbranch">[% holdingbranch | html %]</li>
+                                                            [% END %]
                                                         [% END %]
                                                     </ul>
                                                 [% END %]
@@ -244,9 +259,6 @@
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
     <script>
-        // Store reservegroups data for highlight function
-        var reservegroupsjson = [% reservegroups || '{}' %];
-
         function get_options(column) {
             let regex = /(<([^>]+)>)/ig; // Remove html tags
             let options = [...  new Set(column
@@ -328,92 +340,7 @@
 
                 return true; // Show this row
             });
-
-            // Run highlight after table is drawn
-            holdst.on('draw.dt', function() {
-                highlight();
-            });
-
-            // Initial highlight
-            highlight();
         });
-
-        function highlight() {
-            var rows = document.querySelectorAll('#holdst tbody tr');
-
-            rows.forEach(function(row) {
-                checkMatchesReservegroups(row);
-                checkMatches(row);
-            });
-
-            function checkMatches(row) {
-                var holdingbranches = row.querySelectorAll(".ks-holdingbranch");
-                var tobranches = row.querySelectorAll(".ks-tobranch");
-
-                var holdingarr = [];
-                var toarr = [];
-
-                holdingbranches.forEach(function(el) {
-                    holdingarr.push(el.textContent.trim());
-                });
-
-                tobranches.forEach(function(el) {
-                    toarr.push(el.textContent.trim());
-                });
-
-                holdingbranches.forEach(function(fromEl) {
-                    tobranches.forEach(function(toEl) {
-                        if (fromEl.textContent.trim() === toEl.textContent.trim()) {
-                            fromEl.style.color = "#ff5500";
-                            fromEl.style.fontWeight = "bold";
-                        }
-                    });
-                });
-            }
-
-            function unicodeTrim(str) {
-                return str.replace(/^[\s\u00A0\u200B\u200C\u200D\uFEFF]+|[\s\u00A0\u200B\u200C\u200D\uFEFF]+$/g, '');
-            }
-
-            function checkMatchesReservegroups(row) {
-                if (!reservegroupsjson || Object.keys(reservegroupsjson).length === 0) {
-                    return;
-                }
-
-                function json2array(json) {
-                    var result = [];
-                    var keys = Object.keys(json);
-                    keys.forEach(function(key) {
-                        result.push(json[key]);
-                    });
-                    return result;
-                }
-
-                var reservegroupsarray = json2array(reservegroupsjson);
-
-                var holdingbranches = row.querySelectorAll(".ks-holdingbranch");
-                var tobranches = row.querySelectorAll(".ks-tobranch");
-
-                holdingbranches.forEach(function(fromEl) {
-                    tobranches.forEach(function(toEl) {
-                        for (var m = 0; m < reservegroupsarray.length; m++) {
-                            var group = reservegroupsarray[m];
-                            var groupKeys = Object.keys(group);
-
-                            for (var o = 0; o < groupKeys.length; o++) {
-                                if (unicodeTrim(group[groupKeys[o]].branchcode) === unicodeTrim(toEl.textContent)) {
-                                    for (var p = 0; p < groupKeys.length; p++) {
-                                        if (unicodeTrim(group[groupKeys[p]].branchcode) === unicodeTrim(fromEl.textContent)) {
-                                            fromEl.style.fontWeight = "bold";
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
-                });
-            }
-        }
     </script>
 [% END %]
 

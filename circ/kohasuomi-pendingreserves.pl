@@ -31,7 +31,6 @@ use Storable;
 
 use File::Basename;
 use C4::Context;
-use JSON;
 
 my $title = 'VARAUSRYHMA';
 
@@ -65,8 +64,6 @@ foreach my $id (@reservegroup_ids){
     $sth->finish;
 }
 
-my $json_str = encode_json(\@branches);
-
 my $input = new CGI;
 
 my $theme = $input->param('theme');    # only used if allowthemeoverride is set
@@ -92,11 +89,76 @@ if ( -e '/tmp/kohasuomi-pendingreserves.tmp' ) {
     @reservedata=@{$stored};
 }
 
+# Apply highlighting to holding branches based on matching and reserve groups
+apply_highlighting(\@reservedata, \@branches);
+
 $template->param(
-    reservegroups       => $json_str,
     reporteddate        => $reporteddate,
     reserveloop         => \@reservedata,
     "BiblioDefaultView".C4::Context->preference("BiblioDefaultView") => 1,
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;
+
+# Subroutine to apply highlighting to holding branches
+sub apply_highlighting {
+    my ($reservedata, $branches) = @_;
+    
+    return unless $reservedata && ref($reservedata) eq 'ARRAY';
+    return unless $branches && ref($branches) eq 'ARRAY';
+    
+    # Build reserve groups lookup hash: branchcode => [list of all branches in its group]
+    my %reserve_groups_lookup;
+    foreach my $group (@$branches) {
+        next unless ref($group) eq 'ARRAY' && scalar(@$group) > 0;
+        
+        # Extract all branch codes in this group
+        my @group_branches = ();
+        foreach my $member (@$group) {
+            if (ref($member) eq 'HASH' && $member->{branchcode}) {
+                push @group_branches, $member->{branchcode};
+            }
+        }
+        
+        # Map each branch in the group to the full group
+        foreach my $branchcode (@group_branches) {
+            $reserve_groups_lookup{$branchcode} = \@group_branches;
+        }
+    }
+    
+    foreach my $reserve (@$reservedata) {
+        next unless $reserve->{holdingbranches} && ref($reserve->{holdingbranches}) eq 'ARRAY';
+        
+        my $to_branch = $reserve->{branch};
+        
+        # Process each holding branch
+        foreach my $i (0..$#{$reserve->{holdingbranches}}) {
+            my $holding_branch = $reserve->{holdingbranches}->[$i];
+            
+            # Skip if already a complex object
+            next if ref($holding_branch) eq 'HASH';
+            
+            my %branch_data = (
+                code => $holding_branch,
+                highlight_orange => 0,
+                highlight_bold => 0,
+            );
+            
+            # Check if holding branch matches to branch (orange + bold)
+            if (defined $to_branch && $holding_branch eq $to_branch) {
+                $branch_data{highlight_orange} = 1;
+                $branch_data{highlight_bold} = 1;
+            }
+            
+            # Check if holding branch is in same reserve group as to branch (bold)
+            if (defined $to_branch && exists $reserve_groups_lookup{$to_branch}) {
+                my $group_branches = $reserve_groups_lookup{$to_branch};
+                if (grep { $_ eq $holding_branch } @$group_branches) {
+                    $branch_data{highlight_bold} = 1;
+                }
+            }
+            
+            $reserve->{holdingbranches}->[$i] = \%branch_data;
+        }
+    }
+}
