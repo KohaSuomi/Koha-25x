@@ -686,13 +686,58 @@
             }
         }
 
+        /* KOHA-1979: Method to check fields 001, 003 and 035 if record is duplicate */
+        function DuplicateRecordCheckFields () {
+            var fields = {};
+
+            [% FOREACH BIG_LOO IN BIG_LOOP %]
+                [% FOREACH innerloo IN BIG_LOO.innerloop %]
+                    [% IF ( innerloo.tag == "001" || innerloo.tag == "003" || innerloo.tag == "035" ) %]
+                        var tag = "[% innerloo.tag | html %]";
+                        var inputid = "tag_"+ tag + "_subfield";
+                        var input_element = $('[id*="'+inputid+'"]');
+                        if( ( (tag == "001" || tag == "035") && input_element.val() != "" ) || ( tag == "003" && input_element.val() != "FI-TATI" )){
+                            var note = tag == "001" ? __(" (This value has to be unique.)"): "";
+                            fields[tag] = input_element.val() + note;
+                        }
+                    [% END %]
+                [% END %]
+            [% END %]
+
+            if(Object.keys(fields).length > 0){
+                var modal_text = "<div class='modal' tabindex='-1' role='dialog'><div class='modal-dialog'><div class='modal-content'>";
+                modal_text += "<div class='modal-header'><h5 class='modal-title'>"+__("Confirm save")+"</h5><button type='button' class='btn-close' data-bs-dismiss='modal'></button></div>"
+                modal_text += "<div class='modal-body'>";
+                modal_text += "<p>"+ __("This record is a duplicate but following fields are filled:")+"</p>";
+                for (let key of Object.keys(fields)) {
+                    modal_text += "<ul><li>"+ key +": "+ fields[key] +"</li></ul>"
+                }
+                modal_text += "<p>"+__("Are you sure you want to save?")+"</p>";
+                modal_text += "</div>"
+                modal_text += "<div class='modal-footer'><button type='button' class='btn btn-default' data-bs-dismiss='modal'>"+__("Cancel")+"</button><button type='button' class='btn btn-primary' id='confirmSave'>"+__("Save")+"</button></div>";
+                modal_text += "</div></div></div>";
+                return modal_text;
+            } else {
+                return 0;
+            }
+        }
+
         /**
          * Run checks for mandatory and important fields
          * Output errors if necessary, or submit the form
          */
+        /*
+        KOHA-1979: Also checks if either field 001, 003, or 035 is filled
+                   when record is duplicate and shows comfirm pop-up.
+        */
         function Check(){
             var StrAlert = AreFieldsNotOk();
             var StrWarning = AreFieldsNotOk( false );
+
+            let url_params = (new URL(document.location)).searchParams;
+            let op = url_params.get("op");
+            var StrDuplicate = op == "duplicate" ? DuplicateRecordCheckFields() : false;
+
             if ( $('.plugin-blocks-submit').length > 0 ) {
                 // This class can be set by framework plugins to block submittal temporarily (e.g. during ajax call)
                 return false;
@@ -716,6 +761,23 @@
                 $("#check_errors").html( strAll );
                 $('html, body').animate({ scrollTop: 0 }, 'fast');
                 return false;
+            } else if( !StrAlert && !StrWarning && StrDuplicate){
+
+                $('html, body').animate({ scrollTop: 0 }, 'fast');
+
+                var $form = $(this).closest('form');
+                var $modal = $(StrDuplicate);
+                $modal.appendTo('body');
+
+                var modal = new bootstrap.Modal($modal);
+                $modal.find("#confirmSave").click(function() {
+                    modal.hide();
+                    document.f.submit();
+                    return true;
+                });
+
+                modal.show();
+
             } else if( !StrAlert && !StrWarning ){
                 document.f.submit();
                 return true;
