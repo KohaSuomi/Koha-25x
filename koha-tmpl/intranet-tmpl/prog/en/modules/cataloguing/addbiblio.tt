@@ -689,6 +689,7 @@
         /* KOHA-1979: Method to check fields 001, 003 and 035 if record is duplicate */
         function DuplicateRecordCheckFields () {
             var fields = {};
+            var isil = "[% Koha.Preference('MARCOrgCode') | html %]";
 
             [% FOREACH BIG_LOO IN BIG_LOOP %]
                 [% FOREACH innerloo IN BIG_LOO.innerloop %]
@@ -696,7 +697,7 @@
                         var tag = "[% innerloo.tag | html %]";
                         var inputid = "tag_"+ tag + "_subfield";
                         var input_element = $('[id*="'+inputid+'"]');
-                        if( ( (tag == "001" || tag == "035") && input_element.val() != "" ) || ( tag == "003" && input_element.val() != "FI-TATI" )){
+                        if( ( (tag == "001" || tag == "035") && input_element.val() != "" ) || ( tag == "003" && input_element.val() != isil )){
                             var note = tag == "001" ? __(" (This value has to be unique.)"): "";
                             fields[tag] = input_element.val() + note;
                         }
