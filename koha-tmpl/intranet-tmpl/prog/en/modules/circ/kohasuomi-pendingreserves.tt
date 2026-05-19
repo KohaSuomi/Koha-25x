@@ -274,6 +274,12 @@
         }
 
         $(document).ready(function() {
+            // Disable diacritic normalization globally to support accent-sensitive search
+            $.fn.dataTable.util.diacritics(function(d) {
+                // Return original input without normalization
+                return d;
+            });
+
             let filters_options = {
                 [4]:  (table_dt) => get_options(table_dt.column(4)),  // on_shelf (holdingbranches)
                 [5]:  (table_dt) => get_options(table_dt.column(5)),  // hold_at
@@ -295,14 +301,10 @@
                 filters_options
             );
 
-// Override column searches to use exact matching
-            // This intercepts the built-in filter mechanism
-            var dt = holdst.DataTable ? holdst.DataTable() : holdst.api();
-
-            // Custom search for all filterable columns with exact matching
+            // Custom search for dropdown columns only (exact word matching with accent-insensitive comparison)
             $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
                 var api = new $.fn.dataTable.Api(settings);
-                // Columns that support filtering: 4 (on_shelf), 5 (hold_at), 10 (itemtypes), 11 (materials), 12 (locations), 13 (sublocations), 14 (collections)
+                // Dropdown filter columns: 4 (on_shelf), 5 (hold_at), 10 (itemtypes), 11 (materials), 12 (locations), 13 (sublocations), 14 (collections)
                 var filterColumns = [4, 5, 10, 11, 12, 13, 14];
 
                 for (var i = 0; i < filterColumns.length; i++) {
@@ -316,8 +318,7 @@
                         // Remove HTML tags to get plain text
                         var plainText = colData.replace(/<[^>]*>/g, '').trim();
 
-                        // Split on whitespace (newlines + multiple spaces) to get individual values
-                        // This handles both plain text and list-based columns
+                        // Split on whitespace to get individual values
                         var values = plainText.split(/\s+/).filter(function(v) { return v.length > 0; });
 
                         // Remove diacritics for accent-insensitive comparison
@@ -325,7 +326,6 @@
                             return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
                         }
 
-                        // Check if any value matches the search term exactly (accent-insensitive)
                         var searchNormalized = removeDiacritics(colSearch);
                         var hasMatch = values.some(function(val) {
                             var valNormalized = removeDiacritics(val);
