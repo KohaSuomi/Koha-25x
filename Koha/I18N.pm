@@ -100,7 +100,8 @@ variables and configuring gettext. This is called automatically when needed.
 
 sub init {
     my $cache     = Koha::Cache::Memory::Lite->get_instance();
-    my $cache_key = 'i18n:initialized';
+    my $langtag   = C4::Languages::getlanguage;
+    my $cache_key = 'i18n:initialized:' . $langtag;
     unless ( $cache->get_from_cache($cache_key) ) {
         my @system_locales = grep { chomp; not( /^C/ || $_ eq 'POSIX' ) } qx/locale -a/;
         if (@system_locales) {
@@ -109,8 +110,6 @@ sub init {
             # otherwise LANGUAGE is ignored
             $ENV{LANG} = $system_locales[0];
             POSIX::setlocale( LC_MESSAGES, '' );
-
-            my $langtag = C4::Languages::getlanguage;
             my @subtags = split /-/, $langtag;
             my ( $language, $region ) = @subtags;
             if ( $region && length $region == 4 ) {
