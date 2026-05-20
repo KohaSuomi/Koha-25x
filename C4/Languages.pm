@@ -732,19 +732,30 @@ sub getlanguage {
     my ($cgi) = @_;
 
     my $memory_cache = Koha::Cache::Memory::Lite->get_instance();
-    my $cache_key    = "getlanguage";
-    unless ( $cgi and $cgi->param('language') ) {
-        my $cached = $memory_cache->get_from_cache($cache_key);
-        return $cached if $cached;
-    }
-
     my $interface = C4::Context->interface;
     my $theme     = '';
     my $language;
     my @languages;
-
+    
+    # Initialize CGI early if needed for cache key building
     if ( $interface eq 'opac' || $interface eq 'intranet' ) {
         $cgi //= CGI->new;
+    }
+    
+    # Build cache key from all variables that affect language selection
+    my $cgi_param = '';
+    my $cookie_val = '';
+    if ( $interface eq 'opac' || $interface eq 'intranet' ) {
+        $cgi_param = $cgi->param('language') // '';
+        $cookie_val = $cgi->cookie('KohaOpacLanguage') // '';
+    }
+    my $http_accept = $ENV{HTTP_ACCEPT_LANGUAGE} // '';
+    my $cache_key = join(':', 'getlanguage', $interface, $cgi_param, $cookie_val, $http_accept);
+    
+    my $cached = $memory_cache->get_from_cache($cache_key);
+    return $cached if $cached;
+
+    if ( $interface eq 'opac' || $interface eq 'intranet' ) {
         $theme = C4::Context->preference( ( $interface eq 'opac' ) ? 'opacthemes' : 'template' );
 
         my $preference_to_check = $interface eq 'intranet' ? 'StaffInterfaceLanguages' : 'OPACLanguages';
