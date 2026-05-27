@@ -52,19 +52,35 @@ my $strsth = q{
 
         (SELECT r2.borrowernumber
          FROM reserves r2
+         LEFT JOIN items i2 ON i2.biblionumber = r2.biblionumber AND (r2.itemnumber IS NULL OR r2.itemnumber = i2.itemnumber)
+         LEFT JOIN branchtransfers bt2 ON i2.itemnumber = bt2.itemnumber
+         LEFT JOIN issues iss2 ON i2.itemnumber = iss2.itemnumber
          WHERE r2.biblionumber = reserves.biblionumber
            AND r2.found IS NULL
            AND r2.priority <> 0
            AND r2.suspend = 0
+           AND i2.itemnumber NOT IN (SELECT itemnumber FROM branchtransfers WHERE datearrived IS NULL AND datecancelled IS NULL)
+           AND i2.itemnumber NOT IN (SELECT itemnumber FROM reserves WHERE found IS NOT NULL AND itemnumber IS NOT NULL)
+           AND iss2.itemnumber IS NULL
+           AND i2.notforloan = 0 AND i2.damaged = 0 AND i2.itemlost = 0 AND i2.withdrawn = 0
+           AND i2.itype NOT IN (SELECT itemtype FROM itemtypes WHERE notforloan=1)
          ORDER BY r2.priority ASC
          LIMIT 1) AS borrowernumber,
 
         (SELECT r2.branchcode
          FROM reserves r2
+         LEFT JOIN items i2 ON i2.biblionumber = r2.biblionumber AND (r2.itemnumber IS NULL OR r2.itemnumber = i2.itemnumber)
+         LEFT JOIN branchtransfers bt2 ON i2.itemnumber = bt2.itemnumber
+         LEFT JOIN issues iss2 ON i2.itemnumber = iss2.itemnumber
          WHERE r2.biblionumber = reserves.biblionumber
            AND r2.found IS NULL
            AND r2.priority <> 0
            AND r2.suspend = 0
+           AND i2.itemnumber NOT IN (SELECT itemnumber FROM branchtransfers WHERE datearrived IS NULL AND datecancelled IS NULL)
+           AND i2.itemnumber NOT IN (SELECT itemnumber FROM reserves WHERE found IS NOT NULL AND itemnumber IS NOT NULL)
+           AND iss2.itemnumber IS NULL
+           AND i2.notforloan = 0 AND i2.damaged = 0 AND i2.itemlost = 0 AND i2.withdrawn = 0
+           AND i2.itype NOT IN (SELECT itemtype FROM itemtypes WHERE notforloan=1)
          ORDER BY r2.priority ASC
          LIMIT 1) AS l_branch,
 
@@ -99,10 +115,18 @@ my $strsth = q{
         (SELECT b.othernames
          FROM reserves r2
          JOIN borrowers b ON r2.borrowernumber = b.borrowernumber
+         LEFT JOIN items i2 ON i2.biblionumber = r2.biblionumber AND (r2.itemnumber IS NULL OR r2.itemnumber = i2.itemnumber)
+         LEFT JOIN branchtransfers bt2 ON i2.itemnumber = bt2.itemnumber
+         LEFT JOIN issues iss2 ON i2.itemnumber = iss2.itemnumber
          WHERE r2.biblionumber = reserves.biblionumber
            AND r2.found IS NULL
            AND r2.priority <> 0
            AND r2.suspend = 0
+           AND i2.itemnumber NOT IN (SELECT itemnumber FROM branchtransfers WHERE datearrived IS NULL AND datecancelled IS NULL)
+           AND i2.itemnumber NOT IN (SELECT itemnumber FROM reserves WHERE found IS NOT NULL AND itemnumber IS NOT NULL)
+           AND iss2.itemnumber IS NULL
+           AND i2.notforloan = 0 AND i2.damaged = 0 AND i2.itemlost = 0 AND i2.withdrawn = 0
+           AND i2.itype NOT IN (SELECT itemtype FROM itemtypes WHERE notforloan=1)
          ORDER BY r2.priority ASC
          LIMIT 1) AS othernames
 
