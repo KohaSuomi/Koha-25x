@@ -35,6 +35,7 @@ use Locale::Messages qw(
 );
 use POSIX qw();
 use Koha::Cache::Memory::Lite;
+use Koha::Caches;
 
 use parent 'Exporter';
 our @EXPORT = qw(
@@ -96,13 +97,37 @@ contextual translations.
 Initializes the internationalization system by setting up locale environment
 variables and configuring gettext. This is called automatically when needed.
 
+Checks memcached for translation version changes and reinitializes if needed.
+This allows zero-downtime translation updates across all workers.
+
 =cut
 
 sub init {
-    my $cache     = Koha::Cache::Memory::Lite->get_instance();
-    my $langtag   = C4::Languages::getlanguage;
+    my $memory_cache = Koha::Cache::Memory::Lite->get_instance();
+    my $shared_cache = Koha::Caches->get_instance();
+    
+    # Get current translation version from memcached (shared across workers)
+    my $current_version = $shared_cache->get_from_cache('i18n:translation_version') || 0;
+    
+    # Get locally cached version
+    my $cached_version = $memory_cache->get_from_cache('i18n:local_version') || 0;
+    
+    # If versions differ, clear all i18n and language caches
+    if ($current_version != $cached_version) {
+        foreach my $key ($memory_cache->all_keys()) {
+            if ($key =~ /^(i18n:|getlanguage:)/) {
+                $memory_cache->clear_from_cache($key);
+            }
+        }
+        # Update local version to match shared version
+        $memory_cache->set_in_cache('i18n:local_version', $current_version);
+    }
+    
+    # Now detect language (after clearing old getlanguage cache if needed)
+    my $langtag = C4::Languages::getlanguage;
     my $cache_key = 'i18n:initialized:' . $langtag;
-    unless ( $cache->get_from_cache($cache_key) ) {
+    
+    unless ( $memory_cache->get_from_cache($cache_key) ) {
         my @system_locales = grep { chomp; not( /^C/ || $_ eq 'POSIX' ) } qx/locale -a/;
         if (@system_locales) {
 
@@ -130,7 +155,7 @@ sub init {
             warn "No locale installed. Localization cannot work and is therefore disabled";
         }
 
-        $cache->set_in_cache( $cache_key, 1 );
+        $memory_cache->set_in_cache( $cache_key, 1 );
     }
 }
 
