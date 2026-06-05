@@ -212,11 +212,12 @@ if ( $op eq 'cud-delete' ) {
                     branchcode => undef,
                     itemtype   => undef,
                     rules      => {
-                        holdallowed             => undef,
-                        hold_fulfillment_policy => undef,
-                        bookings_lead_period    => undef,
-                        bookings_trail_period   => undef,
-                        returnbranch            => undef,
+                        holdallowed                    => undef,
+                        hold_fulfillment_policy        => undef,
+                        fill_other_biblio_holds_policy => undef,
+                        bookings_lead_period           => undef,
+                        bookings_trail_period          => undef,
+                        returnbranch                   => undef,
                     }
                 }
             );
@@ -226,11 +227,12 @@ if ( $op eq 'cud-delete' ) {
                     branchcode => undef,
                     itemtype   => $itemtype,
                     rules      => {
-                        holdallowed             => undef,
-                        hold_fulfillment_policy => undef,
-                        bookings_lead_period    => undef,
-                        bookings_trail_period   => undef,
-                        returnbranch            => undef,
+                        holdallowed                    => undef,
+                        hold_fulfillment_policy        => undef,
+                        fill_other_biblio_holds_policy => undef,
+                        bookings_lead_period           => undef,
+                        bookings_trail_period          => undef,
+                        returnbranch                   => undef,
                     }
                 }
             );
@@ -241,11 +243,12 @@ if ( $op eq 'cud-delete' ) {
                 branchcode => $branch,
                 itemtype   => undef,
                 rules      => {
-                    holdallowed             => undef,
-                    hold_fulfillment_policy => undef,
-                    bookings_lead_period    => undef,
-                    bookings_trail_period   => undef,
-                    returnbranch            => undef,
+                    holdallowed                    => undef,
+                    hold_fulfillment_policy        => undef,
+                    fill_other_biblio_holds_policy => undef,
+                    bookings_lead_period           => undef,
+                    bookings_trail_period          => undef,
+                    returnbranch                   => undef,
                 }
             }
         );
@@ -255,11 +258,12 @@ if ( $op eq 'cud-delete' ) {
                 branchcode => $branch,
                 itemtype   => $itemtype,
                 rules      => {
-                    holdallowed             => undef,
-                    hold_fulfillment_policy => undef,
-                    bookings_lead_period    => undef,
-                    bookings_trail_period   => undef,
-                    returnbranch            => undef,
+                    holdallowed                    => undef,
+                    hold_fulfillment_policy        => undef,
+                    fill_other_biblio_holds_policy => undef,
+                    bookings_lead_period           => undef,
+                    bookings_trail_period          => undef,
+                    returnbranch                   => undef,
                 }
             }
         );
@@ -609,12 +613,13 @@ elsif ( $op eq 'cud-add' ) {
         }
     );
 } elsif ( $op eq "cud-add-branch-item" ) {
-    my $itemtype                = $input->param('itemtype');
-    my $holdallowed             = $input->param('holdallowed');
-    my $hold_fulfillment_policy = $input->param('hold_fulfillment_policy');
-    my $bookings_lead_period    = $input->param('bookings_lead_period');
-    my $bookings_trail_period   = $input->param('bookings_trail_period');
-    my $returnbranch            = $input->param('returnbranch');
+    my $itemtype                       = $input->param('itemtype');
+    my $holdallowed                    = $input->param('holdallowed');
+    my $hold_fulfillment_policy        = $input->param('hold_fulfillment_policy');
+    my $fill_other_biblio_holds_policy = $input->param('fill_other_biblio_holds_policy');
+    my $bookings_lead_period           = $input->param('bookings_lead_period');
+    my $bookings_trail_period          = $input->param('bookings_trail_period');
+    my $returnbranch                   = $input->param('returnbranch');
 
     if ( $branch eq "*" ) {
         if ( $itemtype eq "*" ) {
@@ -623,11 +628,12 @@ elsif ( $op eq 'cud-add' ) {
                     itemtype   => undef,
                     branchcode => undef,
                     rules      => {
-                        holdallowed             => $holdallowed,
-                        hold_fulfillment_policy => $hold_fulfillment_policy,
-                        bookings_lead_period    => $bookings_lead_period,
-                        bookings_trail_period   => $bookings_trail_period,
-                        returnbranch            => $returnbranch,
+                        holdallowed                    => $holdallowed,
+                        hold_fulfillment_policy        => $hold_fulfillment_policy,
+                        fill_other_biblio_holds_policy => $fill_other_biblio_holds_policy,
+                        bookings_lead_period           => $bookings_lead_period,
+                        bookings_trail_period          => $bookings_trail_period,
+                        returnbranch                   => $returnbranch,
                     }
                 }
             );
@@ -637,11 +643,12 @@ elsif ( $op eq 'cud-add' ) {
                     itemtype   => $itemtype,
                     branchcode => undef,
                     rules      => {
-                        holdallowed             => $holdallowed,
-                        hold_fulfillment_policy => $hold_fulfillment_policy,
-                        bookings_lead_period    => $bookings_lead_period,
-                        bookings_trail_period   => $bookings_trail_period,
-                        returnbranch            => $returnbranch,
+                        holdallowed                    => $holdallowed,
+                        hold_fulfillment_policy        => $hold_fulfillment_policy,
+                        fill_other_biblio_holds_policy => $fill_other_biblio_holds_policy,
+                        bookings_lead_period           => $bookings_lead_period,
+                        bookings_trail_period          => $bookings_trail_period,
+                        returnbranch                   => $returnbranch,
                     }
                 }
             );
@@ -652,11 +659,12 @@ elsif ( $op eq 'cud-add' ) {
                 itemtype   => undef,
                 branchcode => $branch,
                 rules      => {
-                    holdallowed             => $holdallowed,
-                    hold_fulfillment_policy => $hold_fulfillment_policy,
-                    bookings_lead_period    => $bookings_lead_period,
-                    bookings_trail_period   => $bookings_trail_period,
-                    returnbranch            => $returnbranch,
+                    holdallowed                    => $holdallowed,
+                    hold_fulfillment_policy        => $hold_fulfillment_policy,
+                    fill_other_biblio_holds_policy => $fill_other_biblio_holds_policy,
+                    bookings_lead_period           => $bookings_lead_period,
+                    bookings_trail_period          => $bookings_trail_period,
+                    returnbranch                   => $returnbranch,
                 }
             }
         );
@@ -666,11 +674,12 @@ elsif ( $op eq 'cud-add' ) {
                 itemtype   => $itemtype,
                 branchcode => $branch,
                 rules      => {
-                    holdallowed             => $holdallowed,
-                    hold_fulfillment_policy => $hold_fulfillment_policy,
-                    bookings_lead_period    => $bookings_lead_period,
-                    bookings_trail_period   => $bookings_trail_period,
-                    returnbranch            => $returnbranch,
+                    holdallowed                    => $holdallowed,
+                    hold_fulfillment_policy        => $hold_fulfillment_policy,
+                    fill_other_biblio_holds_policy => $fill_other_biblio_holds_policy,
+                    bookings_lead_period           => $bookings_lead_period,
+                    bookings_trail_period          => $bookings_trail_period,
+                    returnbranch                   => $returnbranch,
                 }
             }
         );
