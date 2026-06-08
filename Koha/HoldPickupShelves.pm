@@ -54,10 +54,22 @@ sub available_shelves {
     foreach my $method (@methods) {
         my $shelves = $method->();
         if ($shelves && @$shelves) {
+            # Optimize: Prefetch all hold counts and duplicate checks in one query
+            my @shelf_ids = map { $_->hold_pickup_shelf_id } @$shelves;
+            my %holds_count = $self->_get_holds_count_for_shelves(\@shelf_ids);
+            my %duplicate_check = $self->_check_duplicates_for_shelves(\@shelf_ids, $biblio_id);
+            
             my $response = [];
             for my $shelf (@$shelves) {
-                if ($shelf->available_shelf($biblio, $patron)) {
-                    my $holds_count = $shelf->holds_count;
+                my $shelf_id = $shelf->hold_pickup_shelf_id;
+                my $holds_count = $holds_count{$shelf_id} || 0;
+                
+                # Early exit checks before calling available_shelf
+                next if $duplicate_check{$shelf_id};
+                next if $holds_count >= $shelf->max_items;
+                
+                # Pass holds_count to avoid redundant query
+                if ($shelf->available_shelf($biblio, $patron, $holds_count)) {
                     $shelf = $shelf->unblessed;
                     $shelf->{holds_count} = $holds_count;
                     push @{$response}, $shelf;
@@ -133,9 +145,64 @@ sub overflow_shelves {
     )->as_list;
 }
 
+=head3 _get_holds_count_for_shelves
+Returns a hash of shelf_id => holds_count for given shelf IDs using a single query.
+Internal optimization method.
+=cut
+sub _get_holds_count_for_shelves {
+    my ($self, $shelf_ids) = @_;
+    return () unless $shelf_ids && @$shelf_ids;
+    
+    my $dbh = C4::Context->dbh;
+    my $placeholders = join(',', ('?') x @$shelf_ids);
+    my $query = qq{
+        SELECT hold_pickup_shelf_id, COUNT(*) as count
+        FROM reserves
+        WHERE hold_pickup_shelf_id IN ($placeholders)
+        GROUP BY hold_pickup_shelf_id
+    };
+    
+    my $sth = $dbh->prepare($query);
+    $sth->execute(@$shelf_ids);
+    
+    my %counts;
+    while (my $row = $sth->fetchrow_hashref) {
+        $counts{$row->{hold_pickup_shelf_id}} = $row->{count};
+    }
+    return %counts;
+}
+
+=head3 _check_duplicates_for_shelves
+Returns a hash of shelf_id => 1 for shelves that already have the biblio.
+Internal optimization method.
+=cut
+sub _check_duplicates_for_shelves {
+    my ($self, $shelf_ids, $biblio_id) = @_;
+    return () unless $shelf_ids && @$shelf_ids && $biblio_id;
+    
+    my $dbh = C4::Context->dbh;
+    my $placeholders = join(',', ('?') x @$shelf_ids);
+    my $query = qq{
+        SELECT DISTINCT hold_pickup_shelf_id
+        FROM reserves
+        WHERE hold_pickup_shelf_id IN ($placeholders)
+        AND biblionumber = ?
+    };
+    
+    my $sth = $dbh->prepare($query);
+    $sth->execute(@$shelf_ids, $biblio_id);
+    
+    my %duplicates;
+    while (my $row = $sth->fetchrow_hashref) {
+        $duplicates{$row->{hold_pickup_shelf_id}} = 1;
+    }
+    return %duplicates;
+}
+
 =head3 lock_previously_used_shelves
 Locks all shelves that are in use for a given library.
 This method is used to prevent shelves that have been used previously from being used again.
+Optimized to use bulk operations.
 =cut
 sub lock_previously_used_shelves {
     my ($self, $library_id) = @_;
@@ -145,28 +212,69 @@ sub lock_previously_used_shelves {
         locked        => 0,
         last_used_date => { '<' => $today }
     })->as_list;
+    
+    return unless @$shelves;
+    
+    # Bulk fetch hold counts
+    my @shelf_ids = map { $_->hold_pickup_shelf_id } @$shelves;
+    my %holds_count = $self->_get_holds_count_for_shelves(\@shelf_ids);
+    
+    # Collect shelf IDs that need locking
+    my @shelves_to_lock;
     for my $shelf (@$shelves) {
         # Only lock if there are holds linked to this shelf
-        my $holds_count = $shelf->holds_count;
+        my $holds_count = $holds_count{$shelf->hold_pickup_shelf_id} || 0;
         if ($holds_count > 0) {
-            $shelf->update({locked => 1, locked_date => DateTime->now, last_used_date => undef});
+            push @shelves_to_lock, $shelf->hold_pickup_shelf_id;
         }
+    }
+    
+    # Bulk update all shelves that need locking
+    if (@shelves_to_lock) {
+        $self->search({
+            hold_pickup_shelf_id => { -in => \@shelves_to_lock }
+        })->update({
+            locked => 1,
+            locked_date => DateTime->now,
+            last_used_date => undef
+        });
     }
 }
 
 =head3 open_locked_shelves
 Opens all locked shelves for a given library.
 This method is used to unlock shelves that are not locked today.
+Optimized to use bulk operations.
 =cut
 sub open_locked_shelves {
     my ($self, $library_id) = @_;
     my $shelves = $self->search({library_id => $library_id, locked => 1})->as_list;
+    
+    return unless @$shelves;
+    
+    # Bulk fetch hold counts
+    my @shelf_ids = map { $_->hold_pickup_shelf_id } @$shelves;
+    my %holds_count = $self->_get_holds_count_for_shelves(\@shelf_ids);
+    
+    # Collect shelf IDs that need unlocking
+    my @shelves_to_unlock;
     for my $shelf (@$shelves) {
         # Only unlock if there are no holds linked to this shelf
-        my $holds_count = $shelf->holds_count;
+        my $holds_count = $holds_count{$shelf->hold_pickup_shelf_id} || 0;
         if ($holds_count == 0) {
-            $shelf->update({locked => 0, locked_date => undef, patron_id => undef});
+            push @shelves_to_unlock, $shelf->hold_pickup_shelf_id;
         }
+    }
+    
+    # Bulk update all shelves that need unlocking
+    if (@shelves_to_unlock) {
+        $self->search({
+            hold_pickup_shelf_id => { -in => \@shelves_to_unlock }
+        })->update({
+            locked => 0,
+            locked_date => undef,
+            patron_id => undef
+        });
     }
 }
 
