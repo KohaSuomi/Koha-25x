@@ -74,17 +74,21 @@ sub biblio_level_itemtype {
 }
 
 =head3 available_shelf
-Return if the shelf is available for holds
+Return if the shelf is available for holds.
+Accepts optional $holds_count parameter to avoid redundant queries.
+When $holds_count is provided, duplicate check is assumed to be done by caller.
 =cut
 
 sub available_shelf {
-    my ($self, $biblio, $patron) = @_;
+    my ($self, $biblio, $patron, $holds_count) = @_;
     my $patron_category_id = $self->_result->patron_category_id;
     my $biblio_itemtype = $self->_result->biblio_itemtype;
 
-    if ($biblio && $self->duplicate_record($biblio->biblionumber)) {
+    # Only check for duplicates if holds_count was not provided (legacy calls)
+    if (!defined $holds_count && $biblio && $self->duplicate_record($biblio->biblionumber)) {
         return 0;
     }
+    
     if ($patron && $patron_category_id && $patron->categorycode ne $patron_category_id) {
         return 0;
     }
@@ -93,7 +97,9 @@ sub available_shelf {
         return 0;
     }
 
-    if ($self->holds_count >= $self->max_items) {
+    # Use provided holds_count if available, otherwise query
+    $holds_count = $self->holds_count unless defined $holds_count;
+    if ($holds_count >= $self->max_items) {
         return 0;
     }
 
