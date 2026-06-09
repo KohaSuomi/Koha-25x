@@ -24,6 +24,7 @@
                         :disabled="patron_selected_shelf"
                         @input="onSelect"
                         :placeholder="$__('Search shelves...')"
+                        :scroll-sync="false"
                     >
                         <template #option="option">
                             <span>{{ option.shelf_name }}</span>
@@ -70,6 +71,10 @@
         line-height: 1 !important;
         color: #000 !important;
         text-shadow: 0 1px 0 #fff !important;
+    }
+    :deep(.vs__dropdown-menu) {
+        max-height: 173px !important;
+        overflow-y: auto !important;        
     }
 </style>
 <script>
