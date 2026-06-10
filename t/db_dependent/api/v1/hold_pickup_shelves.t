@@ -19,7 +19,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 5;
+use Test::More tests => 6;
 use Test::Mojo;
 
 use t::lib::TestBuilder;
@@ -350,6 +350,165 @@ subtest 'update() tests' => sub {
 
     $t->post_ok( "//$userid:$password@/api/v1/holds/pickup_shelves/$hold_pickup_shelf_id" => json => $params )
         ->status_is(404);
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'available_shelves() tests' => sub {
+
+    plan tests => 16;
+
+    $schema->storage->txn_begin;
+
+    my $librarian = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { flags => 3 }
+        }
+    );
+    my $password = 'thePassword123';
+    $librarian->set_password( { password => $password, skip_validation => 1 } );
+    my $userid = $librarian->userid;
+
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { flags => 0 }
+        }
+    );
+
+    $patron->set_password( { password => $password, skip_validation => 1 } );
+    my $unauth_userid = $patron->userid;
+
+    # Create test library
+    my $library = $builder->build_object({ class => 'Koha::Libraries' });
+    my $library_id = $library->branchcode;
+
+    # Create test patron for shelves
+    my $test_patron = $builder->build_object({ class => 'Koha::Patrons' });
+    my $patron_id = $test_patron->borrowernumber;
+
+    # Create test biblio
+    my $biblio = $builder->build_sample_biblio();
+    my $biblio_id = $biblio->biblionumber;
+
+    # Create test shelves with different configurations
+    # Set weekday, biblio_itemtype, and patron_category_id to undef so they match any day/itemtype/category
+    my $shelf1 = $builder->build_object({
+        class => 'Koha::HoldPickupShelves',
+        value => {
+            library_id => $library_id,
+            shelf_name => 'A1',
+            max_items => 5,
+            overflow_shelf => 0,
+            locked => 0,
+            priority => 1,
+            weekday => undef,
+            biblio_itemtype => undef,
+            patron_category_id => undef,
+        }
+    });
+
+    my $shelf2 = $builder->build_object({
+        class => 'Koha::HoldPickupShelves',
+        value => {
+            library_id => $library_id,
+            shelf_name => 'A2',
+            max_items => 5,
+            overflow_shelf => 0,
+            locked => 0,
+            priority => 2,
+            weekday => undef,
+            biblio_itemtype => undef,
+            patron_category_id => undef,
+        }
+    });
+
+    my $locked_shelf = $builder->build_object({
+        class => 'Koha::HoldPickupShelves',
+        value => {
+            library_id => $library_id,
+            shelf_name => 'A3',
+            max_items => 5,
+            overflow_shelf => 0,
+            locked => 1,
+            locked_date => DateTime->now->subtract(days => 1)->ymd,
+            priority => 3,
+            weekday => undef,
+            biblio_itemtype => undef,
+            patron_category_id => undef,
+        }
+    });
+
+    # Add holds to locked shelf so it won't be auto-unlocked
+    my $dbh = $schema->storage->dbh;
+    $dbh->do(q{
+        INSERT INTO reserves (biblionumber, borrowernumber, branchcode, hold_pickup_shelf_id)
+        VALUES (?, ?, ?, ?)
+    }, undef, $biblio_id, $test_patron->borrowernumber, $library_id, $locked_shelf->hold_pickup_shelf_id);
+
+    my $shelf4 = $builder->build_object({
+        class => 'Koha::HoldPickupShelves',
+        value => {
+            library_id => $library_id,
+            shelf_name => 'A10',
+            max_items => 10,
+            overflow_shelf => 0,
+            locked => 0,
+            priority => 4,
+            weekday => undef,
+            biblio_itemtype => undef,
+            patron_category_id => undef,
+        }
+    });
+
+    my $overflow_shelf = $builder->build_object({
+        class => 'Koha::HoldPickupShelves',
+        value => {
+            library_id => $library_id,
+            shelf_name => 'Overflow',
+            max_items => 10,
+            overflow_shelf => 1,
+            locked => 0,
+            priority => 99,
+            weekday => undef,
+            biblio_itemtype => undef,
+            patron_category_id => undef,
+        }
+    });
+
+    # Test unauthorized access
+    $t->get_ok("//$unauth_userid:$password@/api/v1/holds/pickup_shelves/available?library_id=$library_id&biblio_id=$biblio_id&patron_id=$patron_id")
+        ->status_is(403)
+        ->json_is( '/error' => 'Authorization failure. Missing required permission(s).' );
+
+    # Test with authorized user
+    $t->get_ok("//$userid:$password@/api/v1/holds/pickup_shelves/available?library_id=$library_id&biblio_id=$biblio_id&patron_id=$patron_id")
+        ->status_is(200);
+
+    my $response = $t->tx->res->json;
+    ok( ref($response) eq 'ARRAY', 'Response is an array' );
+    ok( scalar(@$response) > 0, 'At least one shelf is available' );
+
+    # Verify the response structure
+    if (@$response) {
+        my $first_shelf = $response->[0];
+        ok( exists $first_shelf->{hold_pickup_shelf_id}, 'Shelf has hold_pickup_shelf_id' );
+        ok( exists $first_shelf->{shelf_name}, 'Shelf has shelf_name' );
+        ok( exists $first_shelf->{holds_count}, 'Shelf has holds_count' );
+    }
+
+    # Test natural sorting - shelves should be sorted A1, A2, A3, A4 (not A1, A10, A2)
+    if (@$response >= 2) {
+        is( $response->[0]->{shelf_name}, 'A1', 'First shelf is A1' );
+        is( $response->[1]->{shelf_name}, 'A2', 'Second shelf is A2' );
+        is( $response->[-1]->{shelf_name}, 'A10', 'Last shelf is A10' );
+    }
+
+    # Test with non-existent library
+    $t->get_ok("//$userid:$password@/api/v1/holds/pickup_shelves/available?library_id=NONEXISTENT&biblio_id=$biblio_id&patron_id=$patron_id")
+        ->status_is(200)
+        ->json_is( '' => [], 'No shelves available for non-existent library' );
 
     $schema->storage->txn_rollback;
 };
