@@ -664,7 +664,7 @@
     [% IF ( found ) %]
         [% IF ( waiting ) %]
             [% SET has_pickup_shelves = Koha.Preference('HoldPickupShelves') && hold_pickup_library %]
-            <div id="hold-found1" class="modal modal-lg [% UNLESS has_pickup_shelves %]block[% END %] audio-alert-action" [% UNLESS has_pickup_shelves %]data-bs-backdrop="static" data-bs-keyboard="false"[% END %]>
+            <div id="hold-found1" class="modal modal-lg block audio-alert-action" [% UNLESS has_pickup_shelves %]data-bs-backdrop="static" data-bs-keyboard="false"[% END %]>
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <form method="post" action="returns.pl" class="confirm">
