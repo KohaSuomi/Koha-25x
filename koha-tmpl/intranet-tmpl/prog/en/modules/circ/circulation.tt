@@ -1152,6 +1152,34 @@
             var newin = window.open(link, 'popup', 'width=600,height=400,resizable=1,toolbar=0,scrollbars=1,top');
         }
         $(document).ready(function() {
+            function checkEmptyCircSearch(e) {
+                var $input = $("#findborrower_main");
+                if (!$input.val() || !$input.val().trim()) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    $input.tooltip({
+                        trigger: 'manual',
+                        placement: 'bottom',
+                        title: __("Please enter a card number or name")
+                    }).tooltip('show');
+                    
+                    $(document).off('click.circ_empty_err').on('click.circ_empty_err', function() {
+                        $input.tooltip('hide');
+                        $(document).off('click.circ_empty_err');
+                    });
+                    return false;
+                }
+                return true;
+            }
+
+            $("#patronsearch").on("submit", function(e) {
+                return checkEmptyCircSearch(e);
+            });
+
+            $("#patronsearch button[type='submit']").on("click", function(e) {
+                return checkEmptyCircSearch(e);
+            });
             [% IF waiting_holds.count > 0 %]
                 $('#circ-warnwaitingholds-modal .btn-primary').on('click',function() {
                     $('#mainform').submit();
