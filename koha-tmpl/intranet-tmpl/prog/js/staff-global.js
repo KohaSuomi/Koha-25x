@@ -470,6 +470,11 @@ $(document).ready(function () {
         e.preventDefault();
         validatePatronSearch($(this)[0]);
     });
+
+    $("#circ_search_form").on("submit", function (e) {
+        e.preventDefault();
+        validatePatronSearch($(this)[0]);
+    });
 });
 
 function removeLastBorrower() {
@@ -1046,6 +1051,25 @@ function validatePatronSearch(form) {
             .tooltip("show");
         $(document).on("click", function () {
             $(form.searchmember).tooltip("hide");
+        });
+        return false;
+    }
+    return true;
+}
+
+function validateCirculationSearch(form) {
+    const searchTerm = form.findborrower.value.trim();
+
+    if (!searchTerm) {
+        $(form.findborrower)
+            .tooltip({
+                trigger: "manual",
+                placement: "bottom",
+                title: __("Please enter a card number or name"),
+            })
+            .tooltip("show");
+        $(document).on("click", function () {
+            $(form.findborrower).tooltip("hide");
         });
         return false;
     }
