@@ -38,6 +38,7 @@ return {
                 `weekday` enum('Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday') DEFAULT NULL,
                 `priority` int(11) DEFAULT 0,
                 `last_used_date` datetime DEFAULT NULL,
+                `allow_multiple` tinyint(1) DEFAULT 0,
                 PRIMARY KEY (`hold_pickup_shelf_id`),
                 UNIQUE KEY `hold_pickup_shelves_uniq_idx` (`library_id`,`shelf_name`,`biblio_itemtype`,`patron_category_id`,`weekday`),
                 KEY `patron_id` (`patron_id`),
@@ -68,6 +69,15 @@ return {
             });
 
             say_success( $out, "Added column 'old_reserves.hold_pickup_shelf_id'" );
+        }
+
+        unless ( column_exists( 'hold_pickup_shelves', 'allow_multiple' ) ) {
+            $dbh->do(q{
+                ALTER TABLE hold_pickup_shelves
+                ADD COLUMN `allow_multiple` tinyint(1) DEFAULT 0
+            });
+
+            say_success( $out, "Added column 'hold_pickup_shelves.allow_multiple'" );
         }
 
     },

@@ -144,6 +144,13 @@ export default {
                         searchable: true,
                         orderable: true,
                         render: data => (data === true ? this.$__("Yes") : this.$__("No")),
+                    },
+                    {
+                        title: this.$__("Allow multiple holds"),
+                        data: "allow_multiple",
+                        searchable: true,
+                        orderable: true,
+                        render: data => (data === true ? this.$__("Yes") : this.$__("No")),
                     }
                 ],
                 actions: {
