@@ -19,7 +19,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 6;
+use Test::More tests => 7;
 use Test::Mojo;
 
 use t::lib::TestBuilder;
@@ -509,6 +509,117 @@ subtest 'available_shelves() tests' => sub {
     $t->get_ok("//$userid:$password@/api/v1/holds/pickup_shelves/available?library_id=NONEXISTENT&biblio_id=$biblio_id&patron_id=$patron_id")
         ->status_is(200)
         ->json_is( '' => [], 'No shelves available for non-existent library' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'allow_multiple tests' => sub {
+
+    plan tests => 15;
+
+    $schema->storage->txn_begin;
+
+    my $librarian = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { flags => 3 }
+        }
+    );
+    my $password = 'thePassword123';
+    $librarian->set_password( { password => $password, skip_validation => 1 } );
+    my $userid = $librarian->userid;
+
+    my $library = $builder->build_object({ class => 'Koha::Libraries' });
+    my $library_id = $library->branchcode;
+
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+    my $patron_id = $patron->borrowernumber;
+
+    my $biblio = $builder->build_sample_biblio();
+    my $biblio_id = $biblio->biblionumber;
+
+    # Create a shelf with allow_multiple = true via API
+    my $params = {
+        library_id     => $library_id,
+        shelf_name     => 'AllowMultiple',
+        max_items      => 5,
+        allow_multiple => Mojo::JSON->true,
+    };
+
+    my $shelf_id =
+        $t->post_ok( "//$userid:$password@/api/v1/holds/pickup_shelves" => json => $params )
+        ->status_is( 201, 'Created shelf with allow_multiple' )
+        ->tx->res->json->{hold_pickup_shelf_id};
+
+    my $shelf = Koha::HoldPickupShelves->find($shelf_id);
+    is( $shelf->allow_multiple, 1, 'allow_multiple is set to 1 in DB' );
+
+    # duplicate_record should return 0 when allow_multiple is true
+    my $dbh = $schema->storage->dbh;
+    $dbh->do(q{
+        INSERT INTO reserves (biblionumber, borrowernumber, branchcode, hold_pickup_shelf_id)
+        VALUES (?, ?, ?, ?)
+    }, undef, $biblio_id, $patron_id, $library_id, $shelf_id);
+
+    is( $shelf->duplicate_record($biblio_id), 0,
+        'duplicate_record returns 0 when allow_multiple is true' );
+
+    # Shelf with allow_multiple should appear in available_shelves
+    $t->get_ok("//$userid:$password@/api/v1/holds/pickup_shelves/available?library_id=$library_id&biblio_id=$biblio_id&patron_id=$patron_id")
+        ->status_is(200);
+
+    my $response = $t->tx->res->json;
+    my @matching = grep { $_->{hold_pickup_shelf_id} == $shelf_id } @$response;
+    ok( scalar(@matching) > 0, 'Shelf appears in available shelves despite duplicate biblio' );
+
+    # Test shelf WITHOUT allow_multiple is excluded when duplicate exists
+    my $shelf2 = $builder->build_object({
+        class => 'Koha::HoldPickupShelves',
+        value => {
+            library_id         => $library_id,
+            shelf_name         => 'NoMultiple',
+            max_items          => 5,
+            overflow_shelf     => 0,
+            locked             => 0,
+            priority           => 5,
+            weekday            => undef,
+            biblio_itemtype    => undef,
+            patron_category_id => undef,
+            allow_multiple     => 0,
+        }
+    });
+    my $shelf2_id = $shelf2->hold_pickup_shelf_id;
+
+    $dbh->do(q{
+        INSERT INTO reserves (biblionumber, borrowernumber, branchcode, hold_pickup_shelf_id)
+        VALUES (?, ?, ?, ?)
+    }, undef, $biblio_id, $patron_id, $library_id, $shelf2_id);
+
+    is( $shelf2->duplicate_record($biblio_id), 1,
+        'duplicate_record returns 1 when allow_multiple is false' );
+
+    $t->get_ok("//$userid:$password@/api/v1/holds/pickup_shelves/available?library_id=$library_id&biblio_id=$biblio_id&patron_id=$patron_id")
+        ->status_is(200);
+
+    $response = $t->tx->res->json;
+    @matching = grep { $_->{hold_pickup_shelf_id} == $shelf2_id } @$response;
+    is( scalar(@matching), 0, 'Shelf without allow_multiple is excluded from available shelves' );
+
+    # Update allow_multiple to false via API
+    $params = {
+        library_id     => $library_id,
+        shelf_name     => 'AllowMultiple',
+        max_items      => 5,
+        allow_multiple => Mojo::JSON->false,
+    };
+
+    $t->put_ok( "//$userid:$password@/api/v1/holds/pickup_shelves/$shelf_id" => json => $params )
+        ->status_is(200);
+
+    $shelf = Koha::HoldPickupShelves->find($shelf_id);
+    ok( !$shelf->allow_multiple, 'allow_multiple updated to 0 via API' );
+    is( $shelf->duplicate_record($biblio_id), 1,
+        'duplicate_record returns 1 after allow_multiple disabled' );
 
     $schema->storage->txn_rollback;
 };

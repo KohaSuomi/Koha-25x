@@ -123,6 +123,16 @@
                             type="checkbox"
                         />
                     </li>
+                    <li>
+                        <label for="allow_multiple">
+                            {{ $__("Allow multiple holds") }}:
+                        </label>
+                        <input
+                            id="allow_multiple"
+                            v-model="hold_pickup_shelf.allow_multiple"
+                            type="checkbox"
+                        />
+                    </li>
                 </ol>
             </fieldset>
             <fieldset class="action">
