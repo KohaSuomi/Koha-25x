@@ -91,6 +91,21 @@ sub search_for_display {
     $search_params->{-or}            = [ { 'lang' => $lang }, '-and' => [ 'lang', 'default', \$subquery ] ]
         if !$search_params->{lang};
 
+    unless ( $search_params->{lang} ) {
+        $search_params->{-or} = [
+            { lang => $lang },
+            {
+                -and => [
+                    { lang => 'default' },
+                    \[
+                        '(SELECT COUNT(*) FROM additional_contents_localizations WHERE lang = ? AND additional_content_id = me.additional_content_id) = 0',
+                        $lang
+                    ]
+                ]
+            }
+        ];
+    }
+
     my $attribs = { prefetch => 'additional_content', order_by => 'additional_content.number' };
     return Koha::AdditionalContentsLocalizations->search( $search_params, $attribs );
 }
