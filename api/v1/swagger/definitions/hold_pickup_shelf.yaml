@@ -73,6 +73,11 @@ properties:
     type:
       - string
       - 'null'
+  allow_multiple:
+    description: Allow multiple reserved items from the same biblio on this shelf
+    type:
+      - boolean
+      - 'null'
 additionalProperties: false
 required:
   - shelf_name
