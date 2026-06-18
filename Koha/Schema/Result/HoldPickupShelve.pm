@@ -102,6 +102,12 @@ __PACKAGE__->table("hold_pickup_shelves");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+=head2 allow_multiple
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 1
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -153,6 +159,8 @@ __PACKAGE__->add_columns(
     datetime_undef_if_invalid => 1,
     is_nullable => 1,
   },
+  "allow_multiple",
+  { data_type => "tinyint", default_value => 0, is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -286,8 +294,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07051 @ 2025-10-30 14:59:13
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:qOfQXogaJI6HGf/XuKuhvw
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-06-18 09:30:33
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:477oszdWI0HqRXxkhtpAcA
 
 sub koha_object_class {
     'Koha::HoldPickupShelf';
