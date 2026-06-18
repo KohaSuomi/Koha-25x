@@ -65,7 +65,7 @@ sub available_shelves {
                 my $holds_count = $holds_count{$shelf_id} || 0;
                 
                 # Early exit checks before calling available_shelf
-                next if $duplicate_check{$shelf_id};
+                next if !$shelf->allow_multiple && $duplicate_check{$shelf_id};
                 next if $holds_count >= $shelf->max_items;
                 
                 # Pass holds_count to avoid redundant query
