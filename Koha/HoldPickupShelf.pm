@@ -85,7 +85,7 @@ sub available_shelf {
     my $biblio_itemtype = $self->_result->biblio_itemtype;
 
     # Only check for duplicates if holds_count was not provided (legacy calls)
-    if (!defined $holds_count && $biblio && $self->duplicate_record($biblio->biblionumber)) {
+    if (!defined $holds_count && $biblio && !$self->allow_multiple && $self->duplicate_record($biblio->biblionumber)) {
         return 0;
     }
     
@@ -190,6 +190,7 @@ Checks if shelf already has a record in the database.
 
 sub duplicate_record {
     my ($self, $biblio_id) = @_;
+    return 0 if $self->allow_multiple;
     my $rs = Koha::Holds->search({ hold_pickup_shelf_id => $self->_result->hold_pickup_shelf_id, biblionumber => $biblio_id });
     return $rs->count();
 }
