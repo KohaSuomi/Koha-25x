@@ -91,13 +91,13 @@ print STDERR "Phase 2: Loaded items in " . sprintf("%.2f", time() - $phase2_star
 
 my $phase3_start = time();
 
-# PHASE 4: Get count of distinct borrowers per biblionumber
-my $borrowers_count = {
-    map { $_->{biblionumber} => $_->{borrowers_count} } @{ Koha::Holds->search(
+# PHASE 4: Get count of total reserves per biblionumber
+my $reserves_by_biblionumber = {
+    map { $_->{biblionumber} => $_->{total_reserves} } @{ Koha::Holds->search(
             { 'me.suspend' => 0, 'me.found' => undef },
             {
-                select   => [ 'me.biblionumber', { count => { distinct => 'me.borrowernumber' } } ],
-                as       => [qw( biblionumber borrowers_count )],
+                select   => [ 'me.biblionumber', { count => '*' } ],
+                as       => [qw( biblionumber total_reserves )],
                 group_by => [qw( me.biblionumber )]
             },
         )->unblessed
@@ -139,8 +139,8 @@ foreach my $bibnum (@biblionumbers) {
 
     my $items = $all_items{$bibnum} || [];
     my $items_count = scalar @$items;
-    my $borrowers = $borrowers_count->{$bibnum} || 0;
-    my $pull_count = $items_count <= $borrowers ? $items_count : $borrowers;
+    my $total_reserves = $reserves_by_biblionumber->{$bibnum} || 0;
+    my $pull_count = $items_count <= $total_reserves ? $items_count : $total_reserves;
 
     next if $pull_count == 0;
 
@@ -247,7 +247,7 @@ foreach my $bibnum (@biblionumbers) {
             copyno           => join('<br/>', @copynumbers),
             itemnotes        => \@itemnotes,
             count            => scalar(keys %valid_items),
-            rcount           => $borrowers,
+            rcount           => $total_reserves,
             itypes           => \@itypes,
             mtypes           => \@mtypes,
             pullcount        => $pull_count,
