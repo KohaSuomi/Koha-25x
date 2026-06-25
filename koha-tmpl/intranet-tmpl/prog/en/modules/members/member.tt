@@ -186,6 +186,38 @@
     [% INCLUDE 'select2.inc' %]
     <script>
         $(document).ready(function () {
+            function validateSidebarSearch(e) {
+            var $input = $("#search_patron_filter");
+            if (!$input.val() || !$input.val().trim()) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+
+                $input.tooltip({
+                    trigger: 'manual',
+                    placement: 'bottom',
+                    title: __("Please fill out this field.")
+                }).tooltip('show');
+
+                $(document).off('click.patron_empty_err').on('click.patron_empty_err', function() {
+                    $input.tooltip('hide');
+                    $(document).off('click.patron_empty_err');
+                });
+                return false;
+            }
+            return true;
+        }
+
+        $("#search_patron_filter").closest("form").find("button[type='submit'], input[type='submit'], .btn-primary, button:last-of-type").on("click", function(e) {
+            return validateSidebarSearch(e);
+        });
+
+        $("#search_patron_filter").on("keydown", function(e) {
+            if (e.keyCode === 13) { // 13 = Enter
+                return validateSidebarSearch(e);
+            }
+        });
+            
             $("#merge-patrons, #batch-mod-patrons").prop("disabled", true);
             $("#memberresultst").on("change", "input.selection", function () {
                 var patron_search_selections = JSON.parse(localStorage.getItem("patron_search_selections")) || [];
