@@ -1025,7 +1025,7 @@
     [% ELSE %]
         <form action="/cgi-bin/koha/circ/circulation.pl" id="patronsearch" method="get">
             <fieldset id="patron_checkout_search">
-                <input autocomplete="off" id="findborrower_main" name="findborrower" type="text" placeholder="Enter patron card number or partial name" size="40" />
+                <input id="findborrower_main" class="ui-autocomplete-input" autocomplete="off" name="findborrower" type="text" placeholder="Enter patron card number or partial name" size="40" required="required" />
                 [% IF ( stickyduedate ) %]
                     <input type="hidden" name="duedatespec" value="[% duedatespec | html %]" />
                     <input type="hidden" name="stickyduedate" value="[% stickyduedate | html %]" />
@@ -1153,15 +1153,16 @@
         }
         $(document).ready(function() {
             function checkEmptyCircSearch(e) {
-                var $input = $("#findborrower_main");
-                if (!$input.val() || !$input.val().trim()) {
+                var $input = $("#findborrower");
+                var $input2 = $("#findborrower_main")
+                if ((!$input.val() || !$input.val().trim()) && (!$input2.val() || !$input2.val().trim())) {
                     e.preventDefault();
                     e.stopPropagation();
                     
                     $input.tooltip({
                         trigger: 'manual',
                         placement: 'bottom',
-                        title: __("Please enter a card number or name")
+                        title: __("Please fill out this field.")
                     }).tooltip('show');
                     
                     $(document).off('click.circ_empty_err').on('click.circ_empty_err', function() {
@@ -1177,9 +1178,6 @@
                 return checkEmptyCircSearch(e);
             });
 
-            $("#patronsearch button[type='submit']").on("click", function(e) {
-                return checkEmptyCircSearch(e);
-            });
             [% IF waiting_holds.count > 0 %]
                 $('#circ-warnwaitingholds-modal .btn-primary').on('click',function() {
                     $('#mainform').submit();
