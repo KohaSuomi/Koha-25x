@@ -467,14 +467,18 @@ $(document).ready(function () {
     });
 
     $("#patron_header_search").on("submit", function (e) {
-        e.preventDefault();
-        validatePatronSearch($(this)[0]);
+        if (!validatePatronSearch($(this)[0])) {
+            e.preventDefault();
+        }
     });
 
-    $("#circ_search_form").on("submit", function (e) {
-        e.preventDefault();
-        validatePatronSearch($(this)[0]);
+     $("#search_patron_filter").on("submit", function (e) {
+        if (!validatePatronSearch($(this)[0])) {
+            e.preventDefault();
+        }
     });
+
+
 });
 
 function removeLastBorrower() {
@@ -1046,7 +1050,7 @@ function validatePatronSearch(form) {
             .tooltip({
                 trigger: "manual",
                 placement: "bottom",
-                title: __("Please enter a card number or name"),
+                title: __("Please fill out this field."),
             })
             .tooltip("show");
         $(document).on("click", function () {
@@ -1057,21 +1061,4 @@ function validatePatronSearch(form) {
     return true;
 }
 
-function validateCirculationSearch(form) {
-    const searchTerm = form.findborrower.value.trim();
 
-    if (!searchTerm) {
-        $(form.findborrower)
-            .tooltip({
-                trigger: "manual",
-                placement: "bottom",
-                title: __("Please enter a card number or name"),
-            })
-            .tooltip("show");
-        $(document).on("click", function () {
-            $(form.findborrower).tooltip("hide");
-        });
-        return false;
-    }
-    return true;
-}
