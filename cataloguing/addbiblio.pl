@@ -878,15 +878,19 @@ if ( $op eq "cud-addbiblio" ) {
         }
         $error = &DelBiblio($biblionumber);
     } catch {
-        $error = ref($_) ? 'Exception raised - ' . $_->error : $_;
+        # KOHA-2395: Remove use of $_->error since it breaks the error handling
+        #$error = ref($_) ? 'Exception raised - ' . $_->error : $_;
+        $error = $_;
     };
 
     if ($error) {
 
+        # KOHA-2395: Log error with Koha Exception to catch misbehaving SQL operation
+        Koha::Exception->throw("ERROR when DELETING BIBLIO $biblionumber : $error");
         #FIXME This should be handled in template alert
-        warn "ERROR when DELETING BIBLIO $biblionumber : $error";
-        print
-            "Content-Type: text/html\n\n<html><body><h1>ERROR when DELETING BIBLIO $biblionumber : $error</h1></body></html>";
+        #warn "ERROR when DELETING BIBLIO $biblionumber : $error";
+        #print
+            #"Content-Type: text/html\n\n<html><body><h1>ERROR when DELETING BIBLIO $biblionumber : $error</h1></body></html>";
         exit;
     }
 
