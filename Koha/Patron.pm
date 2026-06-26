@@ -1404,7 +1404,7 @@ sub can_place_holds {
     # debt check
     unless ( $overrides->{debt_limit} ) {
         my $max_outstanding = C4::Context->preference("maxoutstanding");
-        my $outstanding     = $self->account->balance;
+        my $outstanding     = $self->account->non_issues_charges;
 
         if ( $max_outstanding && $outstanding && ( $outstanding > $max_outstanding ) ) {
             $result->set_value(0);
