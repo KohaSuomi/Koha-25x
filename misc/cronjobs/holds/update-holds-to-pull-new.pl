@@ -34,6 +34,35 @@ use Time::HiRes qw(time);
 
 use constant PULL_INTERVAL => 2;
 
+sub active_hold_where {
+    return (
+        'me.found'    => undef,
+        'me.priority' => { '!=' => 0 },
+        -or           => [
+            'me.suspend' => 0,
+            'me.suspend' => undef,
+        ],
+    );
+}
+
+sub first_active_hold_ids_by_biblio {
+    my @first_hold_candidates = Koha::Holds->search(
+        { active_hold_where() },
+        {
+            select   => [ 'me.biblionumber', 'me.reserve_id' ],
+            order_by => [ { -asc => 'me.biblionumber' }, { -asc => 'me.priority' } ],
+        }
+    )->unblessed->@*;
+
+    my %first_holds_map;
+    for my $candidate (@first_hold_candidates) {
+        next if exists $first_holds_map{ $candidate->{biblionumber} };
+        $first_holds_map{ $candidate->{biblionumber} } = $candidate->{reserve_id};
+    }
+
+    return \%first_holds_map;
+}
+
 my $today = dt_from_string;
 
 # Find two days ago for the default shelf pull start date, unless HoldsToPullStartDate sys pref is set.
@@ -47,11 +76,7 @@ my $enddate_iso = output_pref({ dt => $enddate, dateformat => 'iso', dateonly =>
 my $total_start = time();
 
 # PHASE 1: Build basic where clause for holds
-my %where = (
-    'me.found'    => undef,
-    'me.priority' => { '!=' => 0 },
-    'me.suspend'  => 0,
-);
+my %where = active_hold_where();
 
 # Date range filtering
 my $dtf = Koha::Database->new->schema->storage->datetime_parser;
@@ -94,7 +119,7 @@ my $phase3_start = time();
 # PHASE 4: Get count of total reserves per biblionumber
 my $reserves_by_biblionumber = {
     map { $_->{biblionumber} => $_->{total_reserves} } @{ Koha::Holds->search(
-            { 'me.suspend' => 0, 'me.found' => undef },
+            { active_hold_where() },
             {
                 select   => [ 'me.biblionumber', { count => '*' } ],
                 as       => [qw( biblionumber total_reserves )],
@@ -104,21 +129,12 @@ my $reserves_by_biblionumber = {
     }
 };
 
-# PHASE 5: Get the first (highest priority) hold per biblionumber
-my $first_holds_map = {
-    map { $_->{biblionumber} => $_->{reserve_id} } @{ Koha::Holds->search(
-            { %where },
-            {
-                select   => [ 'me.biblionumber', 'me.reserve_id' ],
-                order_by => { -asc => 'me.priority' }
-            }
-        )->unblessed
-    }
-};
+# PHASE 5: Get the first (highest priority) active hold per biblionumber
+my $first_holds_map = first_active_hold_ids_by_biblio();
 
 # PHASE 6: Bulk fetch all relevant hold data with prefetch
 my %all_holds = map { $_->biblionumber => $_ } @{ Koha::Holds->search(
-        { reserve_id => [ values %$first_holds_map ] },
+    { reserve_id => [ values %$first_holds_map ] },
         {
             prefetch => [ 'borrowernumber', 'biblio' ],
         }
@@ -146,6 +162,7 @@ foreach my $bibnum (@biblionumbers) {
 
     my $hold = $all_holds{$bibnum};
     next unless $hold;
+    next if $hold->suspend;
 
     my $biblio = $hold->biblio;
     my $biblioitem = $biblio->biblioitem;  # Get first biblioitem via biblio
