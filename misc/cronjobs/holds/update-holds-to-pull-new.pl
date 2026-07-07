@@ -45,22 +45,79 @@ sub active_hold_where {
     );
 }
 
-sub first_active_hold_ids_by_biblio {
-    my @first_hold_candidates = Koha::Holds->search(
+sub active_holds_by_biblio {
+    my @hold_candidates = Koha::Holds->search(
         { active_hold_where() },
         {
-            select   => [ 'me.biblionumber', 'me.reserve_id' ],
             order_by => [ { -asc => 'me.biblionumber' }, { -asc => 'me.priority' } ],
+            prefetch => [ 'borrowernumber', 'biblio' ],
         }
-    )->unblessed->@*;
+    )->as_list;
 
-    my %first_holds_map;
-    for my $candidate (@first_hold_candidates) {
-        next if exists $first_holds_map{ $candidate->{biblionumber} };
-        $first_holds_map{ $candidate->{biblionumber} } = $candidate->{reserve_id};
+    my %holds_by_biblio;
+    for my $hold (@hold_candidates) {
+        push @{ $holds_by_biblio{ $hold->biblionumber } }, $hold;
     }
 
-    return \%first_holds_map;
+    return \%holds_by_biblio;
+}
+
+sub valid_items_for_hold {
+    my ( $hold, $patron, $items ) = @_;
+
+    my %valid_items;
+    my @valid_itypes;
+    my @valid_holdingbranches;
+    my $requested_itemnumber = $hold->itemnumber;
+
+    foreach my $item (@$items) {
+        next if $requested_itemnumber && $item->itemnumber != $requested_itemnumber;
+
+        # Check item status flags (from KOHA-2259)
+        next if $item->notforloan;
+        next if $item->damaged;
+        next if $item->itemlost;
+        next if $item->withdrawn;
+
+        # Check if item type is configured as not for loan (from KOHA-2259)
+        my $itemtype = Koha::ItemTypes->find( $item->itype );
+        next if $itemtype && $itemtype->notforloan;
+
+        # Check if item is checked out (from KOHA-2259)
+        my $checkout = $item->checkout;
+        next if $checkout;
+
+        # Check if item is in active branch transfer (from KOHA-2259)
+        my $transfer = $item->get_transfer;
+        next if $transfer && !$transfer->datearrived;
+
+        # Check if item is claimed for another reserve (from KOHA-2259)
+        my $claimed_reserve_count = Koha::Holds->search(
+            {
+                'me.itemnumber' => $item->itemnumber,
+                'me.found'      => { '!=' => undef }
+            }
+        )->count;
+        next if $claimed_reserve_count;
+
+        # Check hold eligibility via circulation rules
+        my $issuing_rule = Koha::CirculationRules->get_effective_rule(
+            {
+                categorycode => $patron->categorycode,
+                itemtype     => $item->itype,
+                branchcode   => $hold->branchcode,
+                rule_name    => 'holdallowed',
+            }
+        );
+
+        if ( !$issuing_rule || ( $issuing_rule->rule_value && $issuing_rule->rule_value ne 'not_allowed' ) ) {
+            $valid_items{ $item->itemnumber } = $item;
+            push @valid_itypes, $item->itype;
+            push @valid_holdingbranches, $item->holdingbranch;
+        }
+    }
+
+    return ( \%valid_items, \@valid_itypes, \@valid_holdingbranches );
 }
 
 my $today = dt_from_string;
@@ -129,17 +186,8 @@ my $reserves_by_biblionumber = {
     }
 };
 
-# PHASE 5: Get the first (highest priority) active hold per biblionumber
-my $first_holds_map = first_active_hold_ids_by_biblio();
-
-# PHASE 6: Bulk fetch all relevant hold data with prefetch
-my %all_holds = map { $_->biblionumber => $_ } @{ Koha::Holds->search(
-    { reserve_id => [ values %$first_holds_map ] },
-        {
-            prefetch => [ 'borrowernumber', 'biblio' ],
-        }
-    )->as_list
-};
+# PHASE 5-6: Bulk fetch all active holds with details
+my $all_holds_by_biblio = active_holds_by_biblio();
 
 print STDERR "Phase 3-6: Data aggregation in " . sprintf("%.2f", time() - $phase3_start) . "s\n";
 
@@ -160,77 +208,48 @@ foreach my $bibnum (@biblionumbers) {
 
     next if $pull_count == 0;
 
-    my $hold = $all_holds{$bibnum};
+    my $hold_candidates = $all_holds_by_biblio->{$bibnum} || [];
+    my $hold;
+    my $patron;
+    my $valid_items;
+    my $valid_itypes;
+    my $valid_holdingbranches;
+
+    HOLD_CANDIDATE:
+    foreach my $candidate (@$hold_candidates) {
+        next if $candidate->suspend;
+
+        my $candidate_patron = Koha::Patrons->find( $candidate->borrowernumber );
+        next unless $candidate_patron;
+
+        my ( $candidate_valid_items, $candidate_valid_itypes, $candidate_valid_holdingbranches ) =
+            valid_items_for_hold( $candidate, $candidate_patron, $items );
+
+        next unless scalar(keys %$candidate_valid_items) > 0;
+
+        $hold = $candidate;
+        $patron = $candidate_patron;
+        $valid_items = $candidate_valid_items;
+        $valid_itypes = $candidate_valid_itypes;
+        $valid_holdingbranches = $candidate_valid_holdingbranches;
+        last HOLD_CANDIDATE;
+    }
+
     next unless $hold;
-    next if $hold->suspend;
 
     my $biblio = $hold->biblio;
     my $biblioitem = $biblio->biblioitem;  # Get first biblioitem via biblio
-    my $patron = Koha::Patrons->find( $hold->borrowernumber );
-    next unless $patron;
-
-    # Validate items against circulation rules (Perl-level validation)
-    my %valid_items;
-    my @valid_itypes;
-    my @valid_holdingbranches;
-
-    foreach my $item (@$items) {
-        # Check item status flags (from KOHA-2259)
-        next if $item->notforloan;
-        next if $item->damaged;
-        next if $item->itemlost;
-        next if $item->withdrawn;
-
-        # Check if item type is configured as not for loan (from KOHA-2259)
-        my $itemtype = Koha::ItemTypes->find( $item->itype );
-        next if $itemtype && $itemtype->notforloan;
-
-        # Check if item is checked out (from KOHA-2259)
-        my $checkout = $item->checkout;
-        next if $checkout;
-
-        # Check if item is in active branch transfer (from KOHA-2259)
-        my $transfer = $item->get_transfer;
-        next if $transfer && !$transfer->datearrived;
-
-        # Check if item is claimed for another reserve (from KOHA-2259)
-        my $claimed_reserve_count = Koha::Holds->search(
-            {
-                'me.itemnumber' => $item->itemnumber,
-                'me.found' => { '!=' => undef }
-            }
-        )->count;
-        next if $claimed_reserve_count;
-
-        # Check hold eligibility via circulation rules
-        my $issuing_rule = Koha::CirculationRules->get_effective_rule(
-            {
-                categorycode => $patron->categorycode,
-                itemtype     => $item->itype,
-                branchcode   => $hold->branchcode,
-                rule_name    => 'holdallowed',
-            }
-        );
-
-        if ( !$issuing_rule || ( $issuing_rule->rule_value && $issuing_rule->rule_value ne 'not_allowed' ) ) {
-            $valid_items{ $item->itemnumber } = $item;
-            push @valid_itypes, $item->itype;
-            push @valid_holdingbranches, $item->holdingbranch;
-        }
-    }
-
-    next unless scalar(keys %valid_items) > 0;
 
     # Collect item metadata
-    my @itemcallnumbers = sort { $a cmp $b } uniq map { $_->itemcallnumber // () } values %valid_items;
-    my @locations = sort { $a cmp $b } uniq map { $_->location // () } values %valid_items;
-    my @sublocations = sort { $a cmp $b } uniq map { $_->sub_location // () } values %valid_items;
-    my @ccodes = sort { $a cmp $b } uniq map { $_->ccode // () } values %valid_items;
-    my @enumchrons = sort { $a cmp $b } uniq map { $_->enumchron // () } values %valid_items;
-    my @copynumbers = sort { $a cmp $b } uniq map { $_->copynumber // () } values %valid_items;
-    my @itemnotes = sort { $a cmp $b } uniq map { $_->itemnotes // () } values %valid_items;
-    my @holdingbranches = sort { $a cmp $b } uniq @valid_holdingbranches;
-    my @itypes = sort { $a cmp $b } uniq @valid_itypes;
+    my @itemcallnumbers = sort { $a cmp $b } uniq map { $_->itemcallnumber // () } values %$valid_items;
+    my @locations = sort { $a cmp $b } uniq map { $_->location // () } values %$valid_items;
+    my @sublocations = sort { $a cmp $b } uniq map { $_->sub_location // () } values %$valid_items;
+    my @ccodes = sort { $a cmp $b } uniq map { $_->ccode // () } values %$valid_items;
+    my @enumchrons = sort { $a cmp $b } uniq map { $_->enumchron // () } values %$valid_items;
+    my @copynumbers = sort { $a cmp $b } uniq map { $_->copynumber // () } values %$valid_items;
+    my @itemnotes = sort { $a cmp $b } uniq map { $_->itemnotes // () } values %$valid_items;
+    my @holdingbranches = sort { $a cmp $b } uniq @$valid_holdingbranches;
+    my @itypes = sort { $a cmp $b } uniq @$valid_itypes;
 
     # Get item types from biblioitems if needed
     # Use Koha-Suomi logic
@@ -263,7 +282,7 @@ foreach my $bibnum (@biblionumbers) {
             enumchron        => join(', ', @enumchrons),
             copyno           => join('<br/>', @copynumbers),
             itemnotes        => \@itemnotes,
-            count            => scalar(keys %valid_items),
+            count            => scalar(keys %$valid_items),
             rcount           => $total_reserves,
             itypes           => \@itypes,
             mtypes           => \@mtypes,
