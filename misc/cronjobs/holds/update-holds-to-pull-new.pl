@@ -218,6 +218,7 @@ foreach my $bibnum (@biblionumbers) {
     HOLD_CANDIDATE:
     foreach my $candidate (@$hold_candidates) {
         next if $candidate->suspend;
+        next if $candidate->suspend_until && $candidate->suspend_until > $today;
 
         my $candidate_patron = Koha::Patrons->find( $candidate->borrowernumber );
         next unless $candidate_patron;
