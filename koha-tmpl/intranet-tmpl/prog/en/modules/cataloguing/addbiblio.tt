@@ -901,7 +901,7 @@
                         window.close();
                     </script>
                 [% ELSE %]
-                    <form method="post" name="f" id="f" action="/cgi-bin/koha/cataloguing/addbiblio.pl" onsubmit="return Check();" class="marc_editor">
+                    <form method="post" name="f" id="f" action="/cgi-bin/koha/cataloguing/addbiblio.pl[% IF (biblionumber) %]?biblionumber=[% biblionumber%][% END %]" onsubmit="return Check();" class="marc_editor">
                         [% INCLUDE 'csrf-token.inc' %]
                         <input type="hidden" value="[% IF ( biblionumber ) %]view[% ELSE %]items[% END %]" id="redirect" name="redirect" />
                         <input type="hidden" value="" id="current_tab" name="current_tab" />
