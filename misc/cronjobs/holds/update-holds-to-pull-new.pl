@@ -122,6 +122,7 @@ sub valid_items_for_hold {
 }
 
 my $today = dt_from_string;
+my $today_iso = output_pref({ dt => $today, dateformat => 'iso', dateonly => 1 });
 
 # Find two days ago for the default shelf pull start date, unless HoldsToPullStartDate sys pref is set.
 my $startdate = $today - DateTime::Duration->new(days => C4::Context->preference('HoldsToPullStartDate') || PULL_INTERVAL);
@@ -220,19 +221,46 @@ foreach my $bibnum (@biblionumbers) {
     HOLD_CANDIDATE:
     foreach my $candidate (@$hold_candidates) {
         # Ignore currently suspended holds and holds that only activate in the future. (KOHA-2259)
-        next if $candidate->suspend;
-        next if $candidate->suspend_until && $candidate->suspend_until > $today;
+        if ( $candidate->suspend ) {
+            next;
+        }
+
+        my $suspend_until = $candidate->suspend_until;
+        if ($suspend_until) {
+            my $suspend_until_iso = eval { $suspend_until->can('ymd') }
+                ? $suspend_until->ymd
+                : substr("$suspend_until", 0, 10);
+            if ( $suspend_until_iso gt $today_iso ) {
+                next;
+            }
+        }
+
+        # If reservedate is in the future, this hold is not active yet for pulling.
+        my $reserve_date = $candidate->reservedate;
+        if ($reserve_date) {
+            my $reserve_date_iso = eval { $reserve_date->can('ymd') }
+                ? $reserve_date->ymd
+                : substr("$reserve_date", 0, 10);
+            if ( $reserve_date_iso gt $today_iso ) {
+                next;
+            }
+        }
 
         # Skip candidates without a valid patron row.
         my $candidate_patron = Koha::Patrons->find( $candidate->borrowernumber );
-        next unless $candidate_patron;
+        unless ($candidate_patron) {
+            next;
+        }
 
         # Check item-level targeting and eligibility (KOHA-2259)
         my ( $candidate_valid_items, $candidate_valid_itypes, $candidate_valid_holdingbranches ) =
             valid_items_for_hold( $candidate, $candidate_patron, $items );
 
         # Continue until at least one eligible item exists for this hold.
-        next unless scalar(keys %$candidate_valid_items) > 0;
+        my $candidate_valid_count = scalar(keys %$candidate_valid_items);
+        unless ( $candidate_valid_count > 0 ) {
+            next;
+        }
 
         $hold = $candidate;
         $patron = $candidate_patron;
