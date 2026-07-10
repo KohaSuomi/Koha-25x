@@ -71,27 +71,28 @@ sub valid_items_for_hold {
     my $requested_itemnumber = $hold->itemnumber;
 
     foreach my $item (@$items) {
+        # If hold is item-level, only that exact item is considered.
         next if $requested_itemnumber && $item->itemnumber != $requested_itemnumber;
 
-        # Check item status flags (from KOHA-2259)
+        # If item is notforloan, damaged, lost, or withdrawn, it cannot fill this hold.
         next if $item->notforloan;
         next if $item->damaged;
         next if $item->itemlost;
         next if $item->withdrawn;
 
-        # Check if item type is configured as not for loan (from KOHA-2259)
+        # If itemtype is configured as not for loan, it cannot fill this hold.
         my $itemtype = Koha::ItemTypes->find( $item->itype );
         next if $itemtype && $itemtype->notforloan;
 
-        # Check if item is checked out (from KOHA-2259)
+        # If item is checked out, it cannot fill this hold.
         my $checkout = $item->checkout;
         next if $checkout;
 
-        # Check if item is in active branch transfer (from KOHA-2259)
+        # If item is in active transfer, it cannot fill this hold.
         my $transfer = $item->get_transfer;
         next if $transfer && !$transfer->datearrived;
 
-        # Check if item is claimed for another reserve (from KOHA-2259)
+        # If item is already claimed for another found reserve, skip it.
         my $claimed_reserve_count = Koha::Holds->search(
             {
                 'me.itemnumber' => $item->itemnumber,
@@ -100,7 +101,7 @@ sub valid_items_for_hold {
         )->count;
         next if $claimed_reserve_count;
 
-        # Check hold eligibility via circulation rules
+        # If circulation rule holdallowed says not_allowed, item cannot fill this hold.
         my $issuing_rule = Koha::CirculationRules->get_effective_rule(
             {
                 categorycode => $patron->categorycode,
@@ -215,17 +216,22 @@ foreach my $bibnum (@biblionumbers) {
     my $valid_itypes;
     my $valid_holdingbranches;
 
+    # Walk queue-ordered holds and select the first one that can be filled now.
     HOLD_CANDIDATE:
     foreach my $candidate (@$hold_candidates) {
+        # Ignore currently suspended holds and holds that only activate in the future. (KOHA-2259)
         next if $candidate->suspend;
         next if $candidate->suspend_until && $candidate->suspend_until > $today;
 
+        # Skip candidates without a valid patron row.
         my $candidate_patron = Koha::Patrons->find( $candidate->borrowernumber );
         next unless $candidate_patron;
 
+        # Check item-level targeting and eligibility (KOHA-2259)
         my ( $candidate_valid_items, $candidate_valid_itypes, $candidate_valid_holdingbranches ) =
             valid_items_for_hold( $candidate, $candidate_patron, $items );
 
+        # Continue until at least one eligible item exists for this hold.
         next unless scalar(keys %$candidate_valid_items) > 0;
 
         $hold = $candidate;
@@ -233,6 +239,8 @@ foreach my $bibnum (@biblionumbers) {
         $valid_items = $candidate_valid_items;
         $valid_itypes = $candidate_valid_itypes;
         $valid_holdingbranches = $candidate_valid_holdingbranches;
+
+        # First valid candidate wins.
         last HOLD_CANDIDATE;
     }
 
