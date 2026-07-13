@@ -331,9 +331,6 @@ foreach my $bibnum (@biblionumbers) {
     );
 }
 
-# Sort by title
-@reservedata = sort { $a->{title} cmp $b->{title} } @reservedata;
-
 store \@reservedata, "/tmp/kohasuomi-pendingreserves.tmp";
 
 my $total_time = time() - $total_start;
