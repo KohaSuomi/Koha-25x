@@ -15,6 +15,7 @@
 >
 [% INCLUDE 'doc-head-close.inc' %]
 [% Asset.js("js/cataloging.js") | $raw %]
+[% Asset.js("js/marceditlib.js") | $raw %]
 [% INCLUDE 'calendar.inc' %]
 <script>
     //<![CDATA[
