@@ -186,6 +186,11 @@ sub edit_holiday {
                         )
                     } elsif ($get_holidaytype eq 'weekday') {
                         my $weekday = $date->day_of_week();
+                        # if day_of_week returns 7 a.k.a Sunday turn $weekday value as 0
+                        # since it's the value we use to store Sundays in database
+                        if($weekday == 7){
+                            $weekday = 0;
+                        }
                         $calendar->ModWeekdayholiday(
                             weekday => $weekday,
                             title => $title,
