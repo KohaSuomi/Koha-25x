@@ -40,7 +40,7 @@ if ($description) {
 }
 
 # We make an array with holiday's days
-our @holiday_list;
+our @holiday_list = ();
 if ($datecancelrange_dt) {
     my $first_dt = DateTime->new( year => $year, month => $month, day => $day );
 
