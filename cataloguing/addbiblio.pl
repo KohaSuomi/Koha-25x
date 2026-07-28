@@ -716,7 +716,7 @@ sub process_before_addbiblio_plugins {
             tab => scalar $args->{input}->param('tab')
             );
         $template->{'VARS'}->{'searchid'} = $args->{searchid};
-        $template->{'VARS'}->{'biblionumber'} = $biblionumber if (defined $biblionumber);
+        $template->{'VARS'}->{'biblionumber'} = $args->{biblionumber} if (defined $args->{biblionumber});
         build_tabs ($template, $args->{record}, $args->{dbh}, $args->{encoding}, $args->{input});
         output_html_with_http_headers $args->{input}, $args->{cookie}, $template->output;
         exit;
