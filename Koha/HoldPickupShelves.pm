@@ -55,12 +55,12 @@ sub available_shelves {
         my $shelves = $method->();
         if ($shelves && @$shelves) {
             # Optimize: Prefetch all hold counts and duplicate checks in one query
-            my @shelf_ids = map { $_->hold_pickup_shelf_id } @$shelves;
+                my @shelf_ids = map { $_->hold_pickup_shelf_id } @$shelves;
             my %holds_count = $self->_get_holds_count_for_shelves(\@shelf_ids);
             my %duplicate_check = $self->_check_duplicates_for_shelves(\@shelf_ids, $biblio_id);
             
             my $response = [];
-            for my $shelf (@$shelves) {
+                for my $shelf (@$shelves) {
                 my $shelf_id = $shelf->hold_pickup_shelf_id;
                 my $holds_count = $holds_count{$shelf_id} || 0;
                 
@@ -76,13 +76,7 @@ sub available_shelves {
                 }
             }
             
-            # Sort response naturally by shelf_name (A1, A2, ..., A10 instead of A1, A10, A2)
-            if (@$response) {
-                @$response = sort {
-                    $self->_natural_sort_compare($a->{shelf_name}, $b->{shelf_name})
-                } @$response;
-                return $response;
-            }
+            return $response if @$response;
         }
     }
     return [];
@@ -150,40 +144,6 @@ sub overflow_shelves {
         { library_id => $library_id, overflow_shelf => 1, locked => 0 },
         { order_by => { -asc => 'priority' } }
     )->as_list;
-}
-
-=head3 _natural_sort_compare
-Internal method for natural sorting comparison.
-Splits strings into text and number parts for correct sorting.
-Examples: A1 < A2 < A10, Shelf1 < Shelf2 < Shelf10
-=cut
-sub _natural_sort_compare {
-    my ($self, $a, $b) = @_;
-    
-    return 0 unless defined $a && defined $b;
-    
-    # Split into alternating text and number parts
-    my @a_parts = $a =~ /(\d+|\D+)/g;
-    my @b_parts = $b =~ /(\d+|\D+)/g;
-    
-    # Compare part by part
-    for (my $i = 0; $i < @a_parts || $i < @b_parts; $i++) {
-        my $a_part = $a_parts[$i] // '';
-        my $b_part = $b_parts[$i] // '';
-        
-        # If both parts are numeric, compare numerically
-        if ($a_part =~ /^\d+$/ && $b_part =~ /^\d+$/) {
-            my $cmp = $a_part <=> $b_part;
-            return $cmp if $cmp != 0;
-        }
-        # Otherwise compare as strings
-        else {
-            my $cmp = $a_part cmp $b_part;
-            return $cmp if $cmp != 0;
-        }
-    }
-    
-    return 0;  # Equal
 }
 
 =head3 _get_holds_count_for_shelves
