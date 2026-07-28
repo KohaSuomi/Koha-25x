@@ -15,14 +15,18 @@
                 </div>
                 <div class="col-md-6 mb-2">
                     <v-select
-                        :options="shelves"
+                        :options="displayedShelves"
                         label="shelf_name"
+                        :filter-by="filterShelves"
                         :reduce="shelf => shelf.hold_pickup_shelf_id"
                         v-model="hold_pickup_shelf_id"
                         :searchable="true"
                         :clearable="false"
                         :disabled="patron_selected_shelf"
                         @input="onSelect"
+                        @search="onSearch"
+                        @open="resetSearch"
+                        @close="resetSearch"
                         :placeholder="$__('Search shelves...')"
                         :scroll-sync="false"
                     >
@@ -109,9 +113,11 @@ export default {
     data() {
         return {
             shelves: [],
+            displayedShelves: [],
             hold_pickup_shelf: {},
             hold_pickup_shelf_id: null,
             selected_shelf_id: null,
+            search_text: "",
             notification: null,
             disable_lock_button: false,
             patron_selected_shelf: false,
@@ -141,10 +147,49 @@ export default {
         }
     },
     methods: {
+        onSearch(search) {
+            this.search_text = search || "";
+            this.applyDisplayedShelves();
+        },
+        resetSearch() {
+            this.search_text = "";
+            this.applyDisplayedShelves();
+        },
+        applyDisplayedShelves() {
+            const normalizedSearch = (this.search_text || "").trim().toLocaleLowerCase();
+            if (!normalizedSearch) {
+                this.displayedShelves = [...this.shelves];
+                return;
+            }
+
+            this.displayedShelves = [...this.shelves]
+                .filter(shelf => this.filterShelves(shelf, shelf.shelf_name, this.search_text))
+                .sort((a, b) => this.naturalSort(a.shelf_name, b.shelf_name));
+        },
+        naturalSort(a, b) {
+            const left = String(a || "").trim().toLocaleLowerCase();
+            const right = String(b || "").trim().toLocaleLowerCase();
+            return left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" });
+        },
+        filterShelves(shelf, label, search) {
+            const normalizedSearch = (search || this.search_text || "").trim().toLocaleLowerCase();
+            if (!normalizedSearch) {
+                return true;
+            }
+
+            const normalizedLabel = (label || "").toLocaleLowerCase();
+            if (normalizedLabel.startsWith(normalizedSearch)) {
+                return true;
+            }
+
+            return normalizedLabel
+                .split(/[\s\-_/.,;:()\[\]{}]+/)
+                .some(word => word.startsWith(normalizedSearch));
+        },
         async getShelves() {
             try {
                 const client = APIClient.hold_pickup_shelves;
-                let shelves = await client.available.getAll({}, { biblio_id: this.biblio_id, library_id: this.library_id, patron_id: this.patron_id });
+                const shelves = await client.available.getAll({}, { biblio_id: this.biblio_id, library_id: this.library_id, patron_id: this.patron_id });
                 const userShelf = shelves.find(shelf => parseInt(shelf.patron_id) === parseInt(this.logged_in_user_borrowernumber));
                 if (userShelf) {
                     this.patron_selected_shelf = true;
@@ -162,6 +207,7 @@ export default {
                         this.hold_pickup_shelf = this.shelves[0];
                     }
                 }
+                this.applyDisplayedShelves();
                 this.loading = false;
                 if (this.hold_pickup_shelf.holds_count === 0) {
                     this.disable_lock_button = true;
