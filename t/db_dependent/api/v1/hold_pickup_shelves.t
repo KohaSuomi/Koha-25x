@@ -398,7 +398,7 @@ subtest 'available_shelves() tests' => sub {
         class => 'Koha::HoldPickupShelves',
         value => {
             library_id => $library_id,
-            shelf_name => 'A1',
+            shelf_name => 'A10',
             max_items => 5,
             overflow_shelf => 0,
             locked => 0,
@@ -428,7 +428,7 @@ subtest 'available_shelves() tests' => sub {
         class => 'Koha::HoldPickupShelves',
         value => {
             library_id => $library_id,
-            shelf_name => 'A3',
+            shelf_name => 'A1',
             max_items => 5,
             overflow_shelf => 0,
             locked => 1,
@@ -451,11 +451,11 @@ subtest 'available_shelves() tests' => sub {
         class => 'Koha::HoldPickupShelves',
         value => {
             library_id => $library_id,
-            shelf_name => 'A10',
+            shelf_name => 'A3',
             max_items => 10,
             overflow_shelf => 0,
             locked => 0,
-            priority => 4,
+            priority => 2,
             weekday => undef,
             biblio_itemtype => undef,
             patron_category_id => undef,
@@ -498,11 +498,11 @@ subtest 'available_shelves() tests' => sub {
         ok( exists $first_shelf->{holds_count}, 'Shelf has holds_count' );
     }
 
-    # Test natural sorting - shelves should be sorted A1, A2, A3, A4 (not A1, A10, A2)
+    # Test priority sorting
     if (@$response >= 2) {
-        is( $response->[0]->{shelf_name}, 'A1', 'First shelf is A1' );
-        is( $response->[1]->{shelf_name}, 'A2', 'Second shelf is A2' );
-        is( $response->[-1]->{shelf_name}, 'A10', 'Last shelf is A10' );
+        is( $response->[0]->{shelf_name}, 'A10', 'First shelf is priority 1' );
+        is( $response->[1]->{shelf_name}, 'A2', 'Second shelf is the first priority 2 shelf' );
+        is( $response->[2]->{shelf_name}, 'A3', 'Third shelf is the next priority 2 shelf' ) if @$response >= 3;
     }
 
     # Test with non-existent library
