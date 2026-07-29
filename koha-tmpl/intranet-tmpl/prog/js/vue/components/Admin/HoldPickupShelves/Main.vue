@@ -40,9 +40,9 @@ export default {
     async beforeMount() {
         const client = APIClient;
         const [libraries, categories, biblio_level_itemtypes] = await Promise.all([
-            client.libraries.libraries.getAll(),
-            client.patron.patron_categories.getAll(),
-            client.hold_pickup_shelves.biblio_level_itemtypes.getAll()
+            client.libraries.libraries.getAll({}, { _order_by: "name" }),
+            client.patron.patron_categories.getAll({}, { _order_by: "name" }),
+            client.hold_pickup_shelves.biblio_level_itemtypes.getAll({}, { _order_by: "name" })
         ]);
         this.libraries = libraries;
         this.categories = categories;

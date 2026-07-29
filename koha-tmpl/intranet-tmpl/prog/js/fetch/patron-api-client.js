@@ -20,7 +20,7 @@ export class PatronAPIClient {
     get patron_categories() {
         return {
             getAll: (query, params) =>
-                this.categoriesHttpClient.get({
+                this.categoriesHttpClient.getAll({
                     endpoint: "",
                     query,
                     params,
