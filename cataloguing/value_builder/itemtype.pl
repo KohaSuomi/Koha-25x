@@ -85,6 +85,7 @@ my $builder = sub {
                     var req = \$.get(itemtype_url);
                     req.fail(function(jqxhr, text, error){
                         alert(error);
+                        \$('#' + event.data.id).prop('disabled', false);
                     });
 
                     req.done(function(resp){
