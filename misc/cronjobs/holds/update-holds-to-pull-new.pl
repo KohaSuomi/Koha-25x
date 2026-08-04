@@ -63,7 +63,7 @@ sub active_holds_by_biblio {
 }
 
 sub valid_items_for_hold {
-    my ( $hold, $patron, $items ) = @_;
+    my ( $hold, $patron, $items, $items_in_transfer ) = @_;
 
     my %valid_items;
     my @valid_itypes;
@@ -88,9 +88,8 @@ sub valid_items_for_hold {
         my $checkout = $item->checkout;
         next if $checkout;
 
-        # If item is in active transfer, it cannot fill this hold.
-        my $transfer = $item->get_transfer;
-        next if $transfer && !$transfer->datearrived;
+        # If item is in active transfer, it cannot fill this hold (precomputed via SQL query).
+        next if $items_in_transfer->{ $item->itemnumber };
 
         # If item is already claimed for another found reserve, skip it.
         my $claimed_reserve_count = Koha::Holds->search(
@@ -195,6 +194,26 @@ print STDERR "Phase 3-6: Data aggregation in " . sprintf("%.2f", time() - $phase
 
 my $phase4_start = time();
 
+# Precompute items with active transfers using SQL (replicates Item->get_transfer logic)
+my %items_in_transfer;
+if (@biblionumbers) {
+    my @all_itemnumbers = map { $_->itemnumber } map { @{ $all_items{$_} || [] } } @biblionumbers;
+    if (@all_itemnumbers) {
+        my $dbh = C4::Context->dbh;
+        my $itemnumbers_list = join(',', @all_itemnumbers);
+        # Matches Item->get_transfer() which uses current_branchtransfers relationship
+        # that filters: datearrived IS NULL AND datecancelled IS NULL
+        my $sth = $dbh->prepare(
+            'SELECT DISTINCT itemnumber FROM branchtransfers 
+             WHERE datearrived IS NULL AND datecancelled IS NULL AND itemnumber IN (' . $itemnumbers_list . ')'
+        );
+        $sth->execute();
+        while (my ($itemnumber) = $sth->fetchrow_array) {
+            $items_in_transfer{$itemnumber} = 1;
+        }
+    }
+}
+
 # PHASE 7: Build output array
 my @reservedata;
 my %seen;
@@ -254,7 +273,7 @@ foreach my $bibnum (@biblionumbers) {
 
         # Check item-level targeting and eligibility (KOHA-2259)
         my ( $candidate_valid_items, $candidate_valid_itypes, $candidate_valid_holdingbranches ) =
-            valid_items_for_hold( $candidate, $candidate_patron, $items );
+            valid_items_for_hold( $candidate, $candidate_patron, $items, \%items_in_transfer );
 
         # Continue until at least one eligible item exists for this hold.
         my $candidate_valid_count = scalar(keys %$candidate_valid_items);
