@@ -63,7 +63,7 @@ sub active_holds_by_biblio {
 }
 
 sub valid_items_for_hold {
-    my ( $hold, $patron, $items, $items_in_transfer ) = @_;
+    my ( $hold, $patron, $items, $items_in_transfer, $itemtypes_notforloan ) = @_;
 
     my %valid_items;
     my @valid_itypes;
@@ -80,9 +80,8 @@ sub valid_items_for_hold {
         next if $item->itemlost;
         next if $item->withdrawn;
 
-        # If itemtype is configured as not for loan, it cannot fill this hold.
-        my $itemtype = Koha::ItemTypes->find( $item->itype );
-        next if $itemtype && $itemtype->notforloan;
+        # If itemtype is configured as not for loan, it cannot fill this hold (precomputed cache).
+        next if $itemtypes_notforloan->{ $item->itype };
 
         # If item is checked out, it cannot fill this hold.
         my $checkout = $item->checkout;
@@ -214,6 +213,11 @@ if (@biblionumbers) {
     }
 }
 
+# Precompute itemtypes that are notforloan
+my %itemtypes_notforloan = map { $_->itemtype => 1 } Koha::ItemTypes->search(
+    { notforloan => 1 }
+)->as_list;
+
 # PHASE 7: Build output array
 my @reservedata;
 my %seen;
@@ -273,7 +277,7 @@ foreach my $bibnum (@biblionumbers) {
 
         # Check item-level targeting and eligibility (KOHA-2259)
         my ( $candidate_valid_items, $candidate_valid_itypes, $candidate_valid_holdingbranches ) =
-            valid_items_for_hold( $candidate, $candidate_patron, $items, \%items_in_transfer );
+            valid_items_for_hold( $candidate, $candidate_patron, $items, \%items_in_transfer, \%itemtypes_notforloan );
 
         # Continue until at least one eligible item exists for this hold.
         my $candidate_valid_count = scalar(keys %$candidate_valid_items);
