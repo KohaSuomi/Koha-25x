@@ -302,7 +302,8 @@ sub biblio_level_itemtypes {
             push @{$response}, $authorised_value;
         }
     }
-    return $response;
+    # _order_by from the REST client is not applied here as this isn't a DBIC resultset
+    return [ sort { $a->{name} cmp $b->{name} } @$response ];
 }
 
 =head2 Internal methods
