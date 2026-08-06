@@ -1011,7 +1011,11 @@ sub CheckReserves {
                     last if $fulfillment_match;
                     last
                         if $local_hold_match
-                        || ( ( $LocalHoldsPriority eq 'GiveLibraryGroup' ) && $local_hold_group_match );
+                        || (
+                        (      $LocalHoldsPriority eq 'GiveLibraryGroup'
+                            || $LocalHoldsPriority eq 'GiveLibraryAndGroup' )
+                        && $local_hold_group_match
+                        );
                     next if $local_hold_group_match;
                 }
             }
