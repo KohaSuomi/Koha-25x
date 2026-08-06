@@ -95,6 +95,7 @@ apply_highlighting(\@reservedata, \@branches);
 $template->param(
     reporteddate        => $reporteddate,
     reserveloop         => \@reservedata,
+    has_reserve_groups  => scalar(@branches) > 0,
     "BiblioDefaultView".C4::Context->preference("BiblioDefaultView") => 1,
 );
 
