@@ -64,9 +64,9 @@ op can be :
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use Encode;
-use C4::Auth   qw( get_template_and_user haspermission );
+use C4::Auth qw( get_template_and_user haspermission );
 use C4::Biblio qw( GetMarcFromKohaField TransformHtmlToXml );
-use C4::Items  qw( AddItemFromMarc ModItemFromMarc PrepareItemrecordDisplay );
+use C4::Items qw( AddItemFromMarc ModItemFromMarc PrepareItemrecordDisplay );
 use C4::Output qw( output_html_with_http_headers );
 use C4::Context;
 use C4::Serials
@@ -78,7 +78,7 @@ use Koha::Items;
 use Koha::Serial::Items;
 
 use List::MoreUtils qw( uniq );
-use List::Util      qw( min );
+use List::Util qw( min );
 
 my $query              = CGI->new();
 my $dbh                = C4::Context->dbh;
@@ -260,10 +260,14 @@ if ( $op and $op eq 'cud-serialchangestatus' ) {
 
                     # Changing the status to "available" and the itemtype according to the previousitemtype db field
                     my $item = Koha::Items->find($itemnumber);
+                    my $itype =
+                          $subscriptioninfos->{'previousitemtype'}
+                        ? $subscriptioninfos->{'previousitemtype'}
+                        : $item->itype;
                     $item->set(
                         {
                             notforloan => 0,
-                            itype      => $subscriptioninfos->{'previousitemtype'}
+                            itype      => $itype
                         }
                     )->store;
                 }
