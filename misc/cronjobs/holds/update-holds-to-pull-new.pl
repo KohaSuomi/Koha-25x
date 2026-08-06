@@ -63,7 +63,7 @@ sub active_holds_by_biblio {
 }
 
 sub valid_items_for_hold {
-    my ( $hold, $patron, $items, $items_in_transfer, $itemtypes_notforloan ) = @_;
+    my ( $hold, $patron, $items, $items_in_transfer, $itemtypes_notforloan, $claimed_items ) = @_;
 
     my %valid_items;
     my @valid_itypes;
@@ -90,14 +90,8 @@ sub valid_items_for_hold {
         # If item is in active transfer, it cannot fill this hold (precomputed via SQL query).
         next if $items_in_transfer->{ $item->itemnumber };
 
-        # If item is already claimed for another found reserve, skip it.
-        my $claimed_reserve_count = Koha::Holds->search(
-            {
-                'me.itemnumber' => $item->itemnumber,
-                'me.found'      => { '!=' => undef }
-            }
-        )->count;
-        next if $claimed_reserve_count;
+        # If item is already claimed for another found reserve, skip it (precomputed via SQL query).
+        next if $claimed_items->{ $item->itemnumber };
 
         # If circulation rule holdallowed says not_allowed, item cannot fill this hold.
         my $issuing_rule = Koha::CirculationRules->get_effective_rule(
@@ -218,6 +212,23 @@ my %itemtypes_notforloan = map { $_->itemtype => 1 } Koha::ItemTypes->search(
     { notforloan => 1 }
 )->as_list;
 
+# Precompute items with claimed reserves (instead of per-item query)
+my %claimed_items;
+if (@biblionumbers) {
+    my @all_itemnumbers = map { $_->itemnumber } map { @{ $all_items{$_} || [] } } @biblionumbers;
+    if (@all_itemnumbers) {
+        my $itemnumbers_list = join(',', @all_itemnumbers);
+        my $dbh = C4::Context->dbh;
+        my $sth = $dbh->prepare(
+            'SELECT DISTINCT itemnumber FROM reserves WHERE found IS NOT NULL AND itemnumber IN (' . $itemnumbers_list . ')'
+        );
+        $sth->execute();
+        while (my ($itemnumber) = $sth->fetchrow_array) {
+            $claimed_items{$itemnumber} = 1;
+        }
+    }
+}
+
 # PHASE 7: Build output array
 my @reservedata;
 my %seen;
@@ -277,7 +288,7 @@ foreach my $bibnum (@biblionumbers) {
 
         # Check item-level targeting and eligibility (KOHA-2259)
         my ( $candidate_valid_items, $candidate_valid_itypes, $candidate_valid_holdingbranches ) =
-            valid_items_for_hold( $candidate, $candidate_patron, $items, \%items_in_transfer, \%itemtypes_notforloan );
+            valid_items_for_hold( $candidate, $candidate_patron, $items, \%items_in_transfer, \%itemtypes_notforloan, \%claimed_items );
 
         # Continue until at least one eligible item exists for this hold.
         my $candidate_valid_count = scalar(keys %$candidate_valid_items);
