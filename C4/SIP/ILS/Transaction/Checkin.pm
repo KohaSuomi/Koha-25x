@@ -189,9 +189,10 @@ sub do_checkin {
     }
 
     # ignoring messages: NotIssued, WasTransfered
-    
-        # We will send alert 53 whenever notforloan status gets changed
-    if ($messages->{NotForLoanStatusUpdated}) {
+
+        # We will send alert 53 only when notforloan status is flagged as ONLYMESSAGE
+        # (meaning the item was not actually updated in the database)
+    if ($messages->{NotForLoanStatusUpdated} && $messages->{NotForLoanStatusUpdated}->{to} eq 'ONLYMESSAGE') {
         $self->alert_type('53'); #Alert type 53 is arbitrary and might conflict with other alert_types! Be aware!
     }
 
