@@ -107,6 +107,7 @@ my $control             = C4::Context->preference('CircControl');
 my $branch_type         = C4::Context->preference('HomeOrHoldingBranch') || 'homebranch';
 my $mode                = C4::Context->preference('finesMode');
 my $overdue_branch_rule = C4::Context->preference('OverdueFineBranch');
+my $charge_on_closed    = C4::Context->preference('ChargeFinesOnClosedDays');
 my $delim = "\t";    # ?  C4::Context->preference('CSVDelimiter') || "\t";
 
 my %is_holiday;
@@ -183,7 +184,7 @@ for my $overdue ( @{$overdues} ) {
     if (
         $mode eq 'production'
         && ( !$is_holiday{$branchcode}
-            || C4::Context->preference('ChargeFinesOnClosedDays') )
+            || $charge_on_closed )
         && ( $amount && $amount > 0 )
         )
     {
