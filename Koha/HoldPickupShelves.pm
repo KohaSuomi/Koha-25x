@@ -303,7 +303,7 @@ sub biblio_level_itemtypes {
         }
     }
     # _order_by from the REST client is not applied here as this isn't a DBIC resultset
-    return [ sort { $a->{name} cmp $b->{name} } @$response ];
+    return [ sort { lc($a->{name}) cmp lc($b->{name}) } @$response ];
 }
 
 =head2 Internal methods
