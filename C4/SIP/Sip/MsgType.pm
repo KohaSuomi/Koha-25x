@@ -17,7 +17,7 @@ use C4::SIP::Sip::Checksum  qw(verify_cksum);
 use Data::Dumper;
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Auth  qw(&check_api_auth);
+use C4::Auth  qw(&check_api_auth &checkpw_internal);
 use C4::Items qw(ModDateLastSeen);
 
 use Koha::Patrons;
@@ -948,11 +948,11 @@ sub login_core {
         $server->{sip_username} = $uid;
         $server->{sip_password} = $pwd;
 
-        my $auth_status = api_auth( $uid, $pwd, $inst );
-        if ( !$auth_status or $auth_status !~ /^ok$/i ) {
+        # KSU-146 Use checkpw_internal to avoid action_logs auth entries for SIP terminal authentication
+        my ( $auth_ok, $cardnumber, $userid, $patron ) = checkpw_internal( $uid, $pwd );
+        if ( !$auth_ok ) {
             siplog(
-                "LOG_WARNING", "api_auth failed for SIP terminal '%s' of '%s': %s", $uid, $inst,
-                ( $auth_status || 'unknown' )
+                "LOG_WARNING", "Authentication failed for SIP terminal '%s' of '%s'", $uid, $inst
             );
             $status = 0;
         } else {
