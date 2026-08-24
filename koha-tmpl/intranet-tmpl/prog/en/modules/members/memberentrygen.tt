@@ -1811,6 +1811,21 @@
         }
 
         $(document).ready(function() {
+            var originalCategoryCode = $("#categorycode_entry").val();
+
+            $("#entryform").on("submit", function(e) {
+            var currentCategoryCode = $("#categorycode_entry").val();
+        
+                if (originalCategoryCode === 'VIRKAILIJA' && currentCategoryCode !== 'VIRKAILIJA') {
+                var confirmSave = confirm(__("Attention! You are changing the patron category from Staff to another category. Staff permissions will be removed upon saving. Are you sure you want to continue?"));
+            
+                    if (!confirmSave) {
+                    e.preventDefault(); 
+                    e.stopImmediatePropagation();
+                    return false;
+                    }
+                }
+            });
             showHideFields();
             $("#toggle_hidden_fields").change(function(){
                 showHideFields();
