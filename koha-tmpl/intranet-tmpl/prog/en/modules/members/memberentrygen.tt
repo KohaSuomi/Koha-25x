@@ -1756,13 +1756,13 @@
         }
 
         $(document).ready(function() {
-            var originalCategoryCode = $("#categorycode_entry").val();
+            var originalTypeName = $("#categorycode_entry option:selected").data("typename");
 
             $("#entryform").on("submit", function(e) {
-            var currentCategoryCode = $("#categorycode_entry").val();
-        
-                if (originalCategoryCode === 'VIRKAILIJA' && currentCategoryCode !== 'VIRKAILIJA') {
-                var confirmSave = confirm(__("Attention! You are changing the patron category from Staff to another category. Staff permissions will be removed upon saving. Are you sure you want to continue?"));
+            var currentTypeName = $("#categorycode_entry option:selected").data("typename");
+
+                if (originalTypeName === 'S' && currentTypeName !== 'S') {
+                var confirmSave = confirm(_("Attention! You are changing the patron category from Staff to another category. Staff permissions will be removed upon saving. Are you sure you want to continue?"));
             
                     if (!confirmSave) {
                     e.preventDefault(); 
