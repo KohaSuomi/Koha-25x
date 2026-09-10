@@ -905,6 +905,10 @@ sub CheckReserves {
         my $priority                           = 10000000;
         my $ratio_threshold                    = $available_items_count ? scalar(@reserves) / $available_items_count : 0;
 
+        # Once a GiveLibraryAndGroup group-sibling match has claimed $highest, later
+        # group matches must not overwrite it; only a subsequent exact library match
+        # (which always wins outright, see $local_hold_match below) may override it.
+        my $group_match_claimed;
 
         foreach my $res (@reserves) {
             if ( $res->{'found'} && $res->{'found'} eq 'W' ) {
@@ -978,7 +982,7 @@ sub CheckReserves {
                 # See if this item is more important than what we've got so far
                 if (   ( $res->{'priority'} && $res->{'priority'} < $priority )
                     || $local_hold_match
-                    || $local_hold_group_match )
+                    || ( $local_hold_group_match && !$group_match_claimed ) )
                 {
                     next
                         if $res->{item_group_id}
@@ -1012,7 +1016,10 @@ sub CheckReserves {
                     last
                         if $local_hold_match
                         || ( ( $LocalHoldsPriority eq 'GiveLibraryGroup' ) && $local_hold_group_match );
-                    next if $local_hold_group_match;
+                    if ($local_hold_group_match) {
+                        $group_match_claimed = 1;
+                        next;
+                    }
                 }
             }
         }
