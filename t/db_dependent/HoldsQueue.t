@@ -9,7 +9,7 @@
 use Modern::Perl;
 
 use Test::NoWarnings;
-use Test::More tests => 65;
+use Test::More tests => 73;
 use Data::Dumper;
 
 use C4::Calendar qw( new insert_single_holiday );
@@ -582,6 +582,114 @@ is(
     $holds_queue->[0]->{cardnumber}, $borrower3->{cardnumber},
     "Holds queue giving priority to patron who's home library matches item's holding library"
 );
+
+# Test LocalHoldsPriorityMaxHolds
+t::lib::Mocks::mock_preference( 'LocalHoldsPriorityPatronControl', 'PickupLibrary' );
+t::lib::Mocks::mock_preference( 'LocalHoldsPriorityItemControl',   'homebranch' );
+t::lib::Mocks::mock_preference( 'LocalHoldsPriorityMinItems',      '' );
+t::lib::Mocks::mock_preference( 'LocalHoldsPriorityHoldsPerItemThreshold', '' );
+t::lib::Mocks::mock_preference( 'LocalHoldsPriorityFulfillmentSkips', '' );
+C4::Context->clear_syspref_cache();
+$dbh->do("DELETE FROM reserves");
+$sth->execute( $borrower1->{borrowernumber}, $biblionumber, $branchcodes[0], 1 );
+$sth->execute( $borrower2->{borrowernumber}, $biblionumber, $branchcodes[2], 2 );
+$sth->execute( $borrower3->{borrowernumber}, $biblionumber, $branchcodes[0], 3 );
+
+$dbh->do("DELETE FROM items");
+
+# barcode, homebranch, holdingbranch, itemtype
+# A single item homed at borrower2's pickup library -> local match for borrower2
+$items_insert_sth->execute( $barcode + 4, $branchcodes[2], $branchcodes[2] );
+
+t::lib::Mocks::mock_preference( 'LocalHoldsPriorityMaxHolds', '1' );
+C4::HoldsQueue::CreateQueue();
+$holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
+is(
+    $holds_queue->[0]->{cardnumber}, $borrower1->{cardnumber},
+    "Holds queue respects LocalHoldsPriorityMaxHolds (local match outside the window)"
+);
+t::lib::Mocks::mock_preference( 'LocalHoldsPriorityMaxHolds', '0' );
+C4::HoldsQueue::CreateQueue();
+$holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
+is(
+    $holds_queue->[0]->{cardnumber}, $borrower2->{cardnumber},
+    "Local hold match filled when no MaxHolds limit"
+);
+
+# Test LocalHoldsPriorityMinItems
+$dbh->do("DELETE FROM reserves");
+$sth->execute( $borrower1->{borrowernumber}, $biblionumber, $branchcodes[0], 1 );
+$sth->execute( $borrower2->{borrowernumber}, $biblionumber, $branchcodes[2], 2 );
+
+$dbh->do("DELETE FROM items");
+$items_insert_sth->execute( $barcode + 4, $branchcodes[2], $branchcodes[2] );
+
+t::lib::Mocks::mock_preference( 'LocalHoldsPriorityMinItems', '2' );
+C4::HoldsQueue::CreateQueue();
+$holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
+is(
+    $holds_queue->[0]->{cardnumber}, $borrower1->{cardnumber},
+    "LocalHoldsPriorityMinItems disables local holds priority when there are not enough items"
+);
+t::lib::Mocks::mock_preference( 'LocalHoldsPriorityMinItems', '1' );
+C4::HoldsQueue::CreateQueue();
+$holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
+is(
+    $holds_queue->[0]->{cardnumber}, $borrower2->{cardnumber},
+    "LocalHoldsPriorityMinItems enables local holds priority when the threshold is met"
+);
+t::lib::Mocks::mock_preference( 'LocalHoldsPriorityMinItems', '' );
+
+# Test LocalHoldsPriorityHoldsPerItemThreshold (2 holds per 1 available item = ratio 2)
+t::lib::Mocks::mock_preference( 'LocalHoldsPriorityHoldsPerItemThreshold', '1' );
+C4::HoldsQueue::CreateQueue();
+$holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
+is(
+    $holds_queue->[0]->{cardnumber}, $borrower1->{cardnumber},
+    "LocalHoldsPriorityHoldsPerItemThreshold disables local holds priority when the ratio is too high"
+);
+t::lib::Mocks::mock_preference( 'LocalHoldsPriorityHoldsPerItemThreshold', '2' );
+C4::HoldsQueue::CreateQueue();
+$holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
+is(
+    $holds_queue->[0]->{cardnumber}, $borrower2->{cardnumber},
+    "LocalHoldsPriorityHoldsPerItemThreshold enables local holds priority when the ratio is under the threshold"
+);
+t::lib::Mocks::mock_preference( 'LocalHoldsPriorityHoldsPerItemThreshold', '' );
+
+# Test LocalHoldsPriorityFulfillmentSkips
+$dbh->do("DELETE FROM reserves");
+$sth->execute( $borrower1->{borrowernumber}, $biblionumber, $branchcodes[0], 1 );
+$sth->execute( $borrower2->{borrowernumber}, $biblionumber, $branchcodes[0], 2 );
+
+$dbh->do("DELETE FROM items");
+# barcode, homebranch, holdingbranch, itemtype
+# Item is homed at branchcodes[2], no pickup library of either patron matches -> no local match
+$items_insert_sth->execute( $barcode + 4, $branchcodes[2], $branchcodes[2] );
+
+t::lib::Mocks::mock_preference( 'LocalHoldsPriorityFulfillmentSkips', '0' );
+C4::HoldsQueue::CreateQueue();
+$holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
+is(
+    $holds_queue->[0]->{cardnumber}, $borrower1->{cardnumber},
+    "Without fulfilled skip threshold, holds are filled in priority order"
+);
+$dbh->do(
+    "UPDATE reserves SET fulfillment_skips = 1 WHERE borrowernumber = ? AND biblionumber = ?",
+    undef, $borrower2->{borrowernumber}, $biblionumber
+);
+t::lib::Mocks::mock_preference( 'LocalHoldsPriorityFulfillmentSkips', '1' );
+C4::HoldsQueue::CreateQueue();
+$holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
+is(
+    $holds_queue->[0]->{cardnumber}, $borrower2->{cardnumber},
+    "Hold that has reached its fulfillment skips threshold is filled first"
+);
+$dbh->do(
+    "UPDATE reserves SET fulfillment_skips = 0 WHERE borrowernumber = ? AND biblionumber = ?",
+    undef, $borrower2->{borrowernumber}, $biblionumber
+);
+t::lib::Mocks::mock_preference( 'LocalHoldsPriorityFulfillmentSkips', '' );
 
 t::lib::Mocks::mock_preference( 'LocalHoldsPriority', 'None' );
 ## End testing of LocalHoldsPriority
