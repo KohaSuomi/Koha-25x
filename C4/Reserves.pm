@@ -117,6 +117,7 @@ BEGIN {
         MoveReserve
 
         CheckReserves
+        RecordFulfillmentSkips
         CanBookBeReserved
         CanItemBeReserved
         CancelExpiredReserves
@@ -900,9 +901,8 @@ sub CheckReserves {
         )->count();
         
         my $LocalHoldsPriorityFulfillmentSkips = C4::Context->preference('LocalHoldsPriorityFulfillmentSkips');
-        my $hold_counter                       = 0;
-        my $fulfillment_match                  = 0;
-        my $priority                           = 10000000;
+        my $hold_counter = 0;
+        my $priority     = 10000000;
         my $ratio_threshold                    = $available_items_count ? scalar(@reserves) / $available_items_count : 0;
 
         # Once a GiveLibraryAndGroup group-sibling match has claimed $highest, later
@@ -921,9 +921,10 @@ sub CheckReserves {
                 my $patron;
                 my $local_hold_match;
                 my $local_hold_group_match;
+                my $fulfillment_match = 0;
                 # Ensure only one of LocalHoldsPriorityMinItems or LocalHoldsPriorityHoldsPerItemThreshold is active
-                my $min_items_active   = defined($LocalHoldsPriorityMinItems) && $LocalHoldsPriorityMinItems != 0;
-                my $ratio_active       = defined($LocalHoldsPriorityHoldsPerItemThreshold) && $LocalHoldsPriorityHoldsPerItemThreshold != 0;
+                my $min_items_active   = defined($LocalHoldsPriorityMinItems) && $LocalHoldsPriorityMinItems =~ /\d/ && int($LocalHoldsPriorityMinItems) != 0;
+                my $ratio_active       = defined($LocalHoldsPriorityHoldsPerItemThreshold) && $LocalHoldsPriorityHoldsPerItemThreshold =~ /\d/ && int($LocalHoldsPriorityHoldsPerItemThreshold) != 0;
 
                 if ( $min_items_active && $ratio_active ) {
                     warn "Both LocalHoldsPriorityMinItems and LocalHoldsPriorityHoldsPerItemThreshold are set. Only one should be active at a time.";
@@ -937,13 +938,15 @@ sub CheckReserves {
                 if ($local_holds_priority_enabled) {
                     # If fulfillment_skips is full, allow fulfillment
                     if (defined $LocalHoldsPriorityFulfillmentSkips
-                        && $LocalHoldsPriorityFulfillmentSkips != 0 
+                        && $LocalHoldsPriorityFulfillmentSkips =~ /\d/
+                        && int($LocalHoldsPriorityFulfillmentSkips) != 0
                         && int($res->{fulfillment_skips}) >= int($LocalHoldsPriorityFulfillmentSkips)) {
                         $fulfillment_match = 1;
                     }
                     $hold_counter++;
                     next if ( defined $LocalHoldsPriorityMaxHolds
-                        && $LocalHoldsPriorityMaxHolds != 0
+                        && $LocalHoldsPriorityMaxHolds =~ /\d/
+                        && int($LocalHoldsPriorityMaxHolds) != 0
                         && $hold_counter > $LocalHoldsPriorityMaxHolds );
                     $patron = Koha::Patrons->find( $res->{borrowernumber} );
 
@@ -973,10 +976,6 @@ sub CheckReserves {
                                 ->validate_hold_sibling( { branchcode => $local_holds_priority_patron_branchcode } );
                         }
                     }
-                    if ($LocalHoldsPriorityFulfillmentSkips && !$local_hold_match && !$local_hold_group_match && !$fulfillment_match) {
-                        my $hold = Koha::Holds->find( $res->{reserve_id} );
-                        $hold->update( { fulfillment_skips => $res->{fulfillment_skips} + 1 } );
-                    }
                 }
 
                 # See if this item is more important than what we've got so far
@@ -989,27 +988,7 @@ sub CheckReserves {
                         && ( !$item->item_group || $item->item_group->id != $res->{item_group_id} );
                     next if $res->{itemtype} && $res->{itemtype} ne $item->effective_itemtype;
                     $patron //= Koha::Patrons->find( $res->{borrowernumber} );
-                    my $branch         = Koha::Policy::Holds->holds_control_library( $item, $patron );
-                    my $branchitemrule = C4::Circulation::GetBranchItemRule( $branch, $item->effective_itemtype );
-                    next if ( $branchitemrule->{'holdallowed'} eq 'not_allowed' );
-                    next
-                        if ( ( $branchitemrule->{'holdallowed'} eq 'from_home_library' )
-                        && ( $item->homebranch ne $patron->branchcode ) );
-                    my $library = Koha::Libraries->find( { branchcode => $item->homebranch } );
-                    next
-                        if ( ( $branchitemrule->{'holdallowed'} eq 'from_local_hold_group' )
-                        && ( !$library->validate_hold_sibling( { branchcode => $patron->branchcode } ) ) );
-                    my $hold_fulfillment_policy = $branchitemrule->{hold_fulfillment_policy};
-                    next
-                        if ( ( $hold_fulfillment_policy eq 'holdgroup' )
-                        && ( !$library->validate_hold_sibling( { branchcode => $res->{branchcode} } ) ) );
-                    next
-                        if ( ( $hold_fulfillment_policy eq 'homebranch' )
-                        && ( $res->{branchcode} ne $item->$hold_fulfillment_policy ) );
-                    next
-                        if ( ( $hold_fulfillment_policy eq 'holdingbranch' )
-                        && ( $res->{branchcode} ne $item->$hold_fulfillment_policy ) );
-                    next unless $item->can_be_transferred( { to => Koha::Libraries->find( $res->{branchcode} ) } );
+                    next unless _CanFillReserve( $item, $res, $patron );
                     $priority = $res->{'priority'};
                     $highest  = $res;
                     last if $fulfillment_match;
@@ -1033,6 +1012,139 @@ sub CheckReserves {
     }
 
     return ('');
+}
+
+=head2 RecordFulfillmentSkips
+
+  C4::Reserves::RecordFulfillmentSkips( $itemnumber, $reserve_id );
+
+Records a fulfillment skip for every local hold that is eligible and could be
+fulfilled for the same item, but ranked below the hold being fulfilled (identified
+by C<$reserve_id>) in queue priority. Each such hold's C<fulfillment_skips> counter
+is incremented by one, capped at C<LocalHoldsPriorityFulfillmentSkips>.
+
+This is only meant to be called at the point where a hold is actually fulfilled
+(it is invoked from within C<ModReserveAffect>), never from plain queue scans, so
+that the counter reflects real skipped fulfillments and cannot be inflated by
+simply returning items.
+
+=cut
+
+sub RecordFulfillmentSkips {
+    my ( $itemnumber, $reserve_id ) = @_;
+
+    return if !$itemnumber || !$reserve_id;
+
+    my $LocalHoldsPriorityFulfillmentSkips = C4::Context->preference('LocalHoldsPriorityFulfillmentSkips');
+    return unless $LocalHoldsPriorityFulfillmentSkips;
+
+    my $LocalHoldsPriority = C4::Context->preference('LocalHoldsPriority');
+    return if !$LocalHoldsPriority || $LocalHoldsPriority eq 'None';
+
+    my $item = Koha::Items->find($itemnumber);
+    return unless $item;
+
+    my $winner = Koha::Holds->find($reserve_id);
+    return unless $winner;
+    return if $winner->found;
+
+    my $LocalHoldsPriorityMaxHolds = C4::Context->preference('LocalHoldsPriorityMaxHolds');
+    my $LocalHoldsPriorityMinItems = C4::Context->preference('LocalHoldsPriorityMinItems');
+    my $LocalHoldsPriorityHoldsPerItemThreshold =
+        C4::Context->preference('LocalHoldsPriorityHoldsPerItemThreshold');
+
+    my @reserves =
+        _Findgroupreserve( $item->biblionumber, $item->itemnumber, C4::Context->preference('ConfirmFutureHolds') );
+
+    my $available_items_count = Koha::Items->search(
+        {
+            biblionumber => $item->biblionumber,
+            damaged      => 0,
+            notforloan   => 0,
+        }
+    )->count();
+
+    my $min_items_active = defined($LocalHoldsPriorityMinItems) && $LocalHoldsPriorityMinItems =~ /\d/ && int($LocalHoldsPriorityMinItems) != 0;
+    my $ratio_active = defined($LocalHoldsPriorityHoldsPerItemThreshold) && $LocalHoldsPriorityHoldsPerItemThreshold =~ /\d/ && int($LocalHoldsPriorityHoldsPerItemThreshold) != 0;
+
+    if ( $min_items_active && $ratio_active ) {
+        warn "Both LocalHoldsPriorityMinItems and LocalHoldsPriorityHoldsPerItemThreshold are set. Only one should be active at a time.";
+    }
+
+    my $min_items_valid = $min_items_active && int($available_items_count) >= int($LocalHoldsPriorityMinItems);
+    my $ratio_threshold = $available_items_count ? scalar(@reserves) / $available_items_count : 0;
+    my $ratio_valid     = $ratio_active && $ratio_threshold <= $LocalHoldsPriorityHoldsPerItemThreshold;
+    return unless ( ( !$min_items_active && !$ratio_active ) || $min_items_valid || $ratio_valid );
+
+    my $hold_counter = 0;
+
+    # Gather eligible, in-window local holds that rank below the fulfilled hold
+    my @skipped_hold_ids;
+    foreach my $res (@reserves) {
+        next if $res->{found};
+
+        $hold_counter++;
+        next if ( defined $LocalHoldsPriorityMaxHolds
+            && $LocalHoldsPriorityMaxHolds =~ /\d/
+            && int($LocalHoldsPriorityMaxHolds) != 0
+            && $hold_counter > $LocalHoldsPriorityMaxHolds );
+
+        my $patron = Koha::Patrons->find( $res->{borrowernumber} );
+        next if $item->exclude_from_local_holds_priority || $patron->category->exclude_from_local_holds_priority;
+
+        next unless _CanFillReserve( $item, $res, $patron );
+
+        next unless ( defined $res->{priority} && defined $winner->priority && $res->{priority} < $winner->priority );
+
+        push @skipped_hold_ids, $res->{reserve_id};
+    }
+
+    return unless @skipped_hold_ids;
+
+    my $threshold = int($LocalHoldsPriorityFulfillmentSkips);
+    for my $hold_id (@skipped_hold_ids) {
+        my $hold = Koha::Holds->find($hold_id);
+        next unless $hold && !$hold->found;
+        my $skips = int( $hold->fulfillment_skips // 0 );
+        next if $skips >= $threshold;
+        $hold->set( { fulfillment_skips => $skips + 1 } )->store;
+    }
+}
+
+=head2 _CanFillReserve
+
+    _CanFillReserve( $item, $res, $patron );
+
+Returns true if the item can be used to fill the reserve C<$res> for C<$patron>,
+i.e. it passes the holds policy and fulfillment policy checks.
+
+=cut
+
+sub _CanFillReserve {
+    my ( $item, $res, $patron ) = @_;
+
+    my $branch         = Koha::Policy::Holds->holds_control_library( $item, $patron );
+    my $branchitemrule = C4::Circulation::GetBranchItemRule( $branch, $item->effective_itemtype );
+
+    return if $branchitemrule->{'holdallowed'} eq 'not_allowed';
+    return if ( $branchitemrule->{'holdallowed'} eq 'from_home_library' )
+        && ( $item->homebranch ne $patron->branchcode );
+
+    my $library = Koha::Libraries->find( { branchcode => $item->homebranch } );
+    return if ( $branchitemrule->{'holdallowed'} eq 'from_local_hold_group' )
+        && ( !$library->validate_hold_sibling( { branchcode => $patron->branchcode } ) );
+
+    my $hold_fulfillment_policy = $branchitemrule->{hold_fulfillment_policy};
+    return if ( $hold_fulfillment_policy eq 'holdgroup' )
+        && ( !$library->validate_hold_sibling( { branchcode => $res->{branchcode} } ) );
+    return if ( $hold_fulfillment_policy eq 'homebranch' )
+        && ( $res->{branchcode} ne $item->$hold_fulfillment_policy );
+    return if ( $hold_fulfillment_policy eq 'holdingbranch' )
+        && ( $res->{branchcode} ne $item->$hold_fulfillment_policy );
+
+    return unless $item->can_be_transferred( { to => Koha::Libraries->find( $res->{branchcode} ) } );
+
+    return 1;
 }
 
 =head2 CancelExpiredReserves
@@ -1284,6 +1396,8 @@ sub ModReserveAffect {
     $hold ||= Koha::Holds->search( { borrowernumber => $borrowernumber, biblionumber => $biblionumber } )->next();
 
     return unless $hold;
+
+    RecordFulfillmentSkips( $itemnumber, $hold->reserve_id );
 
     my $original = $hold->unblessed;
 
