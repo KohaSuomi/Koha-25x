@@ -6,7 +6,7 @@ use t::lib::Mocks;
 use C4::Context;
 
 use Test::NoWarnings;
-use Test::More tests => 7;
+use Test::More tests => 8;
 use MARC::Record;
 
 use Koha::Patrons;
@@ -21,7 +21,7 @@ use t::lib::TestBuilder;
 BEGIN {
     use FindBin;
     use lib $FindBin::Bin;
-    use_ok( 'C4::Reserves', qw( AddReserve CheckReserves ) );
+    use_ok( 'C4::Reserves', qw( AddReserve CheckReserves RecordFulfillmentSkips ModReserveAffect ) );
 }
 
 my $schema = Koha::Database->schema;
@@ -387,6 +387,133 @@ subtest "exclude from local holds" => sub {
     is(
         $reserve->{borrowernumber}, $patron_nex_l2->borrowernumber,
         "Patron from other library is next checkout because item is excluded"
+    );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest "fulfillment skips" => sub {
+    plan tests => 7;
+
+    $schema->storage->txn_begin;
+
+    my $lib1 = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $lib2 = $builder->build_object( { class => 'Koha::Libraries' } );
+
+    my $item3 = $builder->build_sample_item(
+        {
+            exclude_from_local_holds_priority => 0,
+            homebranch                        => $lib2->branchcode,
+            holdingbranch                     => $lib2->branchcode,
+        }
+    );
+    my $category_nex = $builder->build_object(
+        { class => 'Koha::Patron::Categories', value => { exclude_from_local_holds_priority => 0 } } );
+
+    my $patron_nex_l1 = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { branchcode => $lib1->branchcode, categorycode => $category_nex->categorycode }
+        }
+    );
+    my $patron_nex_l2 = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { branchcode => $lib2->branchcode, categorycode => $category_nex->categorycode }
+        }
+    );
+
+    t::lib::Mocks::mock_preference( 'LocalHoldsPriority',              'GiveLibrary' );
+    t::lib::Mocks::mock_preference( 'LocalHoldsPriorityPatronControl', 'HomeLibrary' );
+    t::lib::Mocks::mock_preference( 'LocalHoldsPriorityItemControl',   'homebranch' );
+    t::lib::Mocks::mock_preference( 'LocalHoldsPriorityFulfillmentSkips', '2' );
+
+    AddReserve(
+        {
+            branchcode     => $lib1->branchcode,
+            borrowernumber => $patron_nex_l1->borrowernumber,
+            biblionumber   => $item3->biblionumber,
+            priority       => 1,
+        }
+    );
+    AddReserve(
+        {
+            branchcode     => $lib2->branchcode,
+            borrowernumber => $patron_nex_l2->borrowernumber,
+            biblionumber   => $item3->biblionumber,
+            priority       => 2,
+        }
+    );
+
+    my ( $status, $reserve, $all_reserves );
+    ( $status, $reserve, $all_reserves ) = CheckReserves($item3);
+    is( $reserve->{borrowernumber}, $patron_nex_l2->borrowernumber, "Local match wins" );
+
+    my @reserves_in_order = sort { $a->{priority} <=> $b->{priority} } @$all_reserves;
+    my $skipped_hold_id   = $reserves_in_order[0]->{reserve_id};
+    my $winning_hold_id   = $reserves_in_order[1]->{reserve_id};
+
+    is(
+        Koha::Holds->find($skipped_hold_id)->fulfillment_skips, 0,
+        "CheckReserves does not increment fulfillment_skips"
+    );
+
+    RecordFulfillmentSkips( $item3->itemnumber, $winning_hold_id );
+    is(
+        Koha::Holds->find($skipped_hold_id)->fulfillment_skips, 1,
+        "RecordFulfillmentSkips counts the hold passed over when fulfilling"
+    );
+    is(
+        Koha::Holds->find($winning_hold_id)->fulfillment_skips, 0,
+        "The fulfilled hold itself is not counted"
+    );
+
+    RecordFulfillmentSkips( $item3->itemnumber, $winning_hold_id );
+    RecordFulfillmentSkips( $item3->itemnumber, $winning_hold_id );
+    RecordFulfillmentSkips( $item3->itemnumber, $winning_hold_id );
+    is(
+        Koha::Holds->find($skipped_hold_id)->fulfillment_skips, 2,
+        "fulfillment_skips is capped at the LocalHoldsPriorityFulfillmentSkips threshold"
+    );
+
+    my $item4 = $builder->build_sample_item(
+        {
+            exclude_from_local_holds_priority => 0,
+            homebranch                        => $lib2->branchcode,
+            holdingbranch                     => $lib2->branchcode,
+        }
+    );
+    AddReserve(
+        {
+            branchcode     => $lib1->branchcode,
+            borrowernumber => $patron_nex_l1->borrowernumber,
+            biblionumber   => $item4->biblionumber,
+            priority       => 1,
+        }
+    );
+    AddReserve(
+        {
+            branchcode     => $lib2->branchcode,
+            borrowernumber => $patron_nex_l2->borrowernumber,
+            biblionumber   => $item4->biblionumber,
+            priority       => 2,
+        }
+    );
+
+    my ( $status2, $reserve2, $all_reserves2 ) = CheckReserves($item4);
+    my @fullfills2   = sort { $a->{priority} <=> $b->{priority} } @$all_reserves2;
+    my $skipped_id2  = $fullfills2[0]->{reserve_id};
+
+    ModReserveAffect( $item4->itemnumber, $reserve2->{borrowernumber}, 0, $reserve2->{reserve_id} );
+    is(
+        Koha::Holds->find($skipped_id2)->fulfillment_skips, 1,
+        "ModReserveAffect records the fulfillment skips"
+    );
+
+    ModReserveAffect( $item4->itemnumber, $reserve2->{borrowernumber}, 0, $reserve2->{reserve_id} );
+    is(
+        Koha::Holds->find($skipped_id2)->fulfillment_skips, 1,
+        "Re-affecting an already waiting hold does not record further skips"
     );
 
     $schema->storage->txn_rollback;
