@@ -634,7 +634,7 @@
 [% END %]
 
 [% BLOCK modal_wrapper %]
-    <div id="[% modal_id | html %]" class="modal modal-lg audio-alert-action [% IF noblock %]noblock[% ELSE %]block[% END %]" [% UNLESS noblock %]data-bs-backdrop="static" data-bs-keyboard="false"[% END %]>
+    <div id="[% modal_id | html %]" class="modal modal-lg audio-alert-action [% IF noblock %]noblock[% ELSE %]block[% END %]" [% UNLESS noblock || dismissable_backdrop %]data-bs-backdrop="static" data-bs-keyboard="false"[% END %]>
         <div class="modal-dialog">
             <div class="modal-content">
                 <form class="modal-form" method="post" action="[% modal_action | $raw %]" id="[% modal_id | html %]-form">
