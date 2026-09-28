@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 71;
+use Test::More tests => 72;
 use Test::NoWarnings;
 use Test::MockModule;
 use Test::Warn;
@@ -2117,6 +2117,128 @@ subtest 'CheckReserves() item type tests' => sub {
 
     my ($res) = CheckReserves($item);
     is( $res, '', 'No holds on new item' );
+
+    $schema->storage->txn_rollback;
+};
+
+# Items that cannot be used for holds must not be counted as available items by
+# the LocalHoldsPriorityMinItems and LocalHoldsPriorityHoldsPerItemThreshold thresholds
+subtest 'CheckReserves() local holds priority available items count' => sub {
+
+    plan tests => 5;
+
+    $schema->storage->txn_begin;
+
+    $dbh->do('DELETE FROM circulation_rules');
+    Koha::CirculationRules->set_rules(
+        {
+            branchcode => undef,
+            itemtype   => undef,
+            rules      => {
+                holdallowed             => 'from_any_library',
+                hold_fulfillment_policy => 'any',
+            },
+        }
+    );
+    Koha::CirculationRules->set_rules(
+        {
+            branchcode   => undef,
+            categorycode => undef,
+            itemtype     => undef,
+            rules        => {
+                holds_per_record => 25,
+                reservesallowed  => 25,
+            },
+        }
+    );
+
+    t::lib::Mocks::mock_preference( 'LocalHoldsPriority',                      'GiveLibrary' );
+    t::lib::Mocks::mock_preference( 'LocalHoldsPriorityPatronControl',         'PickupLibrary' );
+    t::lib::Mocks::mock_preference( 'LocalHoldsPriorityItemControl',           'homebranch' );
+    t::lib::Mocks::mock_preference( 'LocalHoldsPriorityMaxHolds',              0 );
+    t::lib::Mocks::mock_preference( 'LocalHoldsPriorityFulfillmentSkips',      0 );
+    t::lib::Mocks::mock_preference( 'LocalHoldsPriorityHoldsPerItemThreshold', 0 );
+    t::lib::Mocks::mock_preference( 'LocalHoldsPriorityMinItems',              2 );
+    t::lib::Mocks::mock_preference( 'UseBranchTransferLimits',                 0 );
+    t::lib::Mocks::mock_preference( 'AllowHoldsOnDamagedItems',                0 );
+    t::lib::Mocks::mock_preference( 'ConfirmFutureHolds',                      0 );
+
+    my $home_branch  = $builder->build( { source => 'Branch' } )->{branchcode};
+    my $other_branch = $builder->build( { source => 'Branch' } )->{branchcode};
+    my $category     = $builder->build( { source => 'Category', value => { exclude_from_local_holds_priority => 0 } } )
+        ->{categorycode};
+    my $itype = $builder->build( { source => 'Itemtype', value => { notforloan => 0 } } )->{itemtype};
+
+    my $biblio_number = $builder->build_sample_biblio->biblionumber;
+    my %item_args     = (
+        biblionumber                      => $biblio_number,
+        library                           => $home_branch,
+        itype                             => $itype,
+        damaged                           => 0,
+        notforloan                        => 0,
+        itemlost                          => 0,
+        withdrawn                         => 0,
+        exclude_from_local_holds_priority => 0,
+    );
+
+    my $returned_item = $builder->build_sample_item( {%item_args} );
+    my $other_item    = $builder->build_sample_item( {%item_args} );
+
+    # First in the queue, but not a local match for the item's library
+    my $first_in_queue = Koha::Patron->new(
+        {
+            branchcode   => $other_branch,
+            categorycode => $category,
+            surname      => 'first in the queue',
+        }
+    )->store;
+
+    # Second in the queue, but a local match for the item's home library
+    my $local_match = Koha::Patron->new(
+        {
+            branchcode   => $home_branch,
+            categorycode => $category,
+            surname      => 'local match',
+        }
+    )->store;
+
+    AddReserve(
+        {
+            branchcode     => $other_branch,
+            borrowernumber => $first_in_queue->borrowernumber,
+            biblionumber   => $biblio_number,
+            priority       => 1,
+        }
+    );
+    AddReserve(
+        {
+            branchcode     => $home_branch,
+            borrowernumber => $local_match->borrowernumber,
+            biblionumber   => $biblio_number,
+            priority       => 2,
+        }
+    );
+
+    my ( $status, $reserve ) = CheckReserves($returned_item);
+    is( $status, 'Reserved', 'A hold is found for the returned item' );
+    is(
+        $reserve->{borrowernumber},
+        $local_match->borrowernumber,
+        'Local holds priority is applied when the record has enough available items'
+    );
+
+    for my $item_status (qw( itemlost withdrawn notforloan )) {
+        $other_item->$item_status(1)->store;
+
+        ( $status, $reserve ) = CheckReserves($returned_item);
+        is(
+            $reserve->{borrowernumber},
+            $first_in_queue->borrowernumber,
+            "A $item_status item is not counted as an available item, so local holds priority is disabled"
+        );
+
+        $other_item->$item_status(0)->store;
+    }
 
     $schema->storage->txn_rollback;
 };
