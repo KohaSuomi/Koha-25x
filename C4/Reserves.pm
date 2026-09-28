@@ -892,13 +892,7 @@ sub CheckReserves {
         my $LocalHoldsPriorityMinItems      = C4::Context->preference('LocalHoldsPriorityMinItems');
         my $LocalHoldsPriorityHoldsPerItemThreshold =
             C4::Context->preference('LocalHoldsPriorityHoldsPerItemThreshold');
-        my $available_items_count = Koha::Items->search(
-            {
-                biblionumber => $item->biblionumber,
-                damaged      => 0,
-                notforloan   => 0,
-            }
-        )->count();
+        my $available_items_count = _available_items_count( $item->biblionumber );
         
         my $LocalHoldsPriorityFulfillmentSkips = C4::Context->preference('LocalHoldsPriorityFulfillmentSkips');
         my $hold_counter = 0;
@@ -1056,13 +1050,7 @@ sub RecordFulfillmentSkips {
     my @reserves =
         _Findgroupreserve( $item->biblionumber, $item->itemnumber, C4::Context->preference('ConfirmFutureHolds') );
 
-    my $available_items_count = Koha::Items->search(
-        {
-            biblionumber => $item->biblionumber,
-            damaged      => 0,
-            notforloan   => 0,
-        }
-    )->count();
+    my $available_items_count = _available_items_count( $item->biblionumber );
 
     my $min_items_active = defined($LocalHoldsPriorityMinItems) && $LocalHoldsPriorityMinItems =~ /\d/ && int($LocalHoldsPriorityMinItems) != 0;
     my $ratio_active = defined($LocalHoldsPriorityHoldsPerItemThreshold) && $LocalHoldsPriorityHoldsPerItemThreshold =~ /\d/ && int($LocalHoldsPriorityHoldsPerItemThreshold) != 0;
@@ -1145,6 +1133,35 @@ sub _CanFillReserve {
     return unless $item->can_be_transferred( { to => Koha::Libraries->find( $res->{branchcode} ) } );
 
     return 1;
+}
+
+=head2 _available_items_count
+
+  my $count = _available_items_count($biblionumber);
+
+Returns the number of items of the record that are available to be used for
+holds, and are therefore counted towards the LocalHoldsPriorityMinItems and
+LocalHoldsPriorityHoldsPerItemThreshold thresholds.
+
+An item is counted unless it is not for loan, damaged, lost or withdrawn, which
+matches the item statuses C<GetItemsAvailableToFillHoldRequestsForBib> excludes
+when building the pool of items that can fill a hold. Items on loan are counted,
+since they are still copies of the record that will eventually come back.
+
+=cut
+
+sub _available_items_count {
+    my ($biblionumber) = @_;
+
+    return Koha::Items->search(
+        {
+            biblionumber => $biblionumber,
+            damaged      => 0,
+            notforloan   => 0,
+            itemlost     => 0,
+            withdrawn    => 0,
+        }
+    )->count();
 }
 
 =head2 CancelExpiredReserves
