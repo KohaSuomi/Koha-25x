@@ -232,6 +232,7 @@ if (@biblionumbers) {
 # PHASE 7: Build output array
 my @reservedata;
 my %seen;
+my %items_claimed_by_hold;  # Global tracker: item-level holds claiming specific items
 
 foreach my $bibnum (@biblionumbers) {
     next if $seen{$bibnum};
@@ -245,14 +246,13 @@ foreach my $bibnum (@biblionumbers) {
     next if $pull_count == 0;
 
     my $hold_candidates = $all_holds_by_biblio->{$bibnum} || [];
-    my $hold;
-    my $patron;
-    my $valid_items;
-    my $valid_itypes;
-    my $valid_holdingbranches;
+    my $has_any_valid_hold = 0;
+    my $found_first_biblio_hold = 0;
 
-    # Walk queue-ordered holds and select the first one that can be filled now.
-    HOLD_CANDIDATE:
+    # PHASE 8A & 8B: Walk queue-ordered holds and output each one that can be filled now.
+    # For item-level holds: validate fast by checking target item directly
+    # For biblio-level holds: only process the first valid one, then skip rest
+    # Skip item-level holds whose target items are already claimed by earlier holds.
     foreach my $candidate (@$hold_candidates) {
         # Ignore currently suspended holds and holds that only activate in the future. (KOHA-2259)
         if ( $candidate->suspend ) {
@@ -286,83 +286,118 @@ foreach my $bibnum (@biblionumbers) {
             next;
         }
 
-        # Check item-level targeting and eligibility (KOHA-2259)
-        my ( $candidate_valid_items, $candidate_valid_itypes, $candidate_valid_holdingbranches ) =
-            valid_items_for_hold( $candidate, $candidate_patron, $items, \%items_in_transfer, \%itemtypes_notforloan, \%claimed_items );
+        my $candidate_valid_items;
+        my $requested_itemnumber = $candidate->itemnumber;
 
-        # Continue until at least one eligible item exists for this hold.
-        my $candidate_valid_count = scalar(keys %$candidate_valid_items);
-        unless ( $candidate_valid_count > 0 ) {
-            next;
+        if ($requested_itemnumber) {
+            # FAST PATH: Item-level hold - validate target item directly without iterating all items
+            if ( $items_claimed_by_hold{$requested_itemnumber} ) {
+                next;  # Item already claimed by earlier hold
+            }
+
+            # Find target item and validate it
+            my $target_item;
+            foreach my $item (@$items) {
+                if ( $item->itemnumber == $requested_itemnumber ) {
+                    $target_item = $item;
+                    last;
+                }
+            }
+
+            next unless $target_item;
+
+            # Quick validation checks for item-level hold
+            next if $target_item->notforloan || $target_item->damaged || $target_item->itemlost || $target_item->withdrawn;
+            next if $itemtypes_notforloan{ $target_item->itype };
+            next if $target_item->checkout;
+            next if $items_in_transfer{$requested_itemnumber};
+            next if $claimed_items{$requested_itemnumber};
+
+            my $issuing_rule = Koha::CirculationRules->get_effective_rule({
+                categorycode => $candidate_patron->categorycode,
+                itemtype     => $target_item->itype,
+                branchcode   => $candidate->branchcode,
+                rule_name    => 'holdallowed',
+            });
+
+            next if $issuing_rule && $issuing_rule->rule_value && $issuing_rule->rule_value eq 'not_allowed';
+
+            # Item-level hold is valid
+            $candidate_valid_items = { $requested_itemnumber => $target_item };
+            $items_claimed_by_hold{$requested_itemnumber} = 1;
+        } else {
+            # SLOW PATH: Biblio-level hold - validate via full item check
+            # But only process the first valid biblio-level hold per biblio
+            next if $found_first_biblio_hold;
+
+            my ( $valid_items_ref, undef, undef ) =
+                valid_items_for_hold( $candidate, $candidate_patron, $items, \%items_in_transfer, \%itemtypes_notforloan, \%claimed_items );
+
+            my $valid_count = scalar(keys %$valid_items_ref);
+            next unless $valid_count > 0;
+
+            $candidate_valid_items = $valid_items_ref;
+            $found_first_biblio_hold = 1;
         }
 
-        $hold = $candidate;
-        $patron = $candidate_patron;
-        $valid_items = $candidate_valid_items;
-        $valid_itypes = $candidate_valid_itypes;
-        $valid_holdingbranches = $candidate_valid_holdingbranches;
+        $has_any_valid_hold = 1;
 
-        # First valid candidate wins.
-        last HOLD_CANDIDATE;
+        my $biblio = $candidate->biblio;
+        my $biblioitem = $biblio->biblioitem;
+        my @mtypes = $biblioitem && $biblioitem->itemtype ? ( $biblioitem->itemtype ) : ();
+
+        # Group this hold's valid items by enumchron and create one row per enumchron
+        my %items_by_enumchron;
+        foreach my $item (values %$candidate_valid_items) {
+            push @{ $items_by_enumchron{ $item->enumchron || '' } }, $item;
+        }
+
+        foreach my $enumchron (sort keys %items_by_enumchron) {
+            my $items_for_enum = $items_by_enumchron{$enumchron};
+
+            my @itemcallnumbers = sort { $a cmp $b } uniq map { $_->itemcallnumber // () } @$items_for_enum;
+            my @locations = sort { $a cmp $b } uniq map { $_->location // () } @$items_for_enum;
+            my @sublocations = sort { $a cmp $b } uniq map { $_->sub_location // () } @$items_for_enum;
+            my @ccodes = sort { $a cmp $b } uniq map { $_->ccode // () } @$items_for_enum;
+            my @copynumbers = sort { $a cmp $b } uniq map { $_->copynumber // () } @$items_for_enum;
+            my @itemnotes = sort { $a cmp $b } uniq map { $_->itemnotes // () } @$items_for_enum;
+            my @holdingbranches = sort { $a cmp $b } uniq map { $_->holdingbranch // () } @$items_for_enum;
+            my @itypes = sort { $a cmp $b } uniq map { $_->itype // () } @$items_for_enum;
+
+            push @reservedata, {
+                reservedate      => $candidate->reservedate,
+                borrowerinfo     => $candidate_patron->othernames,
+                title            => $biblio->title,
+                editionstatement => $biblioitem ? $biblioitem->editionstatement : '',
+                number           => $biblioitem ? $biblioitem->number : '',
+                subtitle         => [ $biblio->subtitle ] || [],
+                author           => $biblio->author,
+                collectiontitle  => $biblioitem ? $biblioitem->collectiontitle : '',
+                collectionvolume => $biblioitem ? $biblioitem->collectionvolume : '',
+                publicationyear  => $biblio->copyrightdate,
+                part_name        => $biblio->part_name,
+                part_number      => $biblio->part_number,
+                borrowernumber   => $candidate_patron->borrowernumber,
+                biblionumber     => $bibnum,
+                holdingbranches  => \@holdingbranches,
+                branch           => $candidate->branchcode,
+                itemcallnumber   => \@itemcallnumbers,
+                enumchron        => $enumchron,
+                copyno           => join('<br/>', @copynumbers),
+                itemnotes        => \@itemnotes,
+                count            => scalar(@$items_for_enum),
+                rcount           => $total_reserves,
+                itypes           => \@itypes,
+                mtypes           => \@mtypes,
+                pullcount        => scalar(@$items_for_enum),
+                locations        => \@locations,
+                sublocations     => \@sublocations,
+                ccodes           => \@ccodes,
+            };
+        }
     }
 
-    next unless $hold;
-
-    my $biblio = $hold->biblio;
-    my $biblioitem = $biblio->biblioitem;  # Get first biblioitem via biblio
-
-    # Collect item metadata
-    my @itemcallnumbers = sort { $a cmp $b } uniq map { $_->itemcallnumber // () } values %$valid_items;
-    my @locations = sort { $a cmp $b } uniq map { $_->location // () } values %$valid_items;
-    my @sublocations = sort { $a cmp $b } uniq map { $_->sub_location // () } values %$valid_items;
-    my @ccodes = sort { $a cmp $b } uniq map { $_->ccode // () } values %$valid_items;
-    my @enumchrons = sort { $a cmp $b } uniq map { $_->enumchron // () } values %$valid_items;
-    my @copynumbers = sort { $a cmp $b } uniq map { $_->copynumber // () } values %$valid_items;
-    my @itemnotes = sort { $a cmp $b } uniq map { $_->itemnotes // () } values %$valid_items;
-    my @holdingbranches = sort { $a cmp $b } uniq @$valid_holdingbranches;
-    my @itypes = sort { $a cmp $b } uniq @$valid_itypes;
-
-    # Get item types from biblioitems if needed
-    # Use Koha-Suomi logic
-    my @mtypes;
-    #if ( C4::Context->preference('item-level_itypes') ) {
-    #    @mtypes = sort { $a cmp $b } uniq map { $_->itype // () } values %valid_items;
-    #} else {
-        @mtypes = $biblioitem && $biblioitem->itemtype ? ( $biblioitem->itemtype ) : ();
-    #}
-
-    push(
-        @reservedata, {
-            reservedate      => $hold->reservedate,
-            borrowerinfo     => $patron->othernames,
-            title            => $biblio->title,
-            editionstatement => $biblioitem ? $biblioitem->editionstatement : '',
-            number           => $biblioitem ? $biblioitem->number : '',
-            subtitle         => [ $biblio->subtitle ] || [],
-            author           => $biblio->author,
-            collectiontitle  => $biblioitem ? $biblioitem->collectiontitle : '',
-            collectionvolume => $biblioitem ? $biblioitem->collectionvolume : '',
-            publicationyear  => $biblio->copyrightdate,
-            part_name        => $biblio->part_name,
-            part_number      => $biblio->part_number,
-            borrowernumber   => $patron->borrowernumber,
-            biblionumber     => $bibnum,
-            holdingbranches  => \@holdingbranches,
-            branch           => $hold->branchcode,
-            itemcallnumber   => \@itemcallnumbers,
-            enumchron        => join(', ', @enumchrons),
-            copyno           => join('<br/>', @copynumbers),
-            itemnotes        => \@itemnotes,
-            count            => scalar(keys %$valid_items),
-            rcount           => $total_reserves,
-            itypes           => \@itypes,
-            mtypes           => \@mtypes,
-            pullcount        => $pull_count,
-            locations        => \@locations,
-            sublocations     => \@sublocations,
-            ccodes           => \@ccodes,
-        }
-    );
+    next unless $has_any_valid_hold;
 }
 
 store \@reservedata, "/tmp/kohasuomi-pendingreserves.tmp";
