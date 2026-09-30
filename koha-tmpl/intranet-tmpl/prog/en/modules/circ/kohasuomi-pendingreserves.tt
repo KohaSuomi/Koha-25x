@@ -166,7 +166,6 @@
 
                                                 [% IF ( reserveloo.editionstatement ) %][% reserveloo.editionstatement | html %][% END %]
                                                 [% IF ( reserveloo.publicationyear ) %] [% reserveloo.publicationyear | html %][% END %]
-                                                [% IF ( reserveloo.enumchron ) %]Issues [% reserveloo.enumchron | html %][% END %]
                                             </td>
                                         [% ELSE %]
                                             <td></td>
