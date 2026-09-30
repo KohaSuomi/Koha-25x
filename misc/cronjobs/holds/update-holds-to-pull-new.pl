@@ -400,7 +400,7 @@ foreach my $bibnum (@biblionumbers) {
                 rcount           => $total_reserves,
                 itypes           => \@itypes,
                 mtypes           => \@mtypes,
-                pullcount        => scalar(@$items_for_enum),
+                pullcount        => $pull_count,
                 locations        => \@locations,
                 sublocations     => \@sublocations,
                 ccodes           => \@ccodes,
