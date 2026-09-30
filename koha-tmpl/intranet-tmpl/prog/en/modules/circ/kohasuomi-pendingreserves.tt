@@ -150,9 +150,11 @@
                                             </td>
                                             <td>
                                                 <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% reserveloo.biblionumber | uri %]" style="font-weight: bold;">
-                                                [% reserveloo.title | html %][% IF ( reserveloo.item_barcode ) %] ([% reserveloo.item_barcode | html %])[% END %]
+                                                [% reserveloo.title | html %]
                                                 [% IF ( reserveloo. number ) %] [% reserveloo.number | html %] [% END %]
                                                 [% FOREACH s IN reserveloo.subtitle %][% s | html %] [% END %]</a>
+
+                                                [% IF ( reserveloo.item_barcode ) %]<br/><br/>Barcode: <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% reserveloo.biblionumber | uri %]&itemnumber=[% reserveloo.itemnumber | uri %]">[% reserveloo.item_barcode | html %]</a>[% END %]
 
                                                 [% IF ( reserveloo.part_name ) %]<br/>[% reserveloo.part_name | html %][% END %]
                                                 [% IF ( reserveloo.part_number ) %] [% reserveloo.part_number | html %][% END %]
