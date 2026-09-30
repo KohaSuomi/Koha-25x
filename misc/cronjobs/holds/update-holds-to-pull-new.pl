@@ -364,6 +364,13 @@ foreach my $bibnum (@biblionumbers) {
             my @holdingbranches = sort { $a cmp $b } uniq map { $_->holdingbranch // () } @$items_for_enum;
             my @itypes = sort { $a cmp $b } uniq map { $_->itype // () } @$items_for_enum;
 
+            # For item-level holds, store barcode separately to append to title in template
+            my $item_barcode = '';
+            if ($requested_itemnumber) {
+                my $item = $items_for_enum->[0];  # Item-level holds have exactly one item per enumchron
+                $item_barcode = $item->barcode // '';
+            }
+
             push @reservedata, {
                 reservedate      => $candidate->reservedate,
                 borrowerinfo     => $candidate_patron->othernames,
@@ -383,6 +390,7 @@ foreach my $bibnum (@biblionumbers) {
                 branch           => $candidate->branchcode,
                 itemcallnumber   => \@itemcallnumbers,
                 enumchron        => $enumchron,
+                item_barcode     => $item_barcode,
                 copyno           => join('<br/>', @copynumbers),
                 itemnotes        => \@itemnotes,
                 count            => scalar(@$items_for_enum),
