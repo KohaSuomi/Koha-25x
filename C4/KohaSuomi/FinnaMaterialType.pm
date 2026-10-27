@@ -67,6 +67,7 @@ my %FinnaMaterialLang = (
     'Photonegative' => { 'fi_FI' => 'NEGATIIVI' },
     'Flashcard' => { 'fi_FI' => 'KORTTI' },
     'Chart' => { 'fi_FI' => 'KAAVIO' },
+    'JigsawPuzzle' => { 'fi_FI' => 'PALAPELI' },
     'MotionPicture' => { 'fi_FI' => 'ELOKUVA' },
     'SensorImage' => { 'fi_FI' => 'KAUKOKART' },
     'VideoCartridge' => { 'fi_FI' => 'VIDEOSILM' },
@@ -110,6 +111,7 @@ sub getFinnaMaterialType_core {
 
     if ($typeOfRecord eq 'R') {
         my $visualType = substr($field008, 33, 1) || '';
+        return 'JigsawPuzzle' if ($visualType eq 'g' && termIn655($record, 'palapelit'));
         return 'BoardGame' if ($visualType eq 'g' || termIn655($record, 'lautapelit'));
     } elsif ($typeOfRecord eq 'M') {
         my $electronicType = substr($field008, 26, 1) || '';
