@@ -111,11 +111,11 @@ sub getFinnaMaterialType_core {
 
     if ($typeOfRecord eq 'R') {
         my $visualType = substr($field008, 33, 1) || '';
-        return 'JigsawPuzzle' if ($visualType eq 'g' && termIn655($record, 'palapelit'));
+        return 'JigsawPuzzle' if termIn655($record, 'palapelit');
         return 'BoardGame' if ($visualType eq 'g' || termIn655($record, 'lautapelit'));
     } elsif ($typeOfRecord eq 'M') {
         my $electronicType = substr($field008, 26, 1) || '';
-        return 'VideoGame' if ($electronicType eq 'g' || termIn655($record, 'videopelit'));
+        return 'VideoGame' if ($electronicType eq 'g' || termIn655($record, 'videopelit') || termIn655($record, 'konsolipelit'));
     }
 
 
